@@ -8750,7 +8750,7 @@
         const [setRes, uRes, vRes] = await Promise.all([
           cloudFetch(`${url}/rest/v1/system_settings?select=*`, { headers }).catch(() => null),
           cloudFetch(`${url}/rest/v1/users?select=*`, { headers }).catch(() => null),
-          cloudFetch(`${url}/rest/v1/voters?select=*&limit=5000`, { headers }).catch(() => null)
+          cloudFetch(`${url}/rest/v1/voters?select=*&limit=25000`, { headers }).catch(() => null)
         ]);
 
         // 1. Process system_settings & multi-tenant cloud registry
@@ -9374,6 +9374,18 @@
       // Auto route to appropriate landing view according to Role definition (lazy renders the active view instantaneously)
       const rolePerm = currentUser ? (ROLE_PERMISSIONS[currentUser.Role] || ROLE_PERMISSIONS['Field Worker']) : ROLE_PERMISSIONS['Palika Admin'];
       switchView(rolePerm.defaultView);
+
+      // Automatic live Cloud Sync from Supabase on every login
+      if (typeof syncSupabaseData === 'function') {
+        syncSupabaseData(false).then(() => {
+          refreshDashboardMetrics();
+          const activeSec = document.querySelector('.view-section.active');
+          const activeId = activeSec ? activeSec.id : '';
+          if (activeId === 'viewVoters') renderVotersList();
+          else if (activeId === 'viewHouseholds') renderHouseholdsList();
+          else if (activeId === 'viewTenants') renderTenantsManagement();
+        }).catch(err => console.warn('Auto cloud sync on launch error:', err));
+      }
     }
 
     function logout() {
@@ -24835,7 +24847,16 @@ function renderCommunityLeadersTable(filteredGroups) {
 
               <!-- Col 3: Default Ward, Booth, Tole & Duplicate Rule -->
               <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="font-size: 11.5px; font-weight: 800; color: #1e3a6e; margin-bottom: 6px;">⚙️ Batch Defaults (डिफल्ट वडा/बुथ):</div>
+                <div style="font-size: 11.5px; font-weight: 800; color: #1e3a6e; margin-bottom: 4px;">⚙️ Batch Defaults (डिफल्ट पालिका/वडा/बुथ):</div>
+                <div style="margin-bottom: 6px;">
+                  <label style="font-size: 10.5px; font-weight: 800; color: #1e3a6e; display: block; margin-bottom: 2px;">🏛️ लक्ष्य पालिका (Target Palika / Tenant):</label>
+                  <select id="bulkTargetTenant" class="form-control" style="font-weight: 800; font-size: 12px; min-height: 32px; height: 32px; padding: 2px 6px; border: 1.5px solid #2563eb; background: #eff6ff; color: #1e3a6e;">
+                    ${(state.tenants && state.tenants.length ? state.tenants : [
+                      { TenantID: 'TNT_HELAMBU', PalikaName: 'हेलाम्बु गाउँपालिका' },
+                      { TenantID: 'TNT_MELAMCHI', PalikaName: 'मेलम्ची नगरपालिका' }
+                    ]).map(t => `<option value="${t.TenantID}">${t.PalikaName || t.TenantName} (${t.TenantID})</option>`).join('')}
+                  </select>
+                </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
                   <select id="bulkDefaultWard" class="form-control" style="font-weight: 700; font-size: 12px; min-height: 32px; height: 32px; padding: 2px 6px;">
                     ${state.wards.map(w => `<option value="${w.WardNo}" ${w.WardNo == defWard ? 'selected' : ''}>वडा नं. ${w.WardNo}</option>`).join('')}
@@ -25198,7 +25219,8 @@ function renderCommunityLeadersTable(filteredGroups) {
       const dupMode = document.getElementById('bulkDuplicateMode')?.value || 'update';
       const autoLinkFamily = document.getElementById('bulkAutoLinkFamily') ? document.getElementById('bulkAutoLinkFamily').checked : true;
 
-      const activeTenantId = (currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') ? currentUser.TenantID : 'TNT_HELAMBU';
+      const chosenTenantFromSelect = document.getElementById('bulkTargetTenant')?.value;
+      const activeTenantId = chosenTenantFromSelect || ((currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') ? currentUser.TenantID : 'TNT_HELAMBU');
 
       let importedCount = 0;
       let updatedCount = 0;
