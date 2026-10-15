@@ -5,10 +5,8 @@
   "description": "Helambu Rural Municipality Election Operations & Voter Management System (Zero-Dependency Instant Build)",
   "type": "module",
   "scripts": {
-    "start": "node server.mjs",
-    "dev": "node server.mjs",
     "build": "node build.mjs",
-    "preview": "node server.mjs"
+    "local": "node local_server.mjs"
   },
   "dependencies": {},
   "devDependencies": {}
