@@ -6712,9 +6712,10 @@
                 <label class="form-label">Supabase Anon / Publishable Key</label>
                 <input type="text" id="supabaseKeyInput" class="form-control" value="sb_publishable_1J2kZOka9zrcaHkcGAD5XA_moqVXj2P">
               </div>
-              <div class="form-group" style="display: flex; gap: 10px; align-items: flex-end;">
+              <div class="form-group full" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                 <button class="btn btn-primary" onclick="saveSupabaseConfig()">Save Credentials</button>
                 <button class="btn btn-secondary" onclick="testSupabaseConnection()">⚡ Test Connection</button>
+                <button class="btn btn-success" style="background: #059669; border-color: #047857; color: #ffffff; font-weight: 700;" onclick="pushAllLocalVotersToCloud()">☁️ Push All Local Voters to Cloud</button>
               </div>
             </div>
 
@@ -9007,7 +9008,86 @@
       }
     }
 
-    // Push new or updated voter to Supabase Cloud
+    // Build normalized Supabase payload for a voter
+    function buildVoterCloudPayload(v) {
+      if (!v) return null;
+      const vId = String(v.VoterID || v.OfficialVoterID || '').trim() || ('VOT_' + Math.random().toString(36).substring(2, 9).toUpperCase());
+      const tier = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
+      let safeDob = null;
+      if (v.DOB && /^\d{4}-\d{2}-\d{2}$/.test(String(v.DOB).trim())) {
+        safeDob = String(v.DOB).trim();
+      }
+
+      const activeTenantId = (v.TenantID && v.TenantID !== 'ALL') ? v.TenantID : ((currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') ? currentUser.TenantID : 'TNT_HELAMBU');
+
+      const metadataNotes = JSON.stringify({
+        tenant_id: activeTenantId,
+        verification_status: v.VerificationStatus || 'Pending',
+        contact_status: v.ContactStatus || 'Not Contacted',
+        self_reported_response: v.SelfReportedResponse || '',
+        support_tier: tier,
+        is_influencer: !!v.IsInfluencer,
+        influencer_sphere: v.InfluencerSphere || '',
+        influencer_reach: v.InfluencerReach || '',
+        influencer_handler: v.InfluencerHandler || '',
+        influencer_demands: v.InfluencerDemands || '',
+        influencer_stance: v.InfluencerStance || '',
+        current_location: v.CurrentLocation || 'गाउँमै उपस्थित (On-Ground)',
+        election_day_turnout: v.ElectionDayTurnout || 'पक्का स्थानीय उपस्थित (Confirmed)',
+        city_address: v.CityAddress || '',
+        household_id: v.HouseholdID || '',
+        family_relation: v.FamilyRelation || 'घरमुली',
+        family_votes_count: Number(v.FamilyVotesCount) || 1,
+        house_no: v.HouseNo || '',
+        age: v.Age || (v.DOB ? calculateAge(v.DOB) : ''),
+        spouse_name: v.SpouseName || '',
+        father_name: v.FatherName || '',
+        mother_name: v.MotherName || '',
+        official_voter_id: v.OfficialVoterID || vId,
+        gender: v.Gender || 'Other',
+        age_group: v.AgeGroup || '',
+        facebook_url: v.FacebookUrl || '',
+        tiktok_url: v.TiktokUrl || '',
+        manual_family_links: v.ManualFamilyLinks || [],
+        ignored_family_ids: v.IgnoredFamilyIDs || [],
+        custom_family: v.CustomFamily || [],
+        community_roles: v.CommunityRoles || [],
+        profession: v.Profession || '',
+        workplace_name: v.WorkplaceName || '',
+        profession_title: v.ProfessionTitle || '',
+        professional_union: v.ProfessionalUnion || '',
+        professional_campaign_role: v.ProfessionalCampaignRole || '',
+        professional_vote_reach: v.ProfessionalVoteReach || '',
+        professional_demand_note: v.ProfessionalDemandNote || '',
+        genz_tag: v.GenZTag || '',
+        senior_mobility_tag: v.SeniorMobilityTag || ''
+      });
+
+      const houseAddress = v.HouseNo ? (String(v.HouseNo).startsWith('घर नं:') ? String(v.HouseNo) : 'घर नं: ' + String(v.HouseNo)) : (v.Address || '');
+
+      return {
+        voter_id: vId,
+        full_name: v.Name || '',
+        phone: v.Phone || '',
+        ward_no: Number(v.Ward) || 1,
+        tole: v.Tole || '',
+        booth_no: String(v.BoothNo || ''),
+        serial_no: String(v.VoterSerial || ''),
+        gender: v.Gender || 'Other',
+        age_group: v.AgeGroup || '',
+        dob: safeDob,
+        party_leaning: v.PartyLeaning || 'Undecided',
+        sentiment: tier,
+        support_level: v.SelfReportedResponse || (tier === 'solid' || tier === 'lean' ? 'Support' : (tier === 'hard_opponent' ? 'Not Support' : 'Neutral')),
+        influence_level: v.IsInfluencer ? 'High' : 'Normal',
+        facebook_url: v.FacebookUrl || '',
+        tiktok_url: v.TiktokUrl || '',
+        address: houseAddress,
+        notes: metadataNotes
+      };
+    }
+
+    // Push new or updated single voter to Supabase Cloud
     async function pushVoterToSupabase(v) {
       if (!v || !v.VoterID) return false;
       const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
@@ -9015,118 +9095,105 @@
       if (!url || !key) return false;
 
       try {
-        const tier = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
-        let safeDob = null;
-        if (v.DOB && /^\d{4}-\d{2}-\d{2}$/.test(String(v.DOB).trim())) {
-          safeDob = String(v.DOB).trim();
-        }
-
-        const metadataNotes = JSON.stringify({
-          tenant_id: v.TenantID || (currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL' ? currentUser.TenantID : 'TNT_HELAMBU'),
-          verification_status: v.VerificationStatus || 'Pending',
-          contact_status: v.ContactStatus || 'Not Contacted',
-          self_reported_response: v.SelfReportedResponse || '',
-          support_tier: tier,
-          is_influencer: !!v.IsInfluencer,
-          influencer_sphere: v.InfluencerSphere || '',
-          influencer_reach: v.InfluencerReach || '',
-          influencer_handler: v.InfluencerHandler || '',
-          influencer_demands: v.InfluencerDemands || '',
-          influencer_stance: v.InfluencerStance || '',
-          current_location: v.CurrentLocation || 'गाउँमै उपस्थित (On-Ground)',
-          election_day_turnout: v.ElectionDayTurnout || 'पक्का स्थानीय उपस्थित (Confirmed)',
-          city_address: v.CityAddress || '',
-          household_id: v.HouseholdID || '',
-          family_relation: v.FamilyRelation || 'घरमुली',
-          family_votes_count: Number(v.FamilyVotesCount) || 1,
-          house_no: v.HouseNo || '',
-          age: v.Age || (v.DOB ? calculateAge(v.DOB) : ''),
-          spouse_name: v.SpouseName || '',
-          father_name: v.FatherName || '',
-          mother_name: v.MotherName || '',
-          official_voter_id: v.OfficialVoterID || v.VoterID || '',
-          gender: v.Gender || 'Other',
-          age_group: v.AgeGroup || '',
-          facebook_url: v.FacebookUrl || '',
-          tiktok_url: v.TiktokUrl || '',
-          manual_family_links: v.ManualFamilyLinks || [],
-          ignored_family_ids: v.IgnoredFamilyIDs || [],
-          custom_family: v.CustomFamily || [],
-          community_roles: v.CommunityRoles || [],
-          profession: v.Profession || '',
-          workplace_name: v.WorkplaceName || '',
-          profession_title: v.ProfessionTitle || '',
-          professional_union: v.ProfessionalUnion || '',
-          professional_campaign_role: v.ProfessionalCampaignRole || '',
-          professional_vote_reach: v.ProfessionalVoteReach || '',
-          professional_demand_note: v.ProfessionalDemandNote || '',
-          genz_tag: v.GenZTag || '',
-          senior_mobility_tag: v.SeniorMobilityTag || ''
-        });
-
-        const houseAddress = v.HouseNo ? (String(v.HouseNo).startsWith('घर नं:') ? String(v.HouseNo) : 'घर नं: ' + String(v.HouseNo)) : (v.Address || '');
-
-        const payload = {
-          voter_id: String(v.VoterID),
-          full_name: v.Name || '',
-          phone: v.Phone || '',
-          ward_no: Number(v.Ward) || 1,
-          tole: v.Tole || '',
-          booth_no: v.BoothNo || '',
-          serial_no: String(v.VoterSerial || ''),
-          gender: v.Gender || 'Other',
-          age_group: v.AgeGroup || '',
-          dob: safeDob,
-          party_leaning: v.PartyLeaning || 'Undecided',
-          sentiment: tier,
-          support_level: v.SelfReportedResponse || (tier === 'solid' || tier === 'lean' ? 'Support' : (tier === 'hard_opponent' ? 'Not Support' : 'Neutral')),
-          influence_level: v.IsInfluencer ? 'High' : 'Normal',
-          facebook_url: v.FacebookUrl || '',
-          tiktok_url: v.TiktokUrl || '',
-          address: houseAddress,
-          notes: metadataNotes
-        };
+        const payload = buildVoterCloudPayload(v);
+        if (!payload) return false;
 
         const headers = {
           'apikey': key,
           'Authorization': `Bearer ${key}`,
           'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
+          'Prefer': 'resolution=merge-duplicates,return=representation'
         };
 
-        // 1. Try PATCH first (fastest and most reliable for existing voters)
-        const patchRes = await cloudFetch(`${url}/rest/v1/voters?voter_id=eq.${encodeURIComponent(v.VoterID)}`, {
-          method: 'PATCH',
-          headers: headers,
-          body: JSON.stringify(payload)
-        });
-
-        if (patchRes.ok) {
-          const patched = await patchRes.json();
-          if (Array.isArray(patched) && patched.length > 0) {
-            console.log('✅ Voter synced to Supabase (PATCH):', v.VoterID);
-            return true;
-          }
-        }
-
-        // 2. If PATCH updated 0 rows (new voter not yet in database), do POST
         const postRes = await cloudFetch(`${url}/rest/v1/voters`, {
           method: 'POST',
           headers: headers,
-          body: JSON.stringify(payload)
+          body: JSON.stringify([payload])
         });
 
         if (postRes.ok) {
-          console.log('✅ New voter inserted into Supabase (POST):', v.VoterID);
+          console.log('✅ Voter synced to Supabase (UPSERT):', v.VoterID);
           return true;
         } else {
           const errText = await postRes.text();
-          console.warn('Supabase voter insert warning:', errText);
+          console.warn('Supabase voter upsert warning:', errText);
         }
       } catch(e) {
         console.warn('Could not push voter to Supabase:', e);
       }
       return false;
+    }
+
+    // Push array of voters to Supabase Cloud in chunks of 100 with resolution=merge-duplicates
+    async function pushVotersBatchToSupabase(votersList, showProgressToast = true) {
+      if (!Array.isArray(votersList) || votersList.length === 0) return 0;
+      const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+      const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+      if (!url || !key) {
+        console.warn('Supabase URL or Key not set. Cannot batch push.');
+        return 0;
+      }
+
+      const chunkSize = 100;
+      let totalSynced = 0;
+      const totalVoters = votersList.length;
+
+      if (showProgressToast) {
+        showToast(`☁️ Supabase मा ${totalVoters} मतदाता अपलोड हुँदैछ...`, 'info');
+      }
+
+      const headers = {
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      };
+
+      for (let i = 0; i < totalVoters; i += chunkSize) {
+        const chunk = votersList.slice(i, i + chunkSize);
+        const payloads = chunk.map(v => buildVoterCloudPayload(v)).filter(Boolean);
+
+        try {
+          const res = await cloudFetch(`${url}/rest/v1/voters`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(payloads)
+          });
+
+          if (res.ok) {
+            totalSynced += payloads.length;
+            if (showProgressToast && totalVoters > 100) {
+              const pct = Math.round((totalSynced / totalVoters) * 100);
+              console.log(`Cloud sync progress: ${totalSynced}/${totalVoters} (${pct}%)`);
+            }
+          } else {
+            const errText = await res.text();
+            console.warn(`Batch sync chunk failed (${i}-${i + chunkSize}):`, errText);
+          }
+        } catch(err) {
+          console.warn(`Batch sync error at index ${i}:`, err);
+        }
+      }
+
+      if (showProgressToast) {
+        if (totalSynced > 0) {
+          showToast(`✅ ${totalSynced} मतदाता Supabase क्लाउडमा सफलतापूर्वक सुरक्षित भयो!`, 'success');
+        } else {
+          showToast('⚠️ Supabase मा मतदाता अपलोड हुन सकेन। इन्टरनेट वा API की जाँच गर्नुहोस्।', 'error');
+        }
+      }
+      return totalSynced;
+    }
+
+    // Push ALL local voters to Supabase Cloud
+    async function pushAllLocalVotersToCloud() {
+      if (!state.voters || state.voters.length === 0) {
+        showToast('लोकल स्टोरेजमा कुनै पनि मतदाता फेला परेन।', 'info');
+        return;
+      }
+      const confirmed = confirm(`तपाईंसँग हाल स्थानीय रूपमा ${state.voters.length} मतदाता छन्। के यी सबैलाई Supabase क्लाउडमा अपलोड गर्न चाहनुहुन्छ?`);
+      if (!confirmed) return;
+      await pushVotersBatchToSupabase(state.voters, true);
     }
 
     // Worker 4-Digit PIN Keypad
@@ -25204,6 +25271,14 @@ function renderCommunityLeadersTable(filteredGroups) {
       refreshDashboardMetrics();
       renderVotersList();
       logActivity('voter_add', `📤 Bulk CSV Import: ${importedCount} नयाँ थपिए, ${updatedCount} अपडेट भए।`);
+
+      // Automatically batch-sync newly imported/updated voters to Supabase Cloud
+      if (typeof pushVotersBatchToSupabase === 'function' && selected.length > 0) {
+        const recordsToPush = state.voters.filter(v => 
+          selected.some(s => String(s.VoterID).trim().toLowerCase() === String(v.VoterID).trim().toLowerCase())
+        );
+        pushVotersBatchToSupabase(recordsToPush.length > 0 ? recordsToPush : newlyAddedVoters, true);
+      }
 
       const modal = document.getElementById('modalOverlay');
       if (modal && modal.classList.contains('active')) {
