@@ -7152,6 +7152,18 @@
       ELECTION_MODE: false
     };
 
+    // Helper to parse both Nepali (१, २, ३...) and English (1, 2, 3...) numbers for natural sorting
+    function parseNepaliOrEnglishInt(val) {
+      if (val === null || val === undefined) return 0;
+      if (typeof val === 'number') return isNaN(val) ? 0 : val;
+      const s = String(val).trim();
+      if (!s) return 0;
+      const nepaliDigits = { '०': 0, '१': 1, '२': 2, '३': 3, '४': 4, '५': 5, '६': 6, '७': 7, '८': 8, '९': 9 };
+      const english = s.replace(/[०-९]/g, d => nepaliDigits[d]);
+      const match = english.match(/-?\d+/);
+      return match ? parseInt(match[0], 10) : 0;
+    }
+
     let currentUser = null;
     let pinBuffer = '';
     let isSubmitting = false;
@@ -7200,11 +7212,47 @@
           AdminPassword: 'admin123',
           ContactPerson: 'Basu Dev (Election Head)',
           Phone: '9851170967',
-          Status: 'Active', // 'Active' or 'Suspended' (Kill-switch)
+          Status: 'Active',
           PlanType: 'Unlimited Palika Pro',
           FeeMonthly: 'Rs. 25,000',
-          SmsCredits: 4850,
-          SmsUsed: 150,
+          SmsCredits: 5000,
+          SmsUsed: 0,
+          ExpiresAt: '2027-01-01',
+          CreatedAt: '2026-10-01'
+        },
+        {
+          TenantID: 'TNT_GOKARNESHWOR',
+          TenantName: 'नेपाली कांग्रेस गोकर्णेश्वर नगर कार्यसमिति',
+          PalikaName: 'गोकर्णेश्वर नगरपालिका',
+          Party: 'NC',
+          Slug: 'gokarneshwor',
+          AdminUsername: 'gokarneshwor_admin',
+          AdminPassword: 'admin123',
+          ContactPerson: 'Gokarneshwor Election Coordinator',
+          Phone: '9841000001',
+          Status: 'Active',
+          PlanType: 'Unlimited Palika Pro',
+          FeeMonthly: 'Rs. 25,000',
+          SmsCredits: 5000,
+          SmsUsed: 0,
+          ExpiresAt: '2027-01-01',
+          CreatedAt: '2026-10-01'
+        },
+        {
+          TenantID: 'TNT_MELAMCHI',
+          TenantName: 'नेपाली कांग्रेस मेलम्ची नगर कार्यसमिति',
+          PalikaName: 'मेलम्ची नगरपालिका',
+          Party: 'NC',
+          Slug: 'melamchi',
+          AdminUsername: 'melamchi_admin',
+          AdminPassword: 'admin123',
+          ContactPerson: 'Melamchi Head',
+          Phone: '984904462',
+          Status: 'Active',
+          PlanType: 'Unlimited Palika Pro',
+          FeeMonthly: 'Rs. 25,000',
+          SmsCredits: 5000,
+          SmsUsed: 0,
           ExpiresAt: '2027-01-01',
           CreatedAt: '2026-10-01'
         }
@@ -8836,23 +8884,34 @@
                 }
               } catch(e) {}
 
+              let sName = cloudVoter.spouse_name || parsedNotes.spouse_name || '';
+              if (sName === '-') sName = '';
+              let fName = cloudVoter.father_name || parsedNotes.father_name || '';
+              let mName = cloudVoter.mother_name || parsedNotes.mother_name || '';
+              if (!mName && fName.includes('/')) {
+                const parts = fName.split('/');
+                fName = parts[0].trim();
+                mName = (parts[1] || '').trim();
+              }
+              const bNo = cloudVoter.booth_no || parsedNotes.booth_name || '';
+
               const mappedVoter = {
-                TenantID: parsedNotes.tenant_id || 'TNT_HELAMBU',
+                TenantID: cloudVoter.tenant_id || parsedNotes.tenant_id || 'TNT_HELAMBU',
                 VoterID: cloudVoter.voter_id,
                 OfficialVoterID: parsedNotes.official_voter_id || cloudVoter.voter_id,
                 Name: cloudVoter.full_name,
                 Age: cloudVoter.age || parsedNotes.age || (cloudVoter.dob ? calculateAge(cloudVoter.dob) : ''),
                 Gender: cloudVoter.gender || parsedNotes.gender || 'Other',
-                SpouseName: cloudVoter.spouse_name || parsedNotes.spouse_name || '',
-                FatherName: cloudVoter.father_name || parsedNotes.father_name || '',
-                MotherName: cloudVoter.mother_name || parsedNotes.mother_name || '',
+                SpouseName: sName,
+                FatherName: fName,
+                MotherName: mName,
                 DOB: cloudVoter.dob || parsedNotes.dob || '',
                 AgeGroup: cloudVoter.age_group || parsedNotes.age_group || '',
                 Phone: cloudVoter.phone || '',
                 Ward: Number(cloudVoter.ward_no || 1),
                 Tole: cloudVoter.tole || '',
-                BoothNo: cloudVoter.booth_no || '',
-                VoterSerial: cloudVoter.serial_no || '',
+                BoothNo: bNo,
+                VoterSerial: String(cloudVoter.serial_no || parsedNotes.serial_no || ''),
                 PartyLeaning: cloudVoter.party_leaning || 'Undecided',
                 VerificationStatus: parsedNotes.verification_status || 'Pending',
                 ContactStatus: parsedNotes.contact_status || 'Not Contacted',
@@ -13228,34 +13287,44 @@
         return true;
       });
 
-      // Sort
+      // Robust Natural Multi-Language Sort (Nepali & English numerals, Ward, Age, Serial, ID)
       list.sort((a, b) => {
         let valA = a[voterSortField] !== undefined ? a[voterSortField] : '';
         let valB = b[voterSortField] !== undefined ? b[voterSortField] : '';
 
         if (voterSortField === 'Ward') {
-          valA = Number(valA) || 0;
-          valB = Number(valB) || 0;
-          return voterSortAsc ? valA - valB : valB - valA;
+          const numA = parseNepaliOrEnglishInt(a.Ward || 0);
+          const numB = parseNepaliOrEnglishInt(b.Ward || 0);
+          if (numA !== numB) return voterSortAsc ? numA - numB : numB - numA;
         }
         if (voterSortField === 'VoterSerial') {
-          valA = parseInt(valA, 10) || 0;
-          valB = parseInt(valB, 10) || 0;
-          return voterSortAsc ? valA - valB : valB - valA;
+          const numA = parseNepaliOrEnglishInt(a.VoterSerial || a.serial_no || '');
+          const numB = parseNepaliOrEnglishInt(b.VoterSerial || b.serial_no || '');
+          if (numA !== numB) return voterSortAsc ? numA - numB : numB - numA;
+        }
+        if (voterSortField === 'VoterID') {
+          const numA = parseNepaliOrEnglishInt(a.OfficialVoterID || a.VoterID || '');
+          const numB = parseNepaliOrEnglishInt(b.OfficialVoterID || b.VoterID || '');
+          if (numA && numB && numA !== numB) return voterSortAsc ? numA - numB : numB - numA;
         }
         if (voterSortField === 'Age') {
-          valA = Number(a.Age || calculateAge(a.DOB) || 0);
-          valB = Number(b.Age || calculateAge(b.DOB) || 0);
-          return voterSortAsc ? valA - valB : valB - valA;
+          const numA = parseNepaliOrEnglishInt(a.Age || calculateAge(a.DOB) || 0);
+          const numB = parseNepaliOrEnglishInt(b.Age || calculateAge(b.DOB) || 0);
+          if (numA !== numB) return voterSortAsc ? numA - numB : numB - numA;
         }
         if (voterSortField === 'SupportTier') {
-          valA = getSupportTier(a).prob;
-          valB = getSupportTier(b).prob;
-          return voterSortAsc ? valA - valB : valB - valA;
+          const numA = getSupportTier(a).prob;
+          const numB = getSupportTier(b).prob;
+          if (numA !== numB) return voterSortAsc ? numA - numB : numB - numA;
         }
 
-        const cmp = String(valA).localeCompare(String(valB), 'ne', { sensitivity: 'base' });
-        return voterSortAsc ? cmp : -cmp;
+        const cmp = String(valA).localeCompare(String(valB), 'ne', { numeric: true, sensitivity: 'base' });
+        if (cmp !== 0) return voterSortAsc ? cmp : -cmp;
+
+        // Deterministic secondary sort by Serial No
+        const sA = parseNepaliOrEnglishInt(a.VoterSerial || a.serial_no || '');
+        const sB = parseNepaliOrEnglishInt(b.VoterSerial || b.serial_no || '');
+        return sA - sB;
       });
 
       return list;
