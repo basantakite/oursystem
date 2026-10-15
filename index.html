@@ -3701,6 +3701,7 @@
 
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="login-active">
 
@@ -7708,6 +7709,7 @@
       setTimeout(() => {
         sanitizeCorruptedHouseholdsAndLinks(true);
         syncSupabaseData(false);
+        if (typeof initSupabaseRealtimeEngine === 'function') initSupabaseRealtimeEngine();
       }, 40);
       // Auto-Apply Active Political Party Theme on Startup
       applyPartyTheme();
@@ -8771,9 +8773,64 @@
     }
 
     // ==========================================
-    // SUPABASE CLOUD LIVE SYNC ENGINE
+    // SUPABASE CLOUD LIVE SYNC & REALTIME ENGINE
     // ==========================================
+    let _isSyncingSupabase = false;
+    let _hasPendingSync = false;
+    let _realtimeClient = null;
+    let _realtimeChannel = null;
+    let _heartbeatInterval = null;
+    let _lastSuccessfulSyncTimestamp = 0;
+    let _realtimeDebounceTimer = null;
+    let _realtimeEngineInitialized = false;
+
+    // Helper: Fetches all voters in parallel chunks of 1000 to overcome Supabase PostgREST 1000-row limit
+    async function fetchAllCloudVoters(url, key) {
+      const headers = {
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
+        'Prefer': 'count=exact',
+        'Range': '0-999'
+      };
+
+      const firstRes = await cloudFetch(`${url}/rest/v1/voters?select=*`, { headers });
+      if (!firstRes.ok) return [];
+
+      const cr = firstRes.headers.get('content-range'); // e.g. "0-999/3954"
+      const firstBatch = await firstRes.json();
+      if (!Array.isArray(firstBatch)) return [];
+
+      if (cr && cr.includes('/')) {
+        const total = parseInt(cr.split('/')[1], 10);
+        if (total > 1000) {
+          const pageSize = 1000;
+          const promises = [];
+          for (let from = pageSize; from < total; from += pageSize) {
+            const to = Math.min(from + pageSize - 1, total - 1);
+            promises.push(
+              cloudFetch(`${url}/rest/v1/voters?select=*`, {
+                headers: {
+                  'apikey': key,
+                  'Authorization': `Bearer ${key}`,
+                  'Range': `${from}-${to}`
+                }
+              }).then(r => r.ok ? r.json() : []).catch(() => [])
+            );
+          }
+          const otherBatches = await Promise.all(promises);
+          return firstBatch.concat(...otherBatches);
+        }
+      }
+      return firstBatch;
+    }
+
     async function syncSupabaseData(interactive = false) {
+      if (_isSyncingSupabase) {
+        _hasPendingSync = true;
+        return;
+      }
+      _isSyncingSupabase = true;
+
       const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
       const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
 
@@ -8781,6 +8838,7 @@
       const topBadge = document.getElementById('topbarSupabaseSyncBtn');
 
       if (!url || !key) {
+        _isSyncingSupabase = false;
         if (badge) {
           badge.style.background = '#fef3c7';
           badge.style.color = '#92400e';
@@ -8794,11 +8852,11 @@
       try {
         const headers = { 'apikey': key, 'Authorization': `Bearer ${key}` };
 
-        // Parallel fetch for settings, users, and voters (cuts network wait time by 60%+)
-        const [setRes, uRes, vRes] = await Promise.all([
+        // Parallel fetch for settings, users, and ALL chunked voters
+        const [setRes, uRes, vData] = await Promise.all([
           cloudFetch(`${url}/rest/v1/system_settings?select=*`, { headers }).catch(() => null),
           cloudFetch(`${url}/rest/v1/users?select=*`, { headers }).catch(() => null),
-          cloudFetch(`${url}/rest/v1/voters?select=*&limit=25000`, { headers }).catch(() => null)
+          fetchAllCloudVoters(url, key).catch(() => [])
         ]);
 
         // 1. Process system_settings & multi-tenant cloud registry
@@ -8864,134 +8922,142 @@
           }
         }
 
-        // 3. Process Voters with O(1) Map lookup (eliminates O(N^2) findIndex lag on 2,375+ voters)
-        if (vRes && vRes.ok) {
-          const vData = await vRes.json();
-          if (Array.isArray(vData) && vData.length > 0) {
-            const voterIdxMap = new Map();
-            state.voters.forEach((v, idx) => {
-              voterIdxMap.set(String(v.VoterID), idx);
-              if (v.OfficialVoterID) voterIdxMap.set(String(v.OfficialVoterID), idx);
-            });
+        // 3. Process Voters with O(1) Map lookup & reconciliation
+        if (Array.isArray(vData) && vData.length > 0) {
+          const voterIdxMap = new Map();
+          state.voters.forEach((v, idx) => {
+            voterIdxMap.set(String(v.VoterID), idx);
+            if (v.OfficialVoterID) voterIdxMap.set(String(v.OfficialVoterID), idx);
+          });
 
-            vData.forEach(cloudVoter => {
-              if (String(cloudVoter.voter_id).startsWith('VOT_00')) return;
+          vData.forEach(cloudVoter => {
+            if (String(cloudVoter.voter_id).startsWith('VOT_00')) return;
 
-              let parsedNotes = {};
-              try {
-                if (cloudVoter.notes && cloudVoter.notes.startsWith('{')) {
-                  parsedNotes = JSON.parse(cloudVoter.notes);
-                }
-              } catch(e) {}
-
-              let sName = cloudVoter.spouse_name || parsedNotes.spouse_name || '';
-              if (sName === '-') sName = '';
-              let fName = cloudVoter.father_name || parsedNotes.father_name || '';
-              let mName = cloudVoter.mother_name || parsedNotes.mother_name || '';
-              if (!mName && fName.includes('/')) {
-                const parts = fName.split('/');
-                fName = parts[0].trim();
-                mName = (parts[1] || '').trim();
+            let parsedNotes = {};
+            try {
+              if (cloudVoter.notes && cloudVoter.notes.startsWith('{')) {
+                parsedNotes = JSON.parse(cloudVoter.notes);
               }
-              const bNo = cloudVoter.booth_no || parsedNotes.booth_name || '';
+            } catch(e) {}
 
-              const mappedVoter = {
-                TenantID: cloudVoter.tenant_id || parsedNotes.tenant_id || 'TNT_HELAMBU',
-                VoterID: cloudVoter.voter_id,
-                OfficialVoterID: parsedNotes.official_voter_id || cloudVoter.voter_id,
-                Name: cloudVoter.full_name,
-                Age: cloudVoter.age || parsedNotes.age || (cloudVoter.dob ? calculateAge(cloudVoter.dob) : ''),
-                Gender: cloudVoter.gender || parsedNotes.gender || 'Other',
-                SpouseName: sName,
-                FatherName: fName,
-                MotherName: mName,
-                DOB: cloudVoter.dob || parsedNotes.dob || '',
-                AgeGroup: cloudVoter.age_group || parsedNotes.age_group || '',
-                Phone: cloudVoter.phone || '',
-                Ward: Number(cloudVoter.ward_no || 1),
-                Tole: cloudVoter.tole || '',
-                BoothNo: bNo,
-                VoterSerial: String(cloudVoter.serial_no || parsedNotes.serial_no || ''),
-                PartyLeaning: cloudVoter.party_leaning || 'Undecided',
-                VerificationStatus: parsedNotes.verification_status || 'Pending',
-                ContactStatus: parsedNotes.contact_status || 'Not Contacted',
-                SelfReportedResponse: parsedNotes.self_reported_response || '',
-                SupportTier: parsedNotes.support_tier || cloudVoter.sentiment || 'swing',
-                IsInfluencer: !!parsedNotes.is_influencer,
-                InfluencerSphere: parsedNotes.influencer_sphere || '',
-                InfluencerReach: parsedNotes.influencer_reach || '',
-                InfluencerHandler: parsedNotes.influencer_handler || '',
-                InfluencerDemands: parsedNotes.influencer_demands || '',
-                InfluencerStance: parsedNotes.influencer_stance || '',
-                CurrentLocation: parsedNotes.current_location || 'गाउँमै उपस्थित (On-Ground)',
-                ElectionDayTurnout: parsedNotes.election_day_turnout || 'पक्का स्थानीय उपस्थित (Confirmed)',
-                CityAddress: parsedNotes.city_address || '',
-                HouseholdID: parsedNotes.household_id || '',
-                FamilyRelation: parsedNotes.family_relation || 'घरमुली',
-                FamilyVotesCount: Number(parsedNotes.family_votes_count) || 1,
-                HouseNo: cloudVoter.address ? cloudVoter.address.replace(/^घर नं:\s*/, '').trim() : (parsedNotes.house_no || ''),
-                FacebookUrl: cloudVoter.facebook_url || parsedNotes.facebook_url || '',
-                TiktokUrl: cloudVoter.tiktok_url || parsedNotes.tiktok_url || '',
-                ManualFamilyLinks: Array.isArray(parsedNotes.manual_family_links) ? parsedNotes.manual_family_links : [],
-                IgnoredFamilyIDs: Array.isArray(parsedNotes.ignored_family_ids) ? parsedNotes.ignored_family_ids : [],
-                CustomFamily: Array.isArray(parsedNotes.custom_family) ? parsedNotes.custom_family : [],
-                CommunityRoles: Array.isArray(parsedNotes.community_roles) ? parsedNotes.community_roles : [],
-                Profession: parsedNotes.profession || '',
-                WorkplaceName: parsedNotes.workplace_name || '',
-                ProfessionTitle: parsedNotes.profession_title || '',
-                ProfessionalUnion: parsedNotes.professional_union || '',
-                ProfessionalCampaignRole: parsedNotes.professional_campaign_role || '',
-                ProfessionalVoteReach: parsedNotes.professional_vote_reach ? Number(parsedNotes.professional_vote_reach) : '',
-                ProfessionalDemandNote: parsedNotes.professional_demand_note || '',
-                GenZTag: parsedNotes.genz_tag || '',
-                SeniorMobilityTag: parsedNotes.senior_mobility_tag || '',
-                Active: true
-              };
+            let sName = cloudVoter.spouse_name || parsedNotes.spouse_name || '';
+            if (sName === '-') sName = '';
+            let fName = cloudVoter.father_name || parsedNotes.father_name || '';
+            let mName = cloudVoter.mother_name || parsedNotes.mother_name || '';
+            if (!mName && fName.includes('/')) {
+              const parts = fName.split('/');
+              fName = parts[0].trim();
+              mName = (parts[1] || '').trim();
+            }
+            const bNo = cloudVoter.booth_no || parsedNotes.booth_name || '';
 
-              const idx = voterIdxMap.get(String(mappedVoter.VoterID));
-              if (idx !== undefined) {
-                if ((!mappedVoter.CommunityRoles || !mappedVoter.CommunityRoles.length) && state.voters[idx].CommunityRoles) {
-                  mappedVoter.CommunityRoles = state.voters[idx].CommunityRoles;
-                }
-                if (!mappedVoter.HouseholdID && state.voters[idx].HouseholdID) {
-                  mappedVoter.HouseholdID = state.voters[idx].HouseholdID;
-                }
-                state.voters[idx] = { ...state.voters[idx], ...mappedVoter };
-              } else {
-                voterIdxMap.set(String(mappedVoter.VoterID), state.voters.length);
-                state.voters.push(mappedVoter);
+            const mappedVoter = {
+              TenantID: cloudVoter.tenant_id || parsedNotes.tenant_id || 'TNT_HELAMBU',
+              VoterID: cloudVoter.voter_id,
+              OfficialVoterID: parsedNotes.official_voter_id || cloudVoter.voter_id,
+              Name: cloudVoter.full_name,
+              Age: cloudVoter.age || parsedNotes.age || (cloudVoter.dob ? calculateAge(cloudVoter.dob) : ''),
+              Gender: cloudVoter.gender || parsedNotes.gender || 'Other',
+              SpouseName: sName,
+              FatherName: fName,
+              MotherName: mName,
+              DOB: cloudVoter.dob || parsedNotes.dob || '',
+              AgeGroup: cloudVoter.age_group || parsedNotes.age_group || '',
+              Phone: cloudVoter.phone || '',
+              Ward: Number(cloudVoter.ward_no || 1),
+              Tole: cloudVoter.tole || '',
+              BoothNo: bNo,
+              VoterSerial: String(cloudVoter.serial_no || parsedNotes.serial_no || ''),
+              PartyLeaning: cloudVoter.party_leaning || 'Undecided',
+              VerificationStatus: parsedNotes.verification_status || 'Pending',
+              ContactStatus: parsedNotes.contact_status || 'Not Contacted',
+              SelfReportedResponse: parsedNotes.self_reported_response || '',
+              SupportTier: parsedNotes.support_tier || cloudVoter.sentiment || 'swing',
+              IsInfluencer: !!parsedNotes.is_influencer,
+              InfluencerSphere: parsedNotes.influencer_sphere || '',
+              InfluencerReach: parsedNotes.influencer_reach || '',
+              InfluencerHandler: parsedNotes.influencer_handler || '',
+              InfluencerDemands: parsedNotes.influencer_demands || '',
+              InfluencerStance: parsedNotes.influencer_stance || '',
+              CurrentLocation: parsedNotes.current_location || 'गाउँमै उपस्थित (On-Ground)',
+              ElectionDayTurnout: parsedNotes.election_day_turnout || 'पक्का स्थानीय उपस्थित (Confirmed)',
+              CityAddress: parsedNotes.city_address || '',
+              HouseholdID: parsedNotes.household_id || '',
+              FamilyRelation: parsedNotes.family_relation || 'घरमुली',
+              FamilyVotesCount: Number(parsedNotes.family_votes_count) || 1,
+              HouseNo: cloudVoter.address ? cloudVoter.address.replace(/^घर नं:\s*/, '').trim() : (parsedNotes.house_no || ''),
+              FacebookUrl: cloudVoter.facebook_url || parsedNotes.facebook_url || '',
+              TiktokUrl: cloudVoter.tiktok_url || parsedNotes.tiktok_url || '',
+              ManualFamilyLinks: Array.isArray(parsedNotes.manual_family_links) ? parsedNotes.manual_family_links : [],
+              IgnoredFamilyIDs: Array.isArray(parsedNotes.ignored_family_ids) ? parsedNotes.ignored_family_ids : [],
+              CustomFamily: Array.isArray(parsedNotes.custom_family) ? parsedNotes.custom_family : [],
+              CommunityRoles: Array.isArray(parsedNotes.community_roles) ? parsedNotes.community_roles : [],
+              Profession: parsedNotes.profession || '',
+              WorkplaceName: parsedNotes.workplace_name || '',
+              ProfessionTitle: parsedNotes.profession_title || '',
+              ProfessionalUnion: parsedNotes.professional_union || '',
+              ProfessionalCampaignRole: parsedNotes.professional_campaign_role || '',
+              ProfessionalVoteReach: parsedNotes.professional_vote_reach ? Number(parsedNotes.professional_vote_reach) : '',
+              ProfessionalDemandNote: parsedNotes.professional_demand_note || '',
+              GenZTag: parsedNotes.genz_tag || '',
+              SeniorMobilityTag: parsedNotes.senior_mobility_tag || '',
+              Active: true
+            };
+
+            const idx = voterIdxMap.get(String(mappedVoter.VoterID));
+            if (idx !== undefined) {
+              if ((!mappedVoter.CommunityRoles || !mappedVoter.CommunityRoles.length) && state.voters[idx].CommunityRoles) {
+                mappedVoter.CommunityRoles = state.voters[idx].CommunityRoles;
               }
-            });
-          }
+              if (!mappedVoter.HouseholdID && state.voters[idx].HouseholdID) {
+                mappedVoter.HouseholdID = state.voters[idx].HouseholdID;
+              }
+              state.voters[idx] = { ...state.voters[idx], ...mappedVoter };
+            } else {
+              voterIdxMap.set(String(mappedVoter.VoterID), state.voters.length);
+              state.voters.push(mappedVoter);
+            }
+          });
         }
 
         _voterIndexDirty = true;
         sanitizeCorruptedHouseholdsAndLinks(true);
         saveState();
+        _lastSuccessfulSyncTimestamp = Date.now();
 
         // Update Live Status Badges
+        const totalVotersCount = state.voters.length;
+        const currentPalikaCount = (typeof getScopedVoters === 'function' && currentUser) ? getScopedVoters().length : totalVotersCount;
+
         if (badge) {
           badge.style.background = '#ecfdf5';
           badge.style.color = '#047857';
-          badge.innerHTML = `<span style="width:8px;height:8px;background:#10b981;border-radius:50%;display:inline-block;box-shadow:0 0 6px #10b981;"></span> 🟢 Supabase Cloud: Live Sync`;
+          badge.innerHTML = `<span style="width:8px;height:8px;background:#10b981;border-radius:50%;display:inline-block;box-shadow:0 0 6px #10b981;"></span> 🟢 Supabase Cloud: Live Sync (${totalVotersCount})`;
         }
         if (topBadge) {
           topBadge.style.background = '#f0fdf4';
           topBadge.style.color = '#166534';
-          topBadge.innerHTML = `<span>🟢</span> <span class="sync-label btn-text-mobile-hide">Cloud Synced (${state.voters.length})</span>`;
+          topBadge.innerHTML = `<span>🟢</span> <span class="sync-label btn-text-mobile-hide">Live (${currentPalikaCount})</span>`;
+          topBadge.title = `Supabase Real-Time Live: कुल ${totalVotersCount} मतदाता (अन्तिम सिंक: ${new Date().toLocaleTimeString()})`;
         }
 
-        // Auto-refresh only the active view if logged in
+        // Auto-refresh active view without disrupting user typing or active modal
         if (currentUser) {
           refreshDashboardMetrics();
-          const activeSec = document.querySelector('.view-section.active');
-          const activeId = activeSec ? activeSec.id : '';
-          if (activeId === 'viewVoters') renderVotersList();
-          else if (activeId === 'viewHouseholds') renderHouseholdsList();
-          else if (activeId === 'viewTenants' && currentUser.Role === 'Super Admin') renderTenantsManagement();
+          const modalActive = document.getElementById('modalOverlay') && document.getElementById('modalOverlay').classList.contains('active');
+          const activeEl = document.activeElement;
+          const isUserTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+
+          if (!modalActive && !isUserTyping) {
+            const activeSec = document.querySelector('.view-section.active');
+            const activeId = activeSec ? activeSec.id : '';
+            if (activeId === 'viewVoters') renderVotersList();
+            else if (activeId === 'viewHouseholds') renderHouseholdsList();
+            else if (activeId === 'viewTenants' && currentUser.Role === 'Super Admin') renderTenantsManagement();
+          }
         }
 
-        if (interactive) showToast('⚡ Supabase Cloud Synced Successfully!', 'success');
+        if (interactive) showToast(`⚡ Supabase Cloud Synced Successfully! (${currentPalikaCount} मतदाता)`, 'success');
       } catch (err) {
         console.warn('Supabase sync warning:', err);
         if (badge) {
@@ -9000,7 +9066,105 @@
           badge.innerHTML = `<span style="width:8px;height:8px;background:#f59e0b;border-radius:50%;display:inline-block;"></span> 🟡 Local Offline Mode (Cloud Unreachable)`;
         }
         if (interactive) showToast('Working in local cached mode: ' + err.message, 'warning');
+      } finally {
+        _isSyncingSupabase = false;
+        if (_hasPendingSync) {
+          _hasPendingSync = false;
+          setTimeout(() => syncSupabaseData(false), 300);
+        }
       }
+    }
+
+    function debouncedBackgroundSync(delay = 1000) {
+      if (_realtimeDebounceTimer) clearTimeout(_realtimeDebounceTimer);
+      _realtimeDebounceTimer = setTimeout(() => {
+        syncSupabaseData(false);
+      }, delay);
+    }
+
+    function setupSupabaseWebsocket() {
+      const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+      const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+      if (!url || !key) return;
+
+      if (typeof window.supabase === 'undefined' || typeof window.supabase.createClient !== 'function') {
+        console.log('[Realtime] Supabase JS library still loading or unavailable; heartbeat will ensure sync.');
+        return;
+      }
+
+      try {
+        if (_realtimeClient && _realtimeChannel) {
+          try { _realtimeClient.removeChannel(_realtimeChannel); } catch(e) {}
+        }
+
+        _realtimeClient = window.supabase.createClient(url, key);
+        _realtimeChannel = _realtimeClient.channel('vrm_public_realtime')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'voters' }, (payload) => {
+            console.log('⚡ [Realtime WebSocket] Voters updated on cloud:', payload.eventType);
+            debouncedBackgroundSync(500);
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
+            console.log('⚡ [Realtime WebSocket] Users updated on cloud:', payload.eventType);
+            debouncedBackgroundSync(500);
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, (payload) => {
+            console.log('⚡ [Realtime WebSocket] Settings updated on cloud:', payload.eventType);
+            debouncedBackgroundSync(500);
+          })
+          .subscribe((status) => {
+            console.log('[Realtime Subscription Status]:', status);
+            const topBadge = document.getElementById('topbarSupabaseSyncBtn');
+            if (status === 'SUBSCRIBED' && topBadge) {
+              topBadge.title = '🟢 Real-time WebSocket Live Connected';
+            }
+          });
+      } catch (err) {
+        console.warn('[Realtime WebSocket Setup Notice]:', err);
+      }
+    }
+
+    function startHeartbeatSync() {
+      if (_heartbeatInterval) clearInterval(_heartbeatInterval);
+      // Active background heartbeat every 10 seconds while tab is active
+      _heartbeatInterval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          // If 8+ seconds have passed since last sync, run background sync
+          if (Date.now() - _lastSuccessfulSyncTimestamp >= 8000) {
+            syncSupabaseData(false);
+          }
+        }
+      }, 10000);
+    }
+
+    function initSupabaseRealtimeEngine() {
+      if (_realtimeEngineInitialized) return;
+      _realtimeEngineInitialized = true;
+
+      setupSupabaseWebsocket();
+      startHeartbeatSync();
+
+      // Instantly sync when switching back to tab or unlocking mobile phone
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          if (Date.now() - _lastSuccessfulSyncTimestamp >= 2500) {
+            syncSupabaseData(false);
+          }
+        }
+      });
+
+      window.addEventListener('focus', () => {
+        if (Date.now() - _lastSuccessfulSyncTimestamp >= 2500) {
+          syncSupabaseData(false);
+        }
+      });
+
+      window.addEventListener('online', () => {
+        showToast('🌐 इन्टरनेट पुनः जोडिएको छ! क्लाउड सिंक सुरु भयो।', 'info');
+        syncSupabaseData(false);
+        setupSupabaseWebsocket();
+      });
+
+      console.log('🚀 Supabase Real-Time Triad Engine Initialized (WebSocket + 10s Heartbeat + Focus Sync)');
     }
 
     // Push new or updated user to Supabase Cloud
@@ -9445,6 +9609,7 @@
           else if (activeId === 'viewTenants') renderTenantsManagement();
         }).catch(err => console.warn('Auto cloud sync on launch error:', err));
       }
+      if (typeof initSupabaseRealtimeEngine === 'function') initSupabaseRealtimeEngine();
     }
 
     function logout() {
