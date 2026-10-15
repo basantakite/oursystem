@@ -1,26 +1,15 @@
 {
-  "name": "election-database-system",
+  "name": "helambu-election-operations-system",
   "private": true,
-  "version": "2.1.0",
+  "version": "14.0.0",
+  "description": "Helambu Rural Municipality Election Operations & Voter Management System (Zero-Dependency Instant Build)",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "start": "node server.mjs",
+    "dev": "node server.mjs",
     "build": "node build.mjs",
-    "build:vite": "vite build",
-    "preview": "vite preview"
+    "preview": "node server.mjs"
   },
-  "dependencies": {
-    "@emotion/react": "^11.13.3",
-    "@emotion/styled": "^11.13.0",
-    "@mui/icons-material": "^5.16.7",
-    "@mui/material": "^5.16.7",
-    "@supabase/supabase-js": "^2.48.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^5.4.14",
-    "vite-plugin-pwa": "^0.20.5"
-  }
+  "dependencies": {},
+  "devDependencies": {}
 }
