@@ -7223,9 +7223,12 @@
           if (!state.settings.SUPER_ADMIN_PHONES || !state.settings.SUPER_ADMIN_PHONES.length) {
             state.settings.SUPER_ADMIN_PHONES = ['9851170967', '9705147147'];
           }
-          if (!state.settings.SUPER_ADMIN_PASSWORD) state.settings.SUPER_ADMIN_PASSWORD = 'admin123';
-          if (!state.settings.SUPABASE_URL) state.settings.SUPABASE_URL = DEFAULT_CONFIG.SUPABASE_URL;
-          if (!state.settings.SUPABASE_KEY) state.settings.SUPABASE_KEY = DEFAULT_CONFIG.SUPABASE_KEY;
+          if (!state.settings.SUPABASE_URL || !state.settings.SUPABASE_URL.includes('supabase.co')) {
+            state.settings.SUPABASE_URL = DEFAULT_CONFIG.SUPABASE_URL;
+          }
+          if (!state.settings.SUPABASE_KEY || (!state.settings.SUPABASE_KEY.startsWith('sb_') && !state.settings.SUPABASE_KEY.startsWith('ey'))) {
+            state.settings.SUPABASE_KEY = DEFAULT_CONFIG.SUPABASE_KEY;
+          }
           if (!state.settings.AAKASH_SMS_ENDPOINT) state.settings.AAKASH_SMS_ENDPOINT = DEFAULT_CONFIG.AAKASH_SMS_ENDPOINT;
           if (!state.settings.AAKASH_SMS_SENDER_ID) state.settings.AAKASH_SMS_SENDER_ID = DEFAULT_CONFIG.AAKASH_SMS_SENDER_ID;
           if (!state.settings.MASTER_SMS_CREDITS) state.settings.MASTER_SMS_CREDITS = DEFAULT_CONFIG.MASTER_SMS_CREDITS;
@@ -8704,6 +8707,18 @@
           );
         }
       }
+    }
+
+    function populateLoginUserSelector() {
+      const selector = document.getElementById('loginUserSelector');
+      if (!selector) return;
+      selector.innerHTML = '';
+      (state.users || []).forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.UserID;
+        opt.textContent = `${u.Name} (${u.Role} - वडा ${u.Ward || 'All'})`;
+        selector.appendChild(opt);
+      });
     }
 
     // ==========================================
