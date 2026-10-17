@@ -3925,6 +3925,10 @@
           <span class="icon">👥</span> <span>Voters</span>
           <span class="nav-badge" id="voterCountBadge">0</span>
         </button>
+        <button class="nav-item palika-only" data-view="caste" onclick="switchView('caste')">
+          <span class="icon">👥</span> <span>जाति/समुदाय विश्लेषण</span>
+          <span class="nav-badge" id="casteCountBadge" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; font-weight: 800;">0</span>
+        </button>
         <button class="nav-item palika-only" data-view="households" onclick="switchView('households')">
           <span class="icon">🏠</span> <span>Households</span>
         </button>
@@ -5186,6 +5190,302 @@
             <div id="genZLeadersGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 14px;"></div>
           </div>
         </section>
+
+
+        <!-- ══════════════════════════════════════════════════════════════════════════ -->
+        <!-- VIEW: CASTE & ETHNIC DEMOGRAPHIC HUB (जातीय तथा समुदायगत मतदाता विश्लेषण)   -->
+        <!-- ══════════════════════════════════════════════════════════════════════════ -->
+        <section id="viewCaste" class="view-section">
+          <!-- Hero Header Banner -->
+          <div class="card" style="background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 60%, #1e3a8a 100%); color: white; border: 1.5px solid #3b82f6; border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 18px; box-shadow: 0 6px 18px rgba(59, 130, 246, 0.22);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+              <div style="display: flex; align-items: center; gap: 14px;">
+                <div style="width: 54px; height: 54px; border-radius: 14px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.45); flex-shrink: 0;">
+                  👥
+                </div>
+                <div>
+                  <h2 style="margin: 0; font-size: 20px; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    जातीय तथा समुदायगत मतदाता विश्लेषण (Caste & Demographic Analytics Hub)
+                    <span class="badge" style="background: rgba(59, 130, 246, 0.25); color: #bfdbfe; border: 1px solid #3b82f6; font-size: 11px;">नेपाल सरकार मापदण्ड (NSO/CBS 2078)</span>
+                  </h2>
+                  <p style="margin: 4px 0 0; font-size: 13px; color: #bfdbfe; line-height: 1.4;">
+                    आदिवासी जनजाति (ह्योल्मो/तामाङ), खस आर्य, नेवार, दलित तथा अन्य समुदायगत शक्ति सन्तुलन • वडा, बुथ, टोल अनुसार सूक्ष्म विश्लेषण र रियल-टाइम पक्का मत ट्र्याकिङ
+                  </p>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-sm" onclick="openCasteRuleManagerModal()" style="background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-weight: 700;">
+                  ⚙️ १-क्लिक थर व्यवस्थापन (<span id="casteUnmappedBadgeTop">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm" onclick="printCasteDemographicManifest()" style="background: #2563eb; color: #fff; border: 1px solid #1d4ed8; font-weight: 800;">
+                  🖨️ प्रिन्ट / रोस्टर रिपोर्ट
+                </button>
+                <button type="button" class="btn btn-sm" onclick="exportCasteVotersCsv()" style="background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid #10b981; font-weight: 700;">
+                  📥 Excel/CSV Export
+                </button>
+              </div>
+            </div>
+
+            <!-- Cluster Quick Filter Buttons (Govt Clusters) -->
+            <div style="display: flex; gap: 8px; margin-top: 16px; overflow-x: auto; padding-bottom: 4px;" id="casteClusterPillsRow">
+              <button type="button" class="btn btn-sm caste-cluster-pill active" onclick="setCasteClusterFilter('all')" data-cluster="all" style="border-radius: 20px; font-weight: 700; white-space: nowrap;">
+                🌐 सबै समुदाय (<span id="casteCount_all">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('janajati')" data-cluster="janajati" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid #22c55e;">
+                🟢 आदिवासी जनजाति (<span id="casteCount_janajati">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('khas_arya')" data-cluster="khas_arya" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid #3b82f6;">
+                🔵 खस आर्य (<span id="casteCount_khas_arya">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('newar')" data-cluster="newar" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(249, 115, 22, 0.15); color: #fdba74; border: 1px solid #f97316;">
+                🟠 नेवार समुदाय (<span id="casteCount_newar">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('dalit')" data-cluster="dalit" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border: 1px solid #a855f7;">
+                🟣 दलित समुदाय (<span id="casteCount_dalit">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('other')" data-cluster="other" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid #64748b;">
+                ⚪ मधेसी / अन्य (<span id="casteCount_other">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('unclassified')" data-cluster="unclassified" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid #ef4444;">
+                ⚠️ खुल्न बाँकी (<span id="casteCount_unclassified">0</span>)
+              </button>
+            </div>
+          </div>
+
+          <!-- TOP 4 KPI CARDS: DEMOGRAPHIC COMMAND SNAPSHOT -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 18px;">
+            <!-- KPI 1: Total Scoped Voters in Cluster -->
+            <div class="card" style="padding: 16px; border-left: 4px solid #3b82f6; position: relative;">
+              <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); display: flex; justify-content: space-between;">
+                <span>👥 कुल मतदाता (DEMOGRAPHICS)</span>
+                <span id="casteKpiClusterBadge" class="badge" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; font-size: 10px;">सबै</span>
+              </div>
+              <div style="font-size: 26px; font-weight: 900; margin: 8px 0 4px; color: var(--text-primary);" id="casteKpiTotalCount">0</div>
+              <div style="font-size: 12px; color: var(--text-muted);">
+                कुल मतदाताको <strong id="casteKpiTotalPct" style="color: #3b82f6;">0%</strong> • पु: <span id="casteKpiMaleCount">0</span> | म: <span id="casteKpiFemaleCount">0</span>
+              </div>
+            </div>
+
+            <!-- KPI 2: Guaranteed / Sure Votes -->
+            <div class="card" style="padding: 16px; border-left: 4px solid #10b981; cursor: pointer;" onclick="setCasteSupportFilter('solid')" title="पक्का मत मात्र हेर्न क्लिक गर्नुहोस्">
+              <div style="font-size: 12px; font-weight: 700; color: #10b981; display: flex; justify-content: space-between;">
+                <span>🟢 हाम्रो पक्का मत (SURE VOTES)</span>
+                <span>✓</span>
+              </div>
+              <div style="font-size: 26px; font-weight: 900; margin: 8px 0 4px; color: #10b981;" id="casteKpiSureCount">0</div>
+              <div style="font-size: 12px; color: var(--text-muted);">
+                सुरक्षित मत: <strong id="casteKpiSurePct" style="color: #10b981;">0%</strong> • निर्णायक भोट बैंक
+              </div>
+            </div>
+
+            <!-- KPI 3: Soft Lean / Swing Votes -->
+            <div class="card" style="padding: 16px; border-left: 4px solid #f59e0b; cursor: pointer;" onclick="setCasteSupportFilter('swing')" title="दोधार/सहानुभूति मत मात्र हेर्न क्लिक गर्नुहोस्">
+              <div style="font-size: 12px; font-weight: 700; color: #f59e0b; display: flex; justify-content: space-between;">
+                <span>🟡 दोधार / झुकाव (SWING VOTES)</span>
+                <span>★</span>
+              </div>
+              <div style="font-size: 26px; font-weight: 900; margin: 8px 0 4px; color: #f59e0b;" id="casteKpiSwingCount">0</div>
+              <div style="font-size: 12px; color: var(--text-muted);">
+                अतिरिक्त सम्भावना: <strong id="casteKpiSwingPct" style="color: #f59e0b;">0%</strong> • परिचालन गर्नुपर्ने
+              </div>
+            </div>
+
+            <!-- KPI 4: Absentee / Out-of-Helambu -->
+            <div class="card" style="padding: 16px; border-left: 4px solid #8b5cf6; cursor: pointer;" onclick="setCasteSupportFilter('absentee')" title="बाहिर रहेका मतदाता मात्र हेर्न क्लिक गर्नुहोस्">
+              <div style="font-size: 12px; font-weight: 700; color: #8b5cf6; display: flex; justify-content: space-between;">
+                <span>✈️ काठमाडौं / विदेश (ABSENTEE)</span>
+                <span>🚌</span>
+              </div>
+              <div style="font-size: 26px; font-weight: 900; margin: 8px 0 4px; color: #8b5cf6;" id="casteKpiAbsenteeCount">0</div>
+              <div style="font-size: 12px; color: var(--text-muted);">
+                बाहिर रहेका: <strong id="casteKpiAbsenteePct" style="color: #8b5cf6;">0%</strong> • मतदान दिन ल्याउनुपर्ने
+              </div>
+            </div>
+          </div>
+
+          <!-- SUMMARY ACCORDION / EXPANDABLE DEMOGRAPHIC BREAKDOWN TABLE -->
+          <div class="card" style="margin-bottom: 18px; padding: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+              <h3 style="margin: 0; font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                📊 समुदायगत शक्ति सन्तुलन तथा मतदान स्थिति सारांश (Caste Breakdown Matrix)
+                <span class="badge" id="casteMatrixRowCount" style="background: var(--bg-hover); font-size: 11px;">0 समूह</span>
+              </h3>
+              <div style="font-size: 12px; color: var(--text-muted);">
+                * तल कुनै पनि जाति वा थरको रोमा क्लिक गरी सोझै नामावली फिल्टर गर्नुहोस्
+              </div>
+            </div>
+            <div style="overflow-x: auto; max-height: 240px; border: 1px solid var(--border-color); border-radius: 8px;">
+              <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+                <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 2;">
+                  <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
+                    <th style="padding: 8px 12px;">क्र.सं.</th>
+                    <th style="padding: 8px 12px;">जातीय समूह / थर</th>
+                    <th style="padding: 8px 12px;">सरकारी क्लस्टर</th>
+                    <th style="padding: 8px 12px; text-align: right;">कुल मतदाता</th>
+                    <th style="padding: 8px 12px; text-align: right;">प्रतिशत (%)</th>
+                    <th style="padding: 8px 12px; text-align: right;">पक्का मत (✓)</th>
+                    <th style="padding: 8px 12px; text-align: right;">पक्का %</th>
+                    <th style="padding: 8px 12px; text-align: right;">दोधार / अन्य</th>
+                    <th style="padding: 8px 12px; text-align: right;">बाहिर (प्रवास)</th>
+                    <th style="padding: 8px 12px;">मुख्य प्रभाव वडा</th>
+                  </tr>
+                </thead>
+                <tbody id="casteSummaryMatrixBody">
+                  <!-- Populated dynamically by renderCasteDemographics() -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- DETAILED CONTROLS, SEARCH & FILTER BAR -->
+          <div class="card" style="padding: 14px 16px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+              <!-- Left: Search Box -->
+              <div style="flex: 1; min-width: 240px; position: relative;">
+                <input type="text" id="casteVoterSearchInput" class="form-control" placeholder="🔍 नाम, मतदाता नं, टोल, थरबाट खोज्नुहोस्..." oninput="onCasteSearchInputChanged()" style="width: 100%; padding-left: 12px; font-size: 13.5px; border-radius: 8px;">
+              </div>
+
+              <!-- Middle: Dropdown Filters -->
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <select id="casteFilterWardSelect" class="form-control" onchange="onCasteFilterChanged()" style="width: auto; min-width: 110px; font-size: 13px;">
+                  <option value="all">वडा: सबै वडा</option>
+                  <option value="1">वडा नं १</option>
+                  <option value="2">वडा नं २</option>
+                  <option value="3">वडा नं ३</option>
+                  <option value="4">वडा नं ४</option>
+                  <option value="5">वडा नं ५</option>
+                  <option value="6">वडा नं ६</option>
+                  <option value="7">वडा नं ७</option>
+                </select>
+
+                <select id="casteFilterBoothSelect" class="form-control" onchange="onCasteFilterChanged()" style="width: auto; min-width: 125px; font-size: 13px;">
+                  <option value="all">बुथ: सबै केन्द्र</option>
+                </select>
+
+                <select id="casteFilterSurnameSelect" class="form-control" onchange="onCasteFilterChanged()" style="width: auto; min-width: 130px; font-size: 13px;">
+                  <option value="all">थर: सबै थरहरू</option>
+                </select>
+
+                <select id="casteFilterSupportSelect" class="form-control" onchange="onCasteFilterChanged()" style="width: auto; min-width: 130px; font-size: 13px;">
+                  <option value="all">मत स्थिति: सबै</option>
+                  <option value="solid">🟢 पक्का मत मात्र</option>
+                  <option value="swing">🟡 दोधार / झुकाव</option>
+                  <option value="other">⚪ अन्य / विपक्षी</option>
+                  <option value="absentee">✈️ बाहिर / विदेश</option>
+                </select>
+              </div>
+
+              <!-- Right: View Switcher (Table vs Card) -->
+              <div style="display: flex; gap: 4px; background: var(--bg-hover); padding: 3px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <button type="button" id="casteBtnTableView" class="btn btn-sm active" onclick="switchCasteDisplayMode('table')" style="border-radius: 6px; padding: 6px 12px; font-weight: 700; font-size: 12px;">
+                  ☷ Table View
+                </button>
+                <button type="button" id="casteBtnCardView" class="btn btn-sm" onclick="switchCasteDisplayMode('card')" style="border-radius: 6px; padding: 6px 12px; font-weight: 700; font-size: 12px;">
+                  🗂 Card View
+                </button>
+              </div>
+            </div>
+
+            <!-- Active Filter Badges Bar -->
+            <div id="casteActiveFilterBadges" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 10px; font-size: 12px;">
+              <span style="color: var(--text-muted); font-weight: 600;">सक्रिय फिल्टर:</span>
+              <span id="casteFilterIndicatorPill" class="badge" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3);">सबै समुदाय</span>
+              <span id="casteFilteredCountBadge" style="margin-left: auto; font-weight: 800; color: var(--text-primary);">देखाउँदै: ० जना</span>
+            </div>
+          </div>
+
+          <!-- DATA DISPLAY: TABLE VIEW CONTAINER -->
+          <div id="casteTableViewContainer" class="card" style="padding: 0; overflow: hidden; margin-bottom: 24px;">
+            <div style="overflow-x: auto; max-height: 680px;">
+              <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 3; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                  <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
+                    <th style="padding: 10px 12px; width: 45px;">#</th>
+                    <th style="padding: 10px 12px;">मतदाता नं</th>
+                    <th style="padding: 10px 12px; cursor: pointer;" onclick="toggleCasteSort('name')">पूरा नाम ⇕</th>
+                    <th style="padding: 10px 12px; cursor: pointer;" onclick="toggleCasteSort('age')">लि/उमेर ⇕</th>
+                    <th style="padding: 10px 12px;">सरकारी क्लस्टर</th>
+                    <th style="padding: 10px 12px;">उप-जाति / थर</th>
+                    <th style="padding: 10px 12px; cursor: pointer;" onclick="toggleCasteSort('ward')">स्थान (वडा/टोल) ⇕</th>
+                    <th style="padding: 10px 12px;">मोबाइल</th>
+                    <th style="padding: 10px 12px; text-align: center;">मत स्थिति</th>
+                    <th style="padding: 10px 12px; text-align: right; width: 100px;">कार्य</th>
+                  </tr>
+                </thead>
+                <tbody id="casteTableRosterBody">
+                  <!-- Injected via renderCasteVotersTable() -->
+                </tbody>
+              </table>
+            </div>
+            <div id="casteTableEmptyState" style="display: none; padding: 40px; text-align: center; color: var(--text-muted);">
+              <div style="font-size: 36px; margin-bottom: 8px;">🔍</div>
+              <div style="font-weight: 700;">छनोट गरिएको फिल्टर अनुसार कुनै मतदाता भेटिएन</div>
+              <div style="font-size: 12px; margin-top: 4px;">फिल्टर हटाउन माथि 'सबै' छान्नुहोस् वा अर्को शब्द खोज्नुहोस्</div>
+            </div>
+          </div>
+
+          <!-- DATA DISPLAY: CARD VIEW CONTAINER -->
+          <div id="casteCardViewContainer" style="display: none; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; margin-bottom: 24px;">
+            <!-- Injected via renderCasteVotersCards() -->
+          </div>
+          <div id="casteCardEmptyState" style="display: none; padding: 40px; text-align: center; color: var(--text-muted);" class="card">
+            <div style="font-size: 36px; margin-bottom: 8px;">🔍</div>
+            <div style="font-weight: 700;">छनोट गरिएको फिल्टर अनुसार कुनै मतदाता भेटिएन</div>
+          </div>
+
+          <!-- MODAL: 1-CLICK CASTE RULE MANAGER & OVERRIDE -->
+          <div id="casteRuleManagerModal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
+            <div class="card" style="width: 100%; max-width: 680px; max-height: 85vh; overflow-y: auto; padding: 22px; border-radius: 14px; box-shadow: 0 12px 36px rgba(0,0,0,0.4);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                <h3 style="margin: 0; font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                  ⚙️ १-क्लिक थर तथा जातीय समूह व्यवस्थापन
+                </h3>
+                <button type="button" class="btn btn-sm btn-icon" onclick="closeCasteRuleManagerModal()" style="font-size: 16px;">✕</button>
+              </div>
+              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4;">
+                यहाँ कुनै पनि थरलाई नेपाल सरकारको आधिकारिक क्लस्टर तोक्न सक्नुहुन्छ। एक पटक तोकेपछि सो थर भएका सबै मतदाता तुरुन्तै र भविष्यका लागि पनि सोही समूहमा स्वतः वर्गीकरण हुनेछन्।
+              </p>
+              
+              <!-- Quick Add Custom Rule Form -->
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; background: var(--bg-hover); padding: 12px; border-radius: 8px;">
+                <input type="text" id="modalCasteInputSurname" class="form-control" placeholder="थर (उदा: घिसिङ, अवाल...)" style="flex: 1; min-width: 130px; font-size: 13px;">
+                <select id="modalCasteSelectCluster" class="form-control" style="flex: 1; min-width: 150px; font-size: 13px;">
+                  <option value="janajati">🟢 आदिवासी जनजाति</option>
+                  <option value="khas_arya">🔵 खस आर्य</option>
+                  <option value="newar">🟠 नेवार समुदाय</option>
+                  <option value="dalit">🟣 दलित समुदाय</option>
+                  <option value="other">⚪ मधेसी / अन्य</option>
+                </select>
+                <input type="text" id="modalCasteInputSub" class="form-control" placeholder="उप-जाति (वैकल्पिक)" style="flex: 1; min-width: 110px; font-size: 13px;">
+                <button type="button" class="btn btn-sm btn-primary" onclick="applyCustomCasteRuleFromModal()" style="font-weight: 800; white-space: nowrap;">
+                  ⚡ नियम लागू गर्नुहोस्
+                </button>
+              </div>
+
+              <!-- Unmapped / Review Surnames List -->
+              <h4 style="font-size: 14px; font-weight: 700; margin: 16px 0 8px; display: flex; justify-content: space-between;">
+                <span>⚠️ पहिचान खुल्न बाँकी रहेका थरहरू (Unmapped Surnames):</span>
+                <span id="modalUnmappedCountBadge" class="badge badge-warning">0 वटा</span>
+              </h4>
+              <div style="max-height: 260px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+                  <thead>
+                    <tr style="background: var(--bg-hover); text-align: left;">
+                      <th style="padding: 8px 10px;">थर</th>
+                      <th style="padding: 8px 10px; text-align: right;">मतदाता</th>
+                      <th style="padding: 8px 10px;">क्लस्टर छान्नुहोस्</th>
+                      <th style="padding: 8px 10px; text-align: center;">एक्सन</th>
+                    </tr>
+                  </thead>
+                  <tbody id="modalUnmappedSurnamesBody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
 
         <!-- 3D. SENIOR CITIZENS / OLD AGE COMMAND HUB (🧓 ज्येष्ठ नागरिक विशेष कमान्ड — ६०+ वर्ष) -->
         <section id="viewSeniors" class="view-section">
@@ -9717,6 +10017,7 @@
             const activeId = activeSec ? activeSec.id : '';
             if (activeId === 'viewVoters') renderVotersList();
             else if (activeId === 'viewHouseholds') renderHouseholdsList();
+          else if (activeId === 'viewCaste') renderCasteDemographics();
             else if (activeId === 'viewElectionDay') renderElectionReports();
             else if (activeId === 'viewTenants' && currentUser.Role === 'Super Admin') renderTenantsManagement();
           }
@@ -10567,7 +10868,7 @@
         icon: '🏛️',
         defaultView: 'dashboard',
         allowedViews: [
-          'dashboard', 'warRoom', 'voters', 'households', 'community', 'genZ', 'seniors', 'visits', 
+          'dashboard', 'warRoom', 'voters', 'caste', 'households', 'community', 'genZ', 'seniors', 'visits', 
           'followups', 'areas', 'team', 'issues', 'publicSubs', 
           'electionDay', 'notices', 'messages', 'timeline', 'reports'
         ],
@@ -10581,7 +10882,7 @@
         icon: '🏛️',
         defaultView: 'dashboard',
         allowedViews: [
-          'dashboard', 'warRoom', 'voters', 'households', 'community', 'genZ', 'seniors', 'visits', 
+          'dashboard', 'warRoom', 'voters', 'caste', 'households', 'community', 'genZ', 'seniors', 'visits', 
           'followups', 'areas', 'team', 'issues', 'publicSubs', 
           'electionDay', 'notices', 'messages', 'timeline', 'reports'
         ],
@@ -10595,7 +10896,7 @@
         icon: '🎯',
         defaultView: 'warRoom',
         allowedViews: [
-          'warRoom', 'dashboard', 'voters', 'households', 'areas', 'community', 'genZ', 'seniors', 'reports', 'notices', 'issues', 'electionDay'
+          'warRoom', 'dashboard', 'voters', 'caste', 'households', 'areas', 'community', 'genZ', 'seniors', 'reports', 'notices', 'issues', 'electionDay'
         ],
         description: 'उम्मेदवार जित-हार प्रक्षेपण, मतदाता रुझान, गुप्त रणनीति र निर्वाचन प्रतिवेदन।'
       },
@@ -10607,7 +10908,7 @@
         icon: '📋',
         defaultView: 'dashboard',
         allowedViews: [
-          'dashboard', 'voters', 'households', 'community', 'genZ', 'seniors', 'visits', 
+          'dashboard', 'voters', 'caste', 'households', 'community', 'genZ', 'seniors', 'visits', 
           'followups', 'team', 'notices', 'issues', 'electionDay'
         ],
         description: 'तोकिएको वडाको सम्पूर्ण निर्वाचन व्यवस्थापन, मतदाता सम्पर्क र वडा टोली परिचालन।'
@@ -10620,7 +10921,7 @@
         icon: '🗳️',
         defaultView: 'voters',
         allowedViews: [
-          'voters', 'households', 'areas', 'community', 'genZ', 'seniors', 'visits', 'notices', 'issues', 'electionDay'
+          'voters', 'caste', 'households', 'areas', 'community', 'genZ', 'seniors', 'visits', 'notices', 'issues', 'electionDay'
         ],
         description: 'तोकिएको मतदान केन्द्रको मतदाता परिचालन र मतदान दिन अनुगमन।'
       },
@@ -10632,7 +10933,7 @@
         icon: '🏘️',
         defaultView: 'dayBook',
         allowedViews: [
-          'dayBook', 'voters', 'households', 'areas', 'community', 'genZ', 'seniors', 'visits', 'notices', 'issues', 'electionDay'
+          'dayBook', 'voters', 'caste', 'households', 'areas', 'community', 'genZ', 'seniors', 'visits', 'notices', 'issues', 'electionDay'
         ],
         description: 'टोल स्तरको घरदैलो, मतदाता भेटघाट, समस्या संकलन र मतदान दिन हाजिरी।'
       },
@@ -11017,6 +11318,8 @@
 
       if (viewName === 'dashboard') {
         refreshDashboardMetrics();
+      } else if (viewName === 'caste') {
+        renderCasteDemographics();
       } else if (viewName === 'voters') {
         const vs = document.getElementById('voterSearch');
         if (vs && (vs.value === 'helambu_admin' || vs.value === 'admin' || (currentUser && vs.value === currentUser.UserID))) {
@@ -31645,6 +31948,1093 @@
       });
     });
 
-  </script>
+  
+
+// ══════════════════════════════════════════════════════════════════════════════
+// OFFICIAL NEPAL GOVERNMENT CASTE & ETHNICITY MODULE
+// (NSO Census 2078, NFDIN Act 2002, National Inclusion Commission, National Dalit Commission)
+// ══════════════════════════════════════════════════════════════════════════════
+
+const NEPAL_GOVT_CASTE_DICTIONARY = {
+  // 1. ADIVASI JANAJATI (आदिवासी जनजाति - विशेष गरी हेलम्बु / सिन्धुपाल्चोक / हिमाली र पहाडी)
+  "ह्योल्मो": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "ह्योल्मो", code: "JAN_HYO" },
+  "ह्याल्मो": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "ह्योल्मो", code: "JAN_HYO" },
+  "हेल्मो": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "ह्योल्मो", code: "JAN_HYO" },
+  "लामा": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ / ह्योल्मो", code: "JAN_TAM" },
+  "तामाङ": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "तामाङ्ग": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "शेर्पा": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "शेर्पा", code: "JAN_SHE" },
+  "गुरुङ": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "गुरुङ", code: "JAN_GUR" },
+  "घले": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "घले", code: "JAN_GHA" },
+  "मगर": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "मगर", code: "JAN_MAG" },
+  "राई": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "राई", code: "JAN_RAI" },
+  "लिम्बु": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "लिम्बु", code: "JAN_LIM" },
+  "लिम्बू": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "लिम्बु", code: "JAN_LIM" },
+  "दनुवार": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "दनुवार (सीमान्तकृत)", code: "JAN_DAN" },
+  "थामी": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "थामी (सीमान्तकृत)", code: "JAN_THA" },
+  "माझी": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "माझी (सीमान्तकृत)", code: "JAN_MAJ" },
+  "पहरी": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "पहरी (सीमान्तकृत)", code: "JAN_PAH" },
+  "भुजेल": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "भुजेल", code: "JAN_BHU" },
+  "चेपाङ": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "चेपाङ", code: "JAN_CHE" },
+  "कुमाल": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "कुमाल", code: "JAN_KUM" },
+  "थकाली": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "थकाली", code: "JAN_THK" },
+  "राना": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "मगर / जनजाति", code: "JAN_MAG" },
+  "पुन": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "मगर", code: "JAN_MAG" },
+  "झाँक्री": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "जनजाति", code: "JAN_GEN" },
+  "घिसिङ": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "वाइबा": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "मोक्तान": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "पाख्रिन": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "योन्जन": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "ब्लोन": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "थोकर": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "सिङ्तान": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "दोङ": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "गोले": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "लोप्चन": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "तितुङ": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "बम्जन": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "नेगी": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "जिम्बा": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "ग्याबा": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "रुम्बा": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "मार्पा": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "लुङ्बा": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "च्याङ्बा": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+  "याक्खा": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "किरात याक्खा", code: "JAN_YAK" },
+  "सुनुवार": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "सुनुवार", code: "JAN_SUN" },
+  "बोताङ": { cluster: "janajati", clusterLabel: "आदिवासी जनजाति", sub: "तामाङ", code: "JAN_TAM" },
+
+  // 2. KHAS ARYA (खस आर्य - क्षेत्री, पहाडी ब्राह्मण, ठकुरी, सन्यासी / दशनामी)
+  "खड्का": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "थापा": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "कार्की": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "बस्नेत": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "भण्डारी": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "राउत": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "रावत": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "बोहरा": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "बोहोरा": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "कुँवर": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "खत्री": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "केसी": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "के.सी.": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "रानाभाट": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "रोका": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री / मगर", code: "KHA_CHH" },
+  "रोक्का": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री / मगर", code: "KHA_CHH" },
+  "बुढाथोकी": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "कटुवाल": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "घर्ती": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "सिलवाल": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "रायमाझी": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "महत": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "महत्": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "डाँगी": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "बिष्ट": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "विष्ट": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+  "बोगटी": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "क्षेत्री", code: "KHA_CHH" },
+
+  // Hill Brahmin (पहाडी ब्राह्मण)
+  "पौडेल": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "पौड्याल": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "अधिकारी": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "घिमिरे": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "पण्डित": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "नेपाल": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "दाहाल": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "खनाल": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "शर्मा": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "भट्टराई": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "सापकोटा": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "पराजुली": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "चापागाईं": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "चापागाइ": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "कोइराला": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "रिजाल": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "तिवारी": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "उपाध्याय": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "रेग्मी": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "बराल": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "ढकाल": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "सुवेदी": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "बास्तोला": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "मिश्र": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "निरौला": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "लम्साल": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "न्यौपाने": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "पोखरेल": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "गौतम": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "पन्त": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "दुलाल": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "सिग्देल": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+  "तिमिल्सिना": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "पहाडी ब्राह्मण", code: "KHA_BRA" },
+
+  // Sanyasi / Dashnami (सन्यासी / दशनामी)
+  "गिरी": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "सन्यासी / दशनामी", code: "KHA_SAN" },
+  "पुरी": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "सन्यासी / दशनामी", code: "KHA_SAN" },
+  "भारती": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "सन्यासी / दशनामी", code: "KHA_SAN" },
+  "वन": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "सन्यासी / दशनामी", code: "KHA_SAN" },
+  "बन": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "सन्यासी / दशनामी", code: "KHA_SAN" },
+  "सरस्वती": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "सन्यासी / दशनामी", code: "KHA_SAN" },
+
+  // Thakuri (ठकुरी)
+  "शाही": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "ठकुरी", code: "KHA_THA" },
+  "शाह": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "ठकुरी", code: "KHA_THA" },
+  "चन्द": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "ठकुरी", code: "KHA_THA" },
+  "सिंह": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "ठकुरी", code: "KHA_THA" },
+  "सेन": { cluster: "khas_arya", clusterLabel: "खस आर्य", sub: "ठकुरी", code: "KHA_THA" },
+
+  // 3. NEWAR (नेवार समुदाय - Nepal Govt Distinct Cluster)
+  "श्रेष्ठ": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_SHR" },
+  "प्रधान": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_PRA" },
+  "मानन्धर": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_MAN" },
+  "बज्राचार्य": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_BAJ" },
+  "शाक्य": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_SHA" },
+  "जोशी": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_JOS" },
+  "प्रजापति": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_PRJ" },
+  "महर्जन": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_MAH" },
+  "डंगोल": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_DAN" },
+  "कायस्थ": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_KAY" },
+  "कर्माचार्य": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_KAR" },
+  "मल्ल": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_MAL" },
+  "राजभण्डारी": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_RAJ" },
+  "अवाल": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_AWA" },
+  "खड्गी": { cluster: "newar", clusterLabel: "नेवार समुदाय", sub: "नेवार", code: "NEW_KHA" },
+
+  // 4. DALIT (पहाडी दलित - National Dalit Commission Schedule)
+  "वि.क.": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "विश्वकर्मा", code: "DAL_VIK" },
+  "वि क": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "विश्वकर्मा", code: "DAL_VIK" },
+  "विक": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "विश्वकर्मा", code: "DAL_VIK" },
+  "विश्वकर्मा": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "विश्वकर्मा", code: "DAL_VIK" },
+  "बराइली": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "विश्वकर्मा", code: "DAL_BAR" },
+  "गजमेर": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "विश्वकर्मा", code: "DAL_GAJ" },
+  "ल्वागुन": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "विश्वकर्मा", code: "DAL_LWA" },
+  "सुनार": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "विश्वकर्मा", code: "DAL_SUN" },
+  "लोहार": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "विश्वकर्मा", code: "DAL_LOH" },
+  "कामी": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "विश्वकर्मा", code: "DAL_KAM" },
+  "रसाइली": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "विश्वकर्मा", code: "DAL_RAS" },
+  "घतानी": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "विश्वकर्मा", code: "DAL_GHA" },
+  "दियाली": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "विश्वकर्मा", code: "DAL_DIY" },
+
+  // Pariyar (दमाई, दर्जी)
+  "परियार": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "परियार", code: "DAL_PAR" },
+  "दर्जी": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "परियार", code: "DAL_DAR" },
+  "नेपाली": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "परियार", code: "DAL_NEP" },
+  "सुन्दास": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "परियार", code: "DAL_SUN" },
+  "रणपहेली": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "परियार", code: "DAL_RAN" },
+  "बर्देवा": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "परियार", code: "DAL_BAR" },
+  "अछामी": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "परियार", code: "DAL_ACH" },
+
+  // Mijar (सार्की)
+  "मिजार": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "मिजार", code: "DAL_MIJ" },
+  "सार्की": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "मिजार", code: "DAL_SAR" },
+  "तोलाङ्गी": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "मिजार", code: "DAL_TOL" },
+  "भुल": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "मिजार", code: "DAL_BHU" },
+  "चर्मकार": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "मिजार", code: "DAL_CHA" },
+  "गोतामे": { cluster: "dalit", clusterLabel: "दलित समुदाय", sub: "मिजार", code: "DAL_GOT" },
+
+  // 5. MADHESI / MUSLIM / OTHERS
+  "यादव": { cluster: "other", clusterLabel: "मधेसी / अन्य", sub: "यादव", code: "OTH_YAD" },
+  "साह": { cluster: "other", clusterLabel: "मधेसी / अन्य", sub: "साह", code: "OTH_SAH" },
+  "झा": { cluster: "other", clusterLabel: "मधेसी / अन्य", sub: "झा", code: "OTH_JHA" },
+  "मियाँ": { cluster: "other", clusterLabel: "मुस्लिम / अन्य", sub: "मुस्लिम", code: "OTH_MUS" },
+  "अन्सारी": { cluster: "other", clusterLabel: "मुस्लिम / अन्य", sub: "मुस्लिम", code: "OTH_MUS" }
+};
+
+function extractVoterSurname(name) {
+  if (!name || typeof name !== 'string') return '';
+  let clean = name.replace(/\\([^)]*\\)/g, '').trim();
+  if (/(?:[\\s]|^)वि[\\.\\s]*क[\\.]*$/i.test(clean)) return 'वि.क.';
+  if (/(?:[\\s]|^)के[\\.\\s]*सी[\\.]*$/i.test(clean)) return 'के.सी.';
+  const parts = clean.split(/\\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  let last = parts[parts.length - 1].trim();
+  last = last.replace(/[.,/#!$%^&*;:{}=\\-_~\\`()]/g, '');
+  if (last === 'विक' || last === 'वि' || last === 'क') {
+    if (clean.includes('वि') && clean.includes('क')) return 'वि.क.';
+  }
+  if (last === 'केसी' || last === 'के' || last === 'सी') {
+    if (clean.includes('के') && clean.includes('सी')) return 'के.सी.';
+  }
+  return last;
+}
+
+function getCustomCasteRules() {
+  try {
+    const stored = localStorage.getItem('vrm_caste_custom_rules');
+    return stored ? JSON.parse(stored) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveCustomCasteRule(surname, clusterKey, clusterLabel, subCaste) {
+  if (!surname) return;
+  const rules = getCustomCasteRules();
+  rules[surname] = {
+    cluster: clusterKey,
+    clusterLabel: clusterLabel,
+    sub: subCaste || surname,
+    code: 'CUSTOM_' + Date.now()
+  };
+  localStorage.setItem('vrm_caste_custom_rules', JSON.stringify(rules));
+}
+
+function getVoterCasteClassification(v) {
+  if (!v) return { surname: '', cluster: 'unclassified', clusterLabel: 'पहिचान खुल्न बाँकी', sub: 'अन्य', isCustom: false };
+
+  if (v.CasteCluster && v.CasteCluster !== 'unclassified') {
+    const cLabels = {
+      'janajati': 'आदिवासी जनजाति',
+      'khas_arya': 'खस आर्य',
+      'newar': 'नेवार समुदाय',
+      'dalit': 'दलित समुदाय',
+      'other': 'मधेसी / अन्य'
+    };
+    return {
+      surname: v.CasteSurname || extractVoterSurname(v.Name),
+      cluster: v.CasteCluster,
+      clusterLabel: cLabels[v.CasteCluster] || 'अन्य / खुल्न बाँकी',
+      sub: v.CasteSub || v.CasteSurname || extractVoterSurname(v.Name),
+      isCustom: true
+    };
+  }
+
+  const surname = extractVoterSurname(v.Name);
+  if (!surname) {
+    return { surname: 'अज्ञात', cluster: 'unclassified', clusterLabel: 'पहिचान खुल्न बाँकी', sub: 'थर नखुलेको', isCustom: false };
+  }
+
+  const customRules = getCustomCasteRules();
+  if (customRules[surname]) {
+    return {
+      surname: surname,
+      cluster: customRules[surname].cluster,
+      clusterLabel: customRules[surname].clusterLabel,
+      sub: customRules[surname].sub,
+      isCustom: true
+    };
+  }
+
+  if (NEPAL_GOVT_CASTE_DICTIONARY[surname]) {
+    const dict = NEPAL_GOVT_CASTE_DICTIONARY[surname];
+    return {
+      surname: surname,
+      cluster: dict.cluster,
+      clusterLabel: dict.clusterLabel,
+      sub: dict.sub,
+      isCustom: false
+    };
+  }
+
+  return {
+    surname: surname,
+    cluster: 'unclassified',
+    clusterLabel: 'पहिचान खुल्न बाँकी',
+    sub: surname,
+    isCustom: false
+  };
+}
+
+let _casteFilterState = {
+  cluster: 'all',
+  ward: 'all',
+  booth: 'all',
+  surname: 'all',
+  support: 'all',
+  search: '',
+  sortField: 'name',
+  sortAsc: true,
+  displayMode: 'table'
+};
+
+function updateCasteNavBadge() {
+  const badge = document.getElementById('casteCountBadge');
+  if (!badge) return;
+  const voters = getScopedVoters();
+  badge.textContent = (voters && voters.length) ? voters.length.toLocaleString() : '0';
+}
+
+function setCasteClusterFilter(clusterKey) {
+  _casteFilterState.cluster = clusterKey;
+  _casteFilterState.surname = 'all';
+  const surnameSel = document.getElementById('casteFilterSurnameSelect');
+  if (surnameSel) surnameSel.value = 'all';
+
+  document.querySelectorAll('.caste-cluster-pill').forEach(btn => {
+    if (btn.getAttribute('data-cluster') === clusterKey) {
+      btn.classList.add('active');
+      btn.style.boxShadow = '0 0 0 2px #fff, 0 0 0 4px #3b82f6';
+    } else {
+      btn.classList.remove('active');
+      btn.style.boxShadow = 'none';
+    }
+  });
+  renderCasteDemographics();
+}
+
+function setCasteSupportFilter(supportKey) {
+  _casteFilterState.support = (_casteFilterState.support === supportKey) ? 'all' : supportKey;
+  const sel = document.getElementById('casteFilterSupportSelect');
+  if (sel) sel.value = _casteFilterState.support;
+  renderCasteDemographics();
+}
+
+function onCasteFilterChanged() {
+  const wSel = document.getElementById('casteFilterWardSelect');
+  const bSel = document.getElementById('casteFilterBoothSelect');
+  const sSel = document.getElementById('casteFilterSurnameSelect');
+  const supSel = document.getElementById('casteFilterSupportSelect');
+
+  if (wSel) _casteFilterState.ward = wSel.value;
+  if (bSel) _casteFilterState.booth = bSel.value;
+  if (sSel) _casteFilterState.surname = sSel.value;
+  if (supSel) _casteFilterState.support = supSel.value;
+
+  renderCasteDemographics();
+}
+
+let _casteSearchDebounceTimer = null;
+function onCasteSearchInputChanged() {
+  clearTimeout(_casteSearchDebounceTimer);
+  _casteSearchDebounceTimer = setTimeout(() => {
+    const inp = document.getElementById('casteVoterSearchInput');
+    _casteFilterState.search = inp ? inp.value.trim().toLowerCase() : '';
+    renderCasteDemographics();
+  }, 150);
+}
+
+function switchCasteDisplayMode(mode) {
+  _casteFilterState.displayMode = mode;
+  const btnTbl = document.getElementById('casteBtnTableView');
+  const btnCrd = document.getElementById('casteBtnCardView');
+  const tblCont = document.getElementById('casteTableViewContainer');
+  const crdCont = document.getElementById('casteCardViewContainer');
+
+  if (btnTbl) btnTbl.classList.toggle('active', mode === 'table');
+  if (btnCrd) btnCrd.classList.toggle('active', mode === 'card');
+
+  if (tblCont && crdCont) {
+    if (mode === 'table') {
+      tblCont.style.display = 'block';
+      crdCont.style.display = 'none';
+    } else {
+      tblCont.style.display = 'none';
+      crdCont.style.display = 'grid';
+    }
+  }
+  renderCasteDemographics();
+}
+
+function toggleCasteSort(field) {
+  if (_casteFilterState.sortField === field) {
+    _casteFilterState.sortAsc = !_casteFilterState.sortAsc;
+  } else {
+    _casteFilterState.sortField = field;
+    _casteFilterState.sortAsc = true;
+  }
+  renderCasteDemographics();
+}
+
+function renderCasteDemographics() {
+  const allVoters = getScopedVoters();
+  updateCasteNavBadge();
+  populateCasteFilterDropdowns(allVoters);
+
+  let clusterCounts = {
+    all: allVoters.length,
+    janajati: 0,
+    khas_arya: 0,
+    newar: 0,
+    dalit: 0,
+    other: 0,
+    unclassified: 0
+  };
+
+  const unmappedSurnamesMap = {};
+  const surnameFrequencyMap = {};
+
+  const enrichedVoters = allVoters.map(v => {
+    const cInfo = getVoterCasteClassification(v);
+    if (clusterCounts[cInfo.cluster] !== undefined) {
+      clusterCounts[cInfo.cluster]++;
+    } else {
+      clusterCounts.other++;
+    }
+
+    if (cInfo.surname && cInfo.surname !== 'अज्ञात') {
+      surnameFrequencyMap[cInfo.surname] = (surnameFrequencyMap[cInfo.surname] || 0) + 1;
+    }
+
+    if (cInfo.cluster === 'unclassified' && cInfo.surname && cInfo.surname !== 'अज्ञात') {
+      unmappedSurnamesMap[cInfo.surname] = (unmappedSurnamesMap[cInfo.surname] || 0) + 1;
+    }
+
+    return {
+      voter: v,
+      casteInfo: cInfo
+    };
+  });
+
+  const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val.toLocaleString(); };
+  setTxt('casteCount_all', clusterCounts.all);
+  setTxt('casteCount_janajati', clusterCounts.janajati);
+  setTxt('casteCount_khas_arya', clusterCounts.khas_arya);
+  setTxt('casteCount_newar', clusterCounts.newar);
+  setTxt('casteCount_dalit', clusterCounts.dalit);
+  setTxt('casteCount_other', clusterCounts.other);
+  setTxt('casteCount_unclassified', clusterCounts.unclassified);
+
+  const unmappedKeys = Object.keys(unmappedSurnamesMap);
+  setTxt('casteUnmappedBadgeTop', unmappedKeys.length);
+  const modalBadge = document.getElementById('modalUnmappedCountBadge');
+  if (modalBadge) modalBadge.textContent = unmappedKeys.length + ' वटा थर (' + clusterCounts.unclassified + ' जना)';
+
+  populateCasteSurnameDropdown(enrichedVoters, surnameFrequencyMap);
+
+  const filtered = enrichedVoters.filter(item => {
+    const v = item.voter;
+    const c = item.casteInfo;
+
+    if (_casteFilterState.cluster !== 'all' && c.cluster !== _casteFilterState.cluster) return false;
+    if (_casteFilterState.ward !== 'all' && String(v.Ward || v.WardNo || '') !== _casteFilterState.ward) return false;
+    if (_casteFilterState.booth !== 'all' && String(v.BoothNo || '') !== _casteFilterState.booth) return false;
+    if (_casteFilterState.surname !== 'all' && c.surname !== _casteFilterState.surname) return false;
+
+    if (_casteFilterState.support !== 'all') {
+      const tier = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
+      const isSure = (v.SureVote === true || v.IsSureVote === true || tier === 'solid');
+      const isAbsent = String(v.CurrentLocation || '').includes('काठमाडौं') || String(v.CurrentLocation || '').includes('विदेश');
+
+      if (_casteFilterState.support === 'solid' && !isSure) return false;
+      if (_casteFilterState.support === 'swing' && (isSure || isAbsent || tier === 'other')) return false;
+      if (_casteFilterState.support === 'other' && (isSure || isAbsent || tier === 'solid' || tier === 'lean')) return false;
+      if (_casteFilterState.support === 'absentee' && !isAbsent) return false;
+    }
+
+    if (_casteFilterState.search) {
+      const q = _casteFilterState.search;
+      const matchName = (v.Name || '').toLowerCase().includes(q);
+      const matchId = (v.OfficialVoterID || v.VoterID || '').toLowerCase().includes(q);
+      const matchTole = (v.Tole || '').toLowerCase().includes(q);
+      const matchSur = (c.surname || '').toLowerCase().includes(q);
+      const matchSub = (c.sub || '').toLowerCase().includes(q);
+      if (!matchName && !matchId && !matchTole && !matchSur && !matchSub) return false;
+    }
+
+    return true;
+  });
+
+  renderCasteKpis(filtered, allVoters.length);
+  renderCasteSummaryMatrix(enrichedVoters);
+  updateCasteFilterIndicator(filtered.length);
+
+  filtered.sort((a, b) => {
+    let valA, valB;
+    if (_casteFilterState.sortField === 'name') {
+      valA = a.voter.Name || '';
+      valB = b.voter.Name || '';
+    } else if (_casteFilterState.sortField === 'age') {
+      valA = getVoterNumericAge(a.voter);
+      valB = getVoterNumericAge(b.voter);
+    } else if (_casteFilterState.sortField === 'ward') {
+      valA = Number(a.voter.Ward || 0);
+      valB = Number(b.voter.Ward || 0);
+    } else {
+      valA = a.voter.Name || '';
+      valB = b.voter.Name || '';
+    }
+    if (valA < valB) return _casteFilterState.sortAsc ? -1 : 1;
+    if (valA > valB) return _casteFilterState.sortAsc ? 1 : -1;
+    return 0;
+  });
+
+  if (_casteFilterState.displayMode === 'table') {
+    renderCasteTableView(filtered);
+  } else {
+    renderCasteCardView(filtered);
+  }
+}
+
+function populateCasteFilterDropdowns(voters) {
+  const bSel = document.getElementById('casteFilterBoothSelect');
+  if (bSel && bSel.children.length <= 1) {
+    const booths = new Set();
+    voters.forEach(v => { if (v.BoothNo) booths.add(v.BoothNo); });
+    Array.from(booths).sort().forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b;
+      opt.textContent = 'बुथ ' + b;
+      bSel.appendChild(opt);
+    });
+  }
+}
+
+function populateCasteSurnameDropdown(enrichedVoters, freqMap) {
+  const sSel = document.getElementById('casteFilterSurnameSelect');
+  if (!sSel) return;
+  const curVal = sSel.value;
+  const sortedSurnames = Object.keys(freqMap).sort((a, b) => freqMap[b] - freqMap[a]);
+
+  sSel.innerHTML = '<option value="all">थर: सबै थरहरू (' + sortedSurnames.length + ')</option>';
+  sortedSurnames.forEach(sur => {
+    const count = freqMap[sur];
+    const opt = document.createElement('option');
+    opt.value = sur;
+    opt.textContent = sur + ' (' + count + ')';
+    sSel.appendChild(opt);
+  });
+  if (curVal && Array.from(sSel.options).some(o => o.value === curVal)) {
+    sSel.value = curVal;
+  }
+}
+
+function renderCasteKpis(filteredItems, totalAllVoters) {
+  let sureCount = 0;
+  let swingCount = 0;
+  let absenteeCount = 0;
+  let maleCount = 0;
+  let femaleCount = 0;
+
+  filteredItems.forEach(item => {
+    const v = item.voter;
+    const g = String(v.Gender || '').toLowerCase();
+    if (g.includes('पु') || g.includes('male') || g === 'm') maleCount++;
+    else if (g.includes('म') || g.includes('fem') || g === 'f') femaleCount++;
+
+    const tier = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
+    const isSure = (v.SureVote === true || v.IsSureVote === true || tier === 'solid');
+    const isAbsent = String(v.CurrentLocation || '').includes('काठमाडौं') || String(v.CurrentLocation || '').includes('विदेश');
+
+    if (isSure) sureCount++;
+    else if (tier === 'swing') swingCount++;
+    if (isAbsent) absenteeCount++;
+  });
+
+  const total = filteredItems.length;
+  const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+  setTxt('casteKpiTotalCount', total.toLocaleString() + ' जना');
+  const totPct = totalAllVoters > 0 ? ((total / totalAllVoters) * 100).toFixed(1) : '0';
+  setTxt('casteKpiTotalPct', totPct + '%');
+  setTxt('casteKpiMaleCount', maleCount.toLocaleString());
+  setTxt('casteKpiFemaleCount', femaleCount.toLocaleString());
+
+  setTxt('casteKpiSureCount', sureCount.toLocaleString() + ' जना');
+  const surePct = total > 0 ? ((sureCount / total) * 100).toFixed(1) : '0';
+  setTxt('casteKpiSurePct', surePct + '%');
+
+  setTxt('casteKpiSwingCount', swingCount.toLocaleString() + ' जना');
+  const swingPct = total > 0 ? ((swingCount / total) * 100).toFixed(1) : '0';
+  setTxt('casteKpiSwingPct', swingPct + '%');
+
+  setTxt('casteKpiAbsenteeCount', absenteeCount.toLocaleString() + ' जना');
+  const absPct = total > 0 ? ((absenteeCount / total) * 100).toFixed(1) : '0';
+  setTxt('casteKpiAbsenteePct', absPct + '%');
+
+  const clusterLabels = {
+    'all': 'सबै समुदाय',
+    'janajati': 'आदिवासी जनजाति',
+    'khas_arya': 'खस आर्य',
+    'newar': 'नेवार समुदाय',
+    'dalit': 'दलित समुदाय',
+    'other': 'मधेसी / अन्य',
+    'unclassified': 'खुल्न बाँकी'
+  };
+  setTxt('casteKpiClusterBadge', clusterLabels[_casteFilterState.cluster] || 'सबै');
+}
+
+function renderCasteSummaryMatrix(enrichedVoters) {
+  const tbody = document.getElementById('casteSummaryMatrixBody');
+  const countBadge = document.getElementById('casteMatrixRowCount');
+  if (!tbody) return;
+
+  const groups = {};
+  enrichedVoters.forEach(item => {
+    const c = item.casteInfo;
+    const v = item.voter;
+    const key = c.surname || 'अज्ञात';
+    if (!groups[key]) {
+      groups[key] = {
+        surname: key,
+        cluster: c.cluster,
+        clusterLabel: c.clusterLabel,
+        sub: c.sub,
+        total: 0,
+        sure: 0,
+        swing: 0,
+        absentee: 0,
+        wardCounts: {}
+      };
+    }
+    groups[key].total++;
+
+    const tier = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
+    const isSure = (v.SureVote === true || v.IsSureVote === true || tier === 'solid');
+    const isAbsent = String(v.CurrentLocation || '').includes('काठमाडौं') || String(v.CurrentLocation || '').includes('विदेश');
+
+    if (isSure) groups[key].sure++;
+    else if (tier === 'swing') groups[key].swing++;
+    if (isAbsent) groups[key].absentee++;
+
+    const w = String(v.Ward || 1);
+    groups[key].wardCounts[w] = (groups[key].wardCounts[w] || 0) + 1;
+  });
+
+  const totalAll = enrichedVoters.length;
+  let sortedGroups = Object.values(groups).sort((a, b) => b.total - a.total);
+
+  if (_casteFilterState.cluster !== 'all') {
+    sortedGroups = sortedGroups.filter(g => g.cluster === _casteFilterState.cluster);
+  }
+
+  if (countBadge) countBadge.textContent = sortedGroups.length + ' समूह';
+
+  if (sortedGroups.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 18px; color: var(--text-muted);">कुनै डाटा उपलब्ध छैन</td></tr>';
+    return;
+  }
+
+  const clusterPillStyles = {
+    'janajati': 'background: rgba(34, 197, 94, 0.15); color: #16a34a; border: 1px solid #22c55e;',
+    'khas_arya': 'background: rgba(59, 130, 246, 0.15); color: #2563eb; border: 1px solid #3b82f6;',
+    'newar': 'background: rgba(249, 115, 22, 0.15); color: #ea580c; border: 1px solid #f97316;',
+    'dalit': 'background: rgba(168, 85, 247, 0.15); color: #9333ea; border: 1px solid #a855f7;',
+    'other': 'background: rgba(148, 163, 184, 0.15); color: #475569; border: 1px solid #94a3b8;',
+    'unclassified': 'background: rgba(239, 68, 68, 0.15); color: #dc2626; border: 1px solid #ef4444;'
+  };
+
+  tbody.innerHTML = sortedGroups.map((g, idx) => {
+    const pct = totalAll > 0 ? ((g.total / totalAll) * 100).toFixed(1) : '0';
+    const surePct = g.total > 0 ? ((g.sure / g.total) * 100).toFixed(1) : '0';
+
+    const topWards = Object.entries(g.wardCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(e => 'वडा ' + e[0] + ' (' + e[1] + ')')
+      .join(', ');
+
+    const pStyle = clusterPillStyles[g.cluster] || clusterPillStyles['other'];
+
+    return `
+      <tr style="border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.15s;" 
+          onmouseover="this.style.background='var(--bg-hover)'" 
+          onmouseout="this.style.background='transparent'" 
+          onclick="filterCasteBySurnameFromRow('${g.surname}', '${g.cluster}')"
+          title="${g.surname} थरका मतदाता मात्र हेर्न क्लिक गर्नुहोस्">
+        <td style="padding: 8px 12px; font-weight: 700; color: var(--text-muted);">${idx + 1}</td>
+        <td style="padding: 8px 12px; font-weight: 800; color: var(--text-primary);">
+          ${g.surname} <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(${g.sub || ''})</span>
+        </td>
+        <td style="padding: 8px 12px;">
+          <span class="badge" style="${pStyle} font-size: 11px; padding: 2px 8px; border-radius: 12px;">${g.clusterLabel}</span>
+        </td>
+        <td style="padding: 8px 12px; text-align: right; font-weight: 800;">${g.total.toLocaleString()}</td>
+        <td style="padding: 8px 12px; text-align: right; color: var(--text-muted);">${pct}%</td>
+        <td style="padding: 8px 12px; text-align: right; font-weight: 800; color: #10b981;">${g.sure.toLocaleString()}</td>
+        <td style="padding: 8px 12px; text-align: right; font-weight: 700; color: #10b981;">${surePct}%</td>
+        <td style="padding: 8px 12px; text-align: right; color: #f59e0b; font-weight: 600;">${g.swing.toLocaleString()}</td>
+        <td style="padding: 8px 12px; text-align: right; color: #8b5cf6;">${g.absentee.toLocaleString()}</td>
+        <td style="padding: 8px 12px; font-size: 11.5px; color: var(--text-muted);">${topWards || '-'}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterCasteBySurnameFromRow(surname, cluster) {
+  _casteFilterState.cluster = cluster;
+  _casteFilterState.surname = surname;
+  const sSel = document.getElementById('casteFilterSurnameSelect');
+  if (sSel) sSel.value = surname;
+  renderCasteDemographics();
+}
+
+function updateCasteFilterIndicator(filteredCount) {
+  const pill = document.getElementById('casteFilterIndicatorPill');
+  const badge = document.getElementById('casteFilteredCountBadge');
+  if (badge) badge.textContent = 'देखाउँदै: ' + filteredCount.toLocaleString() + ' जना';
+
+  if (pill) {
+    let parts = [];
+    const clusterLabels = {
+      'all': 'सबै समुदाय',
+      'janajati': 'जनजाति',
+      'khas_arya': 'खस आर्य',
+      'newar': 'नेवार',
+      'dalit': 'दलित',
+      'other': 'अन्य',
+      'unclassified': 'खुल्न बाँकी'
+    };
+    if (_casteFilterState.cluster !== 'all') parts.push(clusterLabels[_casteFilterState.cluster]);
+    if (_casteFilterState.ward !== 'all') parts.push('वडा ' + _casteFilterState.ward);
+    if (_casteFilterState.booth !== 'all') parts.push('बुथ ' + _casteFilterState.booth);
+    if (_casteFilterState.surname !== 'all') parts.push('थर: ' + _casteFilterState.surname);
+    if (_casteFilterState.support !== 'all') parts.push('स्थिति: ' + _casteFilterState.support);
+    if (_casteFilterState.search) parts.push('खोज: "' + _casteFilterState.search + '"');
+
+    pill.textContent = parts.length > 0 ? parts.join(' • ') : 'सबै समुदाय';
+  }
+}
+
+function renderCasteTableView(filteredItems) {
+  const tbody = document.getElementById('casteTableRosterBody');
+  const emptyState = document.getElementById('casteTableEmptyState');
+  if (!tbody) return;
+
+  if (filteredItems.length === 0) {
+    tbody.innerHTML = '';
+    if (emptyState) emptyState.style.display = 'block';
+    return;
+  }
+  if (emptyState) emptyState.style.display = 'none';
+
+  const clusterPillStyles = {
+    'janajati': 'background: rgba(34, 197, 94, 0.15); color: #16a34a; border: 1px solid #22c55e;',
+    'khas_arya': 'background: rgba(59, 130, 246, 0.15); color: #2563eb; border: 1px solid #3b82f6;',
+    'newar': 'background: rgba(249, 115, 22, 0.15); color: #ea580c; border: 1px solid #f97316;',
+    'dalit': 'background: rgba(168, 85, 247, 0.15); color: #9333ea; border: 1px solid #a855f7;',
+    'other': 'background: rgba(148, 163, 184, 0.15); color: #475569; border: 1px solid #94a3b8;',
+    'unclassified': 'background: rgba(239, 68, 68, 0.15); color: #dc2626; border: 1px solid #ef4444;'
+  };
+
+  const displayItems = filteredItems.slice(0, 300);
+
+  tbody.innerHTML = displayItems.map((item, idx) => {
+    const v = item.voter;
+    const c = item.casteInfo;
+    const tier = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
+    const isSure = (v.SureVote === true || v.IsSureVote === true || tier === 'solid');
+    const age = getVoterNumericAge(v);
+    const gender = (v.Gender || 'पु').substring(0, 1);
+    const pStyle = clusterPillStyles[c.cluster] || clusterPillStyles['other'];
+
+    return `
+      <tr id="casteTableRow_${v.VoterID}" style="border-bottom: 1px solid var(--border-color); font-size: 13px;">
+        <td style="padding: 10px 12px; color: var(--text-muted); font-size: 11.5px;">${idx + 1}</td>
+        <td style="padding: 10px 12px; font-family: monospace; font-size: 11.5px; color: var(--text-muted);">${v.OfficialVoterID || v.VoterID}</td>
+        <td style="padding: 10px 12px; font-weight: 700; color: var(--text-primary);">
+          ${v.Name}
+        </td>
+        <td style="padding: 10px 12px; color: var(--text-muted);">${gender}/${age}</td>
+        <td style="padding: 10px 12px;">
+          <span class="badge" style="${pStyle} font-size: 11px; padding: 2px 7px; border-radius: 10px;">${c.clusterLabel}</span>
+        </td>
+        <td style="padding: 10px 12px; font-weight: 600;">${c.surname} <span style="font-size: 11px; color: var(--text-muted);">(${c.sub})</span></td>
+        <td style="padding: 10px 12px; font-size: 12px;">वडा ${v.Ward || 1}, ${v.Tole || 'केन्द्र'}</td>
+        <td style="padding: 10px 12px;">
+          ${v.Phone ? `<a href="tel:${v.Phone}" style="color: #2563eb; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">📞 ${v.Phone}</a>` : '<span style="color: var(--text-muted); font-size: 11px;">-</span>'}
+        </td>
+        <td style="padding: 10px 12px; text-align: center;">
+          <button type="button" class="btn btn-sm" onclick="toggleCasteSureVote('${v.VoterID}')" style="background: ${isSure ? '#10b981' : 'var(--bg-hover)'}; color: ${isSure ? '#fff' : 'var(--text-muted)'}; border: 1px solid ${isSure ? '#059669' : 'var(--border-color)'}; border-radius: 6px; padding: 3px 8px; font-size: 11.5px; font-weight: 700;">
+            ${isSure ? '✓ पक्का मत' : 'पक्का मत?'}
+          </button>
+        </td>
+        <td style="padding: 10px 12px; text-align: right;">
+          <button type="button" class="btn btn-sm btn-icon" onclick="openCasteOverrideModal('${v.VoterID}')" title="जातीय समूह सच्याउनुहोस्" style="font-size: 13px;">✏️</button>
+          <button type="button" class="btn btn-sm btn-icon" onclick="viewVoterDetails('${v.VoterID}')" title="पूर्ण विवरण" style="font-size: 13px;">👁️</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderCasteCardView(filteredItems) {
+  const container = document.getElementById('casteCardViewContainer');
+  const emptyState = document.getElementById('casteCardEmptyState');
+  if (!container) return;
+
+  if (filteredItems.length === 0) {
+    container.innerHTML = '';
+    if (emptyState) emptyState.style.display = 'block';
+    return;
+  }
+  if (emptyState) emptyState.style.display = 'none';
+
+  const clusterPillStyles = {
+    'janajati': 'background: rgba(34, 197, 94, 0.15); color: #16a34a; border: 1px solid #22c55e;',
+    'khas_arya': 'background: rgba(59, 130, 246, 0.15); color: #2563eb; border: 1px solid #3b82f6;',
+    'newar': 'background: rgba(249, 115, 22, 0.15); color: #ea580c; border: 1px solid #f97316;',
+    'dalit': 'background: rgba(168, 85, 247, 0.15); color: #9333ea; border: 1px solid #a855f7;',
+    'other': 'background: rgba(148, 163, 184, 0.15); color: #475569; border: 1px solid #94a3b8;',
+    'unclassified': 'background: rgba(239, 68, 68, 0.15); color: #dc2626; border: 1px solid #ef4444;'
+  };
+
+  const displayItems = filteredItems.slice(0, 150);
+
+  container.innerHTML = displayItems.map(item => {
+    const v = item.voter;
+    const c = item.casteInfo;
+    const tier = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
+    const isSure = (v.SureVote === true || v.IsSureVote === true || tier === 'solid');
+    const age = getVoterNumericAge(v);
+    const gender = (v.Gender || 'पु');
+    const pStyle = clusterPillStyles[c.cluster] || clusterPillStyles['other'];
+
+    return `
+      <div class="card" id="casteVoterCard_${v.VoterID}" style="padding: 14px; border-radius: 12px; border: 1.5px solid ${isSure ? '#10b981' : 'var(--border-color)'}; background: ${isSure ? 'rgba(16, 185, 129, 0.04)' : 'var(--bg-card)'}; position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+          <div>
+            <h4 style="margin: 0; font-size: 15px; font-weight: 800; color: var(--text-primary);">
+              ${v.Name}
+            </h4>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+              ${gender} / ${age} वर्ष • ID: ${v.OfficialVoterID || v.VoterID}
+            </div>
+          </div>
+          <span class="badge" style="${pStyle} font-size: 11px; padding: 2px 8px; border-radius: 12px; flex-shrink: 0;">
+            ${c.clusterLabel}
+          </span>
+        </div>
+
+        <div style="margin: 10px 0; font-size: 12.5px; line-height: 1.5; color: var(--text-muted);">
+          <div>📍 <strong>स्थान:</strong> वडा ${v.Ward || 1}, ${v.Tole || 'केन्द्र'} (बुथ ${v.BoothNo || 'A'})</div>
+          <div>🏷️ <strong>उप-जाति/थर:</strong> ${c.surname} (${c.sub})</div>
+          ${v.Phone ? `<div style="margin-top: 4px;">📞 <strong>सम्पर्क:</strong> <a href="tel:${v.Phone}" style="color: #2563eb; font-weight: 700; text-decoration: none;">${v.Phone}</a></div>` : ''}
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 6px;">
+          <button type="button" class="btn btn-sm" onclick="toggleCasteSureVote('${v.VoterID}')" style="background: ${isSure ? '#10b981' : 'var(--bg-hover)'}; color: ${isSure ? '#fff' : 'var(--text-muted)'}; border: 1px solid ${isSure ? '#059669' : 'var(--border-color)'}; font-weight: 800; border-radius: 6px; padding: 4px 10px; font-size: 12px;">
+            ${isSure ? '✓ पक्का मत सुरक्षित' : 'पक्का मत टिक लगाउनुहोस्'}
+          </button>
+
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn btn-sm btn-icon" onclick="openCasteOverrideModal('${v.VoterID}')" title="जातीय समूह सम्पादन">✏️</button>
+            <button type="button" class="btn btn-sm btn-icon" onclick="viewVoterDetails('${v.VoterID}')" title="विस्तृत विवरण">👁️</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleCasteSureVote(voterId) {
+  if (typeof toggleSureVote === 'function') {
+    toggleSureVote(voterId);
+    setTimeout(() => {
+      renderCasteDemographics();
+    }, 50);
+  }
+}
+
+function openCasteRuleManagerModal() {
+  const modal = document.getElementById('casteRuleManagerModal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+
+  const allVoters = getScopedVoters();
+  const unmapped = {};
+  allVoters.forEach(v => {
+    const c = getVoterCasteClassification(v);
+    if (c.cluster === 'unclassified' && c.surname && c.surname !== 'अज्ञात') {
+      unmapped[c.surname] = (unmapped[c.surname] || 0) + 1;
+    }
+  });
+
+  const tbody = document.getElementById('modalUnmappedSurnamesBody');
+  const keys = Object.keys(unmapped).sort((a, b) => unmapped[b] - unmapped[a]);
+
+  if (tbody) {
+    if (keys.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #10b981; font-weight: 700;">🎉 सबै मतदाताका थरहरू पूर्ण रूपमा म्याप भइसकेका छन्!</td></tr>';
+    } else {
+      tbody.innerHTML = keys.map(sur => `
+        <tr style="border-bottom: 1px solid var(--border-color);">
+          <td style="padding: 8px 10px; font-weight: 700;">${sur}</td>
+          <td style="padding: 8px 10px; text-align: right; font-weight: 800;">${unmapped[sur]} जना</td>
+          <td style="padding: 8px 10px;">
+            <select id="modalSelCluster_${sur}" class="form-control" style="font-size: 12px; padding: 4px 6px;">
+              <option value="janajati">🟢 आदिवासी जनजाति</option>
+              <option value="khas_arya">🔵 खस आर्य</option>
+              <option value="newar">🟠 नेवार समुदाय</option>
+              <option value="dalit">🟣 दलित समुदाय</option>
+              <option value="other">⚪ मधेसी / अन्य</option>
+            </select>
+          </td>
+          <td style="padding: 8px 10px; text-align: center;">
+            <button type="button" class="btn btn-sm btn-primary" onclick="applySingleUnmappedRule('${sur}')" style="font-size: 11px; padding: 3px 8px;">
+              ⚡ Apply (${unmapped[sur]})
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+  }
+}
+
+function closeCasteRuleManagerModal() {
+  const modal = document.getElementById('casteRuleManagerModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function applySingleUnmappedRule(surname) {
+  const sel = document.getElementById('modalSelCluster_' + surname);
+  if (!sel) return;
+  const clusterKey = sel.value;
+  const cLabels = {
+    'janajati': 'आदिवासी जनजाति',
+    'khas_arya': 'खस आर्य',
+    'newar': 'नेवार समुदाय',
+    'dalit': 'दलित समुदाय',
+    'other': 'मधेसी / अन्य'
+  };
+  saveCustomCasteRule(surname, clusterKey, cLabels[clusterKey], surname);
+  showToast("नियम सुरक्षित गरियो: '" + surname + "' अब '" + cLabels[clusterKey] + "' मा दर्ता भयो।", 'success');
+  openCasteRuleManagerModal();
+  renderCasteDemographics();
+}
+
+function applyCustomCasteRuleFromModal() {
+  const surInp = document.getElementById('modalCasteInputSurname');
+  const cluSel = document.getElementById('modalCasteSelectCluster');
+  const subInp = document.getElementById('modalCasteInputSub');
+  if (!surInp || !surInp.value.trim()) return showToast('कृपया थर लेख्नुहोस्', 'warning');
+
+  const sur = surInp.value.trim();
+  const clusterKey = cluSel ? cluSel.value : 'janajati';
+  const cLabels = {
+    'janajati': 'आदिवासी जनजाति',
+    'khas_arya': 'खस आर्य',
+    'newar': 'नेवार समुदाय',
+    'dalit': 'दलित समुदाय',
+    'other': 'मधेसी / अन्य'
+  };
+  const sub = (subInp && subInp.value.trim()) ? subInp.value.trim() : sur;
+
+  saveCustomCasteRule(sur, clusterKey, cLabels[clusterKey], sub);
+  showToast("नियम सुरक्षित गरियो: '" + sur + "' लाई '" + cLabels[clusterKey] + "' समूहमा तोकियो।", 'success');
+  surInp.value = '';
+  if (subInp) subInp.value = '';
+  openCasteRuleManagerModal();
+  renderCasteDemographics();
+}
+
+function openCasteOverrideModal(voterId) {
+  const v = (state.voters || []).find(x => x.VoterID === voterId);
+  if (!v) return;
+  const c = getVoterCasteClassification(v);
+
+  const promptMsg = v.Name + " को जातीय क्लस्टर बदल्नुहोस् (हाल: " + c.clusterLabel + "):\n\n1 = आदिवासी जनजाति\n2 = खस आर्य\n3 = नेवार समुदाय\n4 = दलित समुदाय\n5 = मधेसी / अन्य\n\nकृपया नम्बर (१-५) टाइप गर्नुहोस्:";
+  const newCluster = prompt(promptMsg, '1');
+  if (!newCluster) return;
+
+  const map = {
+    '1': { k: 'janajati', l: 'आदिवासी जनजाति' },
+    '2': { k: 'khas_arya', l: 'खस आर्य' },
+    '3': { k: 'newar', l: 'नेवार समुदाय' },
+    '4': { k: 'dalit', l: 'दलित समुदाय' },
+    '5': { k: 'other', l: 'मधेसी / अन्य' }
+  };
+
+  if (map[newCluster]) {
+    v.CasteCluster = map[newCluster].k;
+    v.CasteSub = map[newCluster].l;
+    v.updated_at = new Date().toISOString();
+    if (typeof pushVoterToSupabase === 'function') pushVoterToSupabase(v);
+    showToast(v.Name + " को जातीय समूह '" + map[newCluster].l + "' मा सच्याइयो।", 'success');
+    renderCasteDemographics();
+  }
+}
+
+function exportCasteVotersCsv() {
+  const allVoters = getScopedVoters();
+  const enriched = allVoters.map(v => ({ voter: v, casteInfo: getVoterCasteClassification(v) }));
+  const filtered = enriched.filter(item => {
+    if (_casteFilterState.cluster !== 'all' && item.casteInfo.cluster !== _casteFilterState.cluster) return false;
+    if (_casteFilterState.ward !== 'all' && String(item.voter.Ward || '') !== _casteFilterState.ward) return false;
+    if (_casteFilterState.booth !== 'all' && String(item.voter.BoothNo || '') !== _casteFilterState.booth) return false;
+    if (_casteFilterState.surname !== 'all' && item.casteInfo.surname !== _casteFilterState.surname) return false;
+    return true;
+  });
+
+  if (!filtered.length) return showToast('निर्यात गर्न कुनै मतदाता छैन', 'info');
+
+  const headers = ['क्र.सं.', 'मतदाता नं', 'पूरा नाम', 'उमेर', 'लिङ्ग', 'सरकारी क्लस्टर', 'उप-जाति/थर', 'वडा नं', 'मतदान केन्द्र', 'टोल', 'मोबाइल', 'पक्का मत'];
+  const rows = filtered.map((item, idx) => {
+    const v = item.voter;
+    const c = item.casteInfo;
+    const tier = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
+    const isSure = (v.SureVote === true || v.IsSureVote === true || tier === 'solid');
+    return [
+      idx + 1,
+      v.OfficialVoterID || v.VoterID,
+      v.Name,
+      getVoterNumericAge(v),
+      v.Gender || '',
+      c.clusterLabel,
+      c.surname + ' (' + c.sub + ')',
+      v.Ward || 1,
+      v.BoothNo || 'A',
+      v.Tole || '',
+      v.Phone || '',
+      isSure ? 'पक्का मत' : 'अन्योल'
+    ];
+  });
+
+  const csvContent = '\uFEFF' + [headers, ...rows].map(r => r.map(cell => '"' + String(cell ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'caste_demographic_report_' + _casteFilterState.cluster + '_' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast('एक्सेल/CSV फाइल डाउनलोड भयो', 'success');
+}
+
+function printCasteDemographicManifest() {
+  const allVoters = getScopedVoters();
+  const enriched = allVoters.map(v => ({ voter: v, casteInfo: getVoterCasteClassification(v) }));
+  const filtered = enriched.filter(item => {
+    if (_casteFilterState.cluster !== 'all' && item.casteInfo.cluster !== _casteFilterState.cluster) return false;
+    if (_casteFilterState.ward !== 'all' && String(item.voter.Ward || '') !== _casteFilterState.ward) return false;
+    if (_casteFilterState.booth !== 'all' && String(item.voter.BoothNo || '') !== _casteFilterState.booth) return false;
+    if (_casteFilterState.surname !== 'all' && item.casteInfo.surname !== _casteFilterState.surname) return false;
+    return true;
+  });
+
+  const w = window.open('', '_blank');
+  const title = "हेलम्बु गाउँपालिका - समुदायगत मतदाता सूची (" + _casteFilterState.cluster + ")";
+  let rowsHtml = '';
+  filtered.forEach((item, i) => {
+    const isSure = (item.voter.SureVote || item.voter.IsSureVote);
+    rowsHtml += '<tr>' +
+      '<td>' + (i + 1) + '</td>' +
+      '<td>' + (item.voter.OfficialVoterID || item.voter.VoterID) + '</td>' +
+      '<td>' + item.voter.Name + '</td>' +
+      '<td>' + (item.voter.Gender || '') + '/' + getVoterNumericAge(item.voter) + '</td>' +
+      '<td>' + item.casteInfo.clusterLabel + '</td>' +
+      '<td>' + item.casteInfo.surname + '</td>' +
+      '<td>वडा ' + (item.voter.Ward || 1) + ', ' + (item.voter.Tole || '') + '</td>' +
+      '<td>' + (item.voter.Phone || '-') + '</td>' +
+      '<td>' + (isSure ? 'पक्का मत (✓)' : 'अन्योल') + '</td>' +
+    '</tr>';
+  });
+
+  w.document.write(
+    '<html><head><title>' + title + '</title>' +
+    '<style>' +
+    'body { font-family: sans-serif; padding: 20px; font-size: 12px; color: #111; }' +
+    'table { width: 100%; border-collapse: collapse; margin-top: 14px; }' +
+    'th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }' +
+    'th { background: #f3f4f6; font-weight: bold; }' +
+    '.header { text-align: center; margin-bottom: 20px; }' +
+    '</style></head><body>' +
+    '<div class="header">' +
+    '<h2 style="margin: 0;">' + title + '</h2>' +
+    '<p style="margin: 4px 0;">कुल संख्या: ' + filtered.length + ' जना | मिति: ' + new Date().toLocaleDateString('ne-NP') + '</p>' +
+    '</div>' +
+    '<table><thead><tr>' +
+    '<th>#</th><th>मतदाता नं</th><th>नाम</th><th>लि/उमेर</th><th>सरकारी क्लस्टर</th><th>उप-जाति</th><th>वडा/टोल</th><th>सम्पर्क</th><th>मत स्थिति</th>' +
+    '</tr></thead><tbody>' +
+    rowsHtml +
+    '</tbody></table></body></html>'
+  );
+  w.document.close();
+  w.focus();
+  setTimeout(() => { w.print(); }, 400);
+}
+
+
+</script>
 </body>
 </html>
