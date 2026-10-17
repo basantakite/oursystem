@@ -4079,7 +4079,7 @@
           <div class="card">
             <div class="card-header">
               <h3 class="card-title"><span>🏛️</span> Ward-wise Field Operational Progress <span id="dashboardWardCountBadge" class="badge" style="background: #eef2ff; color: #4338ca; font-size: 11px;">७ वडा लाइभ</span></h3>
-              <button class="btn btn-sm btn-secondary" onclick="exportWardReport()">Export CSV</button>
+              <button class="btn btn-sm btn-secondary super-admin-only" style="display: none;" onclick="exportWardReport()">Export CSV</button>
             </div>
             <div class="table-responsive">
               <table>
@@ -4826,7 +4826,7 @@
                 <button class="btn btn-sm" onclick="autoSyncCommunityGroupsWithVoters(false)" style="background: #10b981; color: #fff; border: 1px solid #059669; font-weight: 800;" title="मतदाता नामावली र वडा/टोलका आधारमा आमा समूह, टोल सुधार र युवा क्लबमा वास्तविक मतदाता स्वतः जोड्नुहोस्">
                   ⚡ मतदाता नामावलीबाट स्वतः कार्यसमिति सिङ्क
                 </button>
-                <button class="btn btn-sm btn-secondary" onclick="exportCommunityGroupsToCsv()" style="background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.25); font-weight: 700;">
+                <button class="btn btn-sm btn-secondary super-admin-only" onclick="exportCommunityGroupsToCsv()" style="display: none; background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.25); font-weight: 700;">
                   📥 Excel / CSV Export
                 </button>
                 <button class="btn btn-sm btn-primary" onclick="openCreateCommunityGroupModal()" style="font-weight: 800; background: #2563eb; border-color: #1d4ed8;">
@@ -4922,7 +4922,7 @@
                 <table style="width: 100%; border-collapse: collapse;">
                   <thead>
                     <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-                      <th style="width: 48px; text-align: center; padding: 10px;">#</th>
+                      <th style="width: 48px; text-align: center; padding: 10px;">क्र.सं.</th>
                       <th style="padding: 10px;">पदाधिकारी नाम तथा सम्पर्क</th>
                       <th style="padding: 10px;">संस्था तथा समूह</th>
                       <th style="padding: 10px;">पद / भूमिका</th>
@@ -5016,7 +5016,7 @@
                 </div>
               </div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button type="button" class="btn btn-sm" onclick="exportGenZVotersCsv()" style="background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-weight: 800;">
+                <button type="button" class="btn btn-sm super-admin-only" onclick="exportGenZVotersCsv()" style="display: none; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-weight: 800;">
                   📥 Gen-Z CSV Export
                 </button>
                 <button type="button" class="btn btn-sm" onclick="printGenZCampusTransportManifest()" style="background: #f97316; color: #fff; border: 1px solid #ea580c; font-weight: 800;">
@@ -5207,7 +5207,7 @@
                 </div>
               </div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button type="button" class="btn btn-sm" onclick="exportSeniorVotersCsv()" style="background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-weight: 800;">
+                <button type="button" class="btn btn-sm super-admin-only" onclick="exportSeniorVotersCsv()" style="display: none; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-weight: 800;">
                   📥 ज्येष्ठ नागरिक CSV Export
                 </button>
                 <button type="button" class="btn btn-sm" onclick="printSeniorCitizenEscortManifest()" style="background: #0d9488; color: #fff; border: 1px solid #14b8a6; font-weight: 800;">
@@ -5528,7 +5528,7 @@
                 <button type="button" class="btn btn-sm" style="background: rgba(255,255,255,0.14); color: white; border: 1px solid rgba(255,255,255,0.3); font-weight: 700;" onclick="openAddBoothModal()">
                   ➕ नयाँ बुथ
                 </button>
-                <button type="button" class="btn btn-sm" style="background: #3b82f6; color: white; border: 1px solid #2563eb; font-weight: 800;" onclick="exportAreaLocationMasterCsv()">
+                <button type="button" class="btn btn-sm super-admin-only" style="background: #3b82f6; color: white; border: 1px solid #2563eb; font-weight: 800; display: none;" onclick="exportAreaLocationMasterCsv()">
                   📥 CSV रिपोर्ट
                 </button>
               </div>
@@ -5926,7 +5926,7 @@
                 </p>
               </div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button class="btn btn-sm" style="background: #fbbf24; color: #0f172a; font-weight: 800; border: none;" onclick="exportPendingGotvVotersCsv()">
+                <button class="btn btn-sm super-admin-only" style="background: #fbbf24; color: #0f172a; font-weight: 800; border: none; display: none;" onclick="exportPendingGotvVotersCsv()">
                   📥 बाँकी पक्का मतदाता CSV
                 </button>
                 <button class="btn btn-sm btn-secondary" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); font-weight: 700;" onclick="openRecordBoothReportModal()">
@@ -6323,7 +6323,7 @@
                 <div style="font-size: 13.5px; color: var(--slate-700); font-weight: 600;">
                   📜 भर्खरै पठाइएका SMS विवरण (Live Aakash Delivery Report)
                 </div>
-                <button class="btn btn-sm btn-secondary" onclick="exportSmsLogsCsv()">
+                <button class="btn btn-sm btn-secondary super-admin-only" style="display: none;" onclick="exportSmsLogsCsv()">
                   📥 Export CSV
                 </button>
               </div>
@@ -6387,7 +6387,7 @@
                 </p>
               </div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button class="btn btn-sm btn-primary" onclick="exportWardReport()">📥 Export Ward Report</button>
+                <button class="btn btn-sm btn-primary super-admin-only" style="display: none;" onclick="exportWardReport()">📥 Export Ward Report</button>
               </div>
             </div>
 
@@ -6396,7 +6396,7 @@
               <button class="btn btn-sm btn-secondary active" id="tabBtnPalika" onclick="switchReportTab('palika')">🏛️ Palika Overall (समग्र पालिका)</button>
               <button class="btn btn-sm btn-secondary" id="tabBtnWard" onclick="switchReportTab('ward')">📍 Ward-by-Ward (वडागत विश्लेषण)</button>
               <button class="btn btn-sm btn-secondary" id="tabBtnTole" onclick="switchReportTab('tole')">🏘️ Tole-wise (टोलगत विश्लेषण)</button>
-              <button class="btn btn-sm btn-secondary" id="tabBtnCsv" onclick="switchReportTab('csv')">📥 Bulk CSV Importer</button>
+              <button class="btn btn-sm btn-secondary super-admin-only" id="tabBtnCsv" style="display: none;" onclick="switchReportTab('csv')">📥 Bulk CSV Importer</button>
             </div>
 
             <!-- TAB 1: PALIKA OVERALL PROJECTION -->
@@ -6764,7 +6764,7 @@
               <table style="margin: 0; font-size: 13px;">
                 <thead>
                   <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-                    <th style="width: 45px; text-align: center; padding: 10px 8px;">#</th>
+                    <th style="width: 45px; text-align: center; padding: 10px 8px;">क्र.सं.</th>
                     <th style="padding: 10px 12px;">पालिका तथा दल (Palika & Party)</th>
                     <th style="padding: 10px 12px;">एडमिन तथा सम्पर्क (Admin & Contact)</th>
                     <th style="padding: 10px 12px;">एसएमएस & प्लान (SMS & Plan)</th>
@@ -10326,9 +10326,10 @@
 
       // 1b. Role-Scoped Topbar Controls Visibility
       const isSuper = (role === 'Super Admin');
+      const hasSuperCsvAccess = (role === 'Super Admin' || !!user.IsSupportMode);
       document.body.classList.toggle('role-super-admin', isSuper);
       document.querySelectorAll('.super-admin-only').forEach(el => {
-        el.style.display = isSuper ? (el.tagName === 'BUTTON' || el.tagName === 'SPAN' || el.tagName === 'DIV' ? 'inline-flex' : 'block') : 'none';
+        el.style.display = hasSuperCsvAccess ? (el.tagName === 'BUTTON' || el.tagName === 'SPAN' || el.tagName === 'DIV' ? 'inline-flex' : 'block') : 'none';
       });
       document.querySelectorAll('.palika-only').forEach(el => {
         if (isSuper) {
@@ -11040,7 +11041,7 @@
                 <b style="font-size: 13px; color: #0f172a;">🇳🇵 ${state.settings.MUNICIPALITY || 'हेलम्बु गाउँपालिका'} - मतदाता परिचय पर्चा</b>
                 <div style="font-size: 11px; color: #475569;">वडा नं. ${v.Ward} • टोल: ${esc(v.Tole || '-')}</div>
               </div>
-              <div style="font-size: 15px; font-weight: 800; color: #dc2626;"># ${esc(v.VoterSerial || '-')}</div>
+              <div style="font-size: 15px; font-weight: 800; color: #dc2626;">क्र.सं. ${esc(v.VoterSerial || '-')}</div>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; line-height: 1.4;">
               <div>नाम: <b style="font-size: 13px;">${esc(v.Name)}</b></div>
@@ -12376,7 +12377,7 @@
         return `
           <div class="voter-card" style="border: 1.5px solid #fed7aa; background: #fff;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span class="voter-id-mono-badge" onclick="viewVoterProfile('${v.VoterID}')" style="cursor: pointer;">#${startIdx + idx + 1} • ${esc(v.OfficialVoterID || v.VoterID)}</span>
+              <span class="voter-id-mono-badge" onclick="viewVoterProfile('${v.VoterID}')" style="cursor: pointer;">क्र.सं. ${startIdx + idx + 1} • ${esc(v.OfficialVoterID || v.VoterID)}</span>
               <span class="badge" style="background: ${isFirstTime ? '#fef3c7' : '#ffedd5'}; color: #c2410c; font-weight: 800; font-size: 11px;">
                 🔥 ${age} वर्ष • ${isFirstTime ? '🎓 First-Time' : '🚀 Gen-Z'}
               </span>
@@ -12514,6 +12515,7 @@
     }
 
     function exportGenZVotersCsv() {
+      if (!isSuperAdminUser()) return showToast('🔒 डाटा निर्यात (Export) गर्ने अधिकार केवल मुख्य Super Admin लाई मात्र छ।', 'error');
       const list = getFilteredGenZVoters();
       if (!list.length) return showToast('निर्यात गर्न कुनै Gen-Z मतदाता छैन', 'info');
       const headers = ['S.N.', 'Voter ID', 'Full Name', 'Age', 'Gender', 'Ward', 'Booth', 'Tole', 'Father Name', 'Mother Name', 'Household ID', 'Current Location', 'Turnout Status', 'Gen-Z Tag', 'Support Tier'];
@@ -12565,7 +12567,7 @@
             <table class="official-roll-table" style="min-width: 100%;">
               <thead>
                 <tr class="official-navy-header">
-                  <th>#</th>
+                  <th>क्र.सं.</th>
                   <th>मतदाताको नाम</th>
                   <th>उमेर</th>
                   <th>वडा / टोल</th>
@@ -13406,7 +13408,7 @@
         return `
           <div class="voter-card" style="border: 1.5px solid #99f6e4; background: #fff;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span class="voter-id-mono-badge" onclick="viewVoterProfile('${v.VoterID}')" style="cursor: pointer;">#${startIdx + idx + 1} • ${esc(v.OfficialVoterID || v.VoterID)}</span>
+              <span class="voter-id-mono-badge" onclick="viewVoterProfile('${v.VoterID}')" style="cursor: pointer;">क्र.सं. ${startIdx + idx + 1} • ${esc(v.OfficialVoterID || v.VoterID)}</span>
               <span class="badge" style="background: #ccfbf1; color: #0f766e; font-weight: 900; font-size: 11px;">🧓 ${age} वर्ष</span>
             </div>
             <div style="font-weight: 900; font-size: 15px; color: #0f172a; cursor: pointer; margin-bottom: 4px;" onclick="viewVoterProfile('${v.VoterID}')">
@@ -13521,6 +13523,7 @@
     }
 
     function exportSeniorVotersCsv() {
+      if (!isSuperAdminUser()) return showToast('🔒 डाटा निर्यात (Export) गर्ने अधिकार केवल मुख्य Super Admin लाई मात्र छ।', 'error');
       const list = getFilteredSeniorVoters();
       if (!list.length) return showToast('निर्यात गर्न कुनै ज्येष्ठ नागरिक मतदाता छैन', 'info');
       const headers = ['S.N.', 'Voter ID', 'Full Name', 'Age', 'Gender', 'Ward', 'Booth', 'Tole', 'Household ID', 'Mobility & Care Tag', 'Support Tier', 'Phone'];
@@ -13568,7 +13571,7 @@
             <table class="official-roll-table" style="min-width: 100%;">
               <thead>
                 <tr class="official-navy-header">
-                  <th>#</th>
+                  <th>क्र.सं.</th>
                   <th>ज्येष्ठ नागरिकको नाम</th>
                   <th>उमेर</th>
                   <th>वडा / बुथ / टोल</th>
@@ -14591,7 +14594,7 @@
           <!-- OFFICIAL ROLL MINI-STRIP ON CARD (Voter ID, Age, Gender, Spouse, Father, Mother) -->
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 9px; padding: 7px 9px; margin-bottom: 8px; font-size: 11px; color: #334155; line-height: 1.45;">
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 3px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 3px;">
-              <span><b>S.N.:</b> #${esc(v.VoterSerial || '-')} • <b>ID:</b> <span style="font-family: monospace; color: #1e3a6e; font-weight: 800;">${esc(v.OfficialVoterID || v.VoterID)}</span></span>
+              <span><b>क्र.सं.:</b> ${esc(v.VoterSerial || '-')} • <b>ID:</b> <span style="font-family: monospace; color: #1e3a6e; font-weight: 800;">${esc(v.OfficialVoterID || v.VoterID)}</span></span>
               <span><b>उमेर/लिङ्ग:</b> ${esc(getVoterAgeDisplay(v))} / ${esc(v.Gender || '-')}</span>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
@@ -15726,7 +15729,7 @@
 
             <!-- Box 4: Serial No -->
             <div class="voter-metric-card" title="मतदाता क्रम संख्या">
-              <span class="voter-metric-hash">#</span>
+              <span class="voter-metric-icon">🔢</span>
               <div class="voter-metric-content">
                 <div class="voter-metric-label">क्रम सं.</div>
                 <div class="voter-metric-val" style="color: #4338ca; font-family: monospace;">${esc(v.VoterSerial || '-')}</div>
@@ -16300,7 +16303,7 @@
                         <span>👉 ${esc(m.Name)}</span>
                       </a>
                       <div style="font-size: 11.5px; color: #1e3a6e; font-family: monospace; font-weight: 700; margin-top: 2px;">
-                        S.N.: #${esc(m.VoterSerial || '-')} • Voter ID: ${esc(m.OfficialVoterID || m.VoterID)} (वडा ${m.Ward})
+                        क्र.सं.: ${esc(m.VoterSerial || '-')} • Voter ID: ${esc(m.OfficialVoterID || m.VoterID)} (वडा ${m.Ward})
                       </div>
                     ` : `
                       <b style="font-size: 15px; color: var(--slate-800);">${esc(m.Name)}</b>
@@ -16618,7 +16621,7 @@
 
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 13px;">
             <div>मतदाताको नाम: <b>${esc(v.Name)}</b></div>
-            <div>क्रम संख्या: <b style="color: #dc2626; font-size: 15px;"># ${esc(v.VoterSerial || '-')}</b></div>
+            <div>क्रम संख्या: <b style="color: #dc2626; font-size: 15px;">${esc(v.VoterSerial || '-')}</b></div>
             <div>बुथ नं: <b style="color: #4f46e5;">बुथ ${esc(v.BoothNo || '-')}</b></div>
             <div>टोल / गाउँ: <b>${esc(v.Tole || '-')}</b></div>
             <div>उमेर / लिंग: <b>${v.DOB ? `${calculateAge(v.DOB)} वर्ष` : (v.AgeGroup || '-')} • ${esc(v.Gender || '-')}</b></div>
@@ -16740,7 +16743,7 @@
         `नाता जोड्नुहोस् वा सच्याउनुहोस् (Manual Family Link): ${v.Name}`,
         `
         <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 12.5px; color: #1e3a6e;">
-          🏠 <b>मतदाता:</b> ${esc(v.Name)} (वडा नं. ${v.Ward}, क्र.सं: #${esc(v.VoterSerial || '-')}, Voter ID: ${esc(v.OfficialVoterID || v.VoterID)})
+          🏠 <b>मतदाता:</b> ${esc(v.Name)} (वडा नं. ${v.Ward}, क्र.सं: ${esc(v.VoterSerial || '-')}, Voter ID: ${esc(v.OfficialVoterID || v.VoterID)})
           ${replaceOldVoterId ? `<div style="margin-top:4px;color:#b45309;font-weight:700;">🔄 तपाईं पुरानो म्याच हटाएर सही व्यक्ति छान्दै हुनुहुन्छ।</div>` : ''}
         </div>
 
@@ -16886,7 +16889,7 @@
 
       sel.innerHTML = slice.map((av, idx) => {
         const ageDisp = getVoterAgeDisplay(av);
-        return `<option value="${av.VoterID}" ${idx === 0 ? 'selected' : ''}>S.N. #${esc(av.VoterSerial || '-')} | ID: ${esc(av.OfficialVoterID || av.VoterID)} | ${esc(av.Name)} (उमेर: ${esc(ageDisp)}, वडा ${av.Ward}, बुबा: ${esc(av.FatherName || '-')})</option>`;
+        return `<option value="${av.VoterID}" ${idx === 0 ? 'selected' : ''}>क्र.सं. ${esc(av.VoterSerial || '-')} | ID: ${esc(av.OfficialVoterID || av.VoterID)} | ${esc(av.Name)} (उमेर: ${esc(ageDisp)}, वडा ${av.Ward}, बुबा: ${esc(av.FatherName || '-')})</option>`;
       }).join('');
     }
 
@@ -17875,7 +17878,7 @@
                 const pre = prefillVoterId ? all.find(x => x.VoterID === prefillVoterId) : null;
                 const top = all.filter(x => x.VoterID !== prefillVoterId).slice(0, 80);
                 const list = pre ? [pre, ...top] : top;
-                return '<option value="">-- मतदाता छान्नुहोस् --</option>' + list.map(v => `<option value="${v.VoterID}" ${v.VoterID === prefillVoterId ? 'selected' : ''}>#${esc(v.VoterSerial || '-')} | ${esc(v.Name)} (वडा ${v.Ward} • ID: ${esc(v.OfficialVoterID || v.VoterID)})</option>`).join('');
+                return '<option value="">-- मतदाता छान्नुहोस् --</option>' + list.map(v => `<option value="${v.VoterID}" ${v.VoterID === prefillVoterId ? 'selected' : ''}>क्र.सं. ${esc(v.VoterSerial || '-')} | ${esc(v.Name)} (वडा ${v.Ward} • ID: ${esc(v.OfficialVoterID || v.VoterID)})</option>`).join('');
               })()}
             </select>
           </div>
@@ -17933,7 +17936,7 @@
       if (!sel) return;
       const all = getScopedVoters();
       const matches = q ? all.filter(v => [v.Name, v.VoterID, v.OfficialVoterID, v.VoterSerial, v.Tole, v.Phone].join(' ').toLowerCase().includes(q)).slice(0, 80) : all.slice(0, 80);
-      sel.innerHTML = matches.map((v, i) => `<option value="${v.VoterID}" ${i === 0 || v.VoterID === prefillVoterId ? 'selected' : ''}>#${esc(v.VoterSerial || '-')} | ${esc(v.Name)} (वडा ${v.Ward} • ID: ${esc(v.OfficialVoterID || v.VoterID)})</option>`).join('');
+      sel.innerHTML = matches.map((v, i) => `<option value="${v.VoterID}" ${i === 0 || v.VoterID === prefillVoterId ? 'selected' : ''}>क्र.सं. ${esc(v.VoterSerial || '-')} | ${esc(v.Name)} (वडा ${v.Ward} • ID: ${esc(v.OfficialVoterID || v.VoterID)})</option>`).join('');
     }
 
     function toggleFollowDateField(val) {
@@ -19225,6 +19228,10 @@
     }
 
     function exportCommunityGroupsToCsv() {
+      if (!isSuperAdminUser()) {
+        showToast('⛔ CSV Export गर्ने अनुमति Super Admin लाई मात्र छ।', 'error');
+        return;
+      }
       if (!state.communityGroups || !state.communityGroups.length) {
         showToast('एक्सपोर्ट गर्न कुनै संस्था छैन।', 'info');
         return;
@@ -19711,7 +19718,7 @@
               <!-- TOP ROW: Household ID + Ward/Booth + Total Votes Badge -->
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
                 <div style="display: flex; align-items: center; gap: 6px;">
-                  <span style="font-size: 11px; font-weight: 800; color: #64748b;">#${startIdx + idx + 1}</span>
+                  <span style="font-size: 11px; font-weight: 800; color: #64748b;">क्र.सं. ${startIdx + idx + 1}</span>
                   <span class="voter-id-mono-badge" style="cursor: pointer;" onclick="viewHouseholdDetail('${h.HouseholdID}')">🏠 ${esc(h.HouseholdID)}</span>
                   <span class="badge" style="background: #eff6ff; color: #1e3a6e; font-size: 10.5px; font-weight: 800;">वडा ${h.WardNo} • बुथ ${esc(h.BoothNo || 'A')}</span>
                 </div>
@@ -19925,7 +19932,7 @@
                   <td>${getRelationBadge(m.FamilyRelation || (m.Name === h.PrimaryContactName ? 'घरमुली' : 'परिवार सदस्य'))}</td>
                   <td>
                     <span class="voter-id-mono-badge">${esc(m.OfficialVoterID || m.VoterID)}</span>
-                    <div style="font-size: 11px; color: #64748b; margin-top: 2px;">S.N.: #${esc(m.VoterSerial || '-')}</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 2px;">क्र.सं.: ${esc(m.VoterSerial || '-')}</div>
                   </td>
                   <td>
                     <a href="javascript:void(0)" onclick="closeModal(); viewVoterProfile('${m.VoterID}', 'family')" style="font-weight: 800; color: var(--navy-900); font-size: 13.5px; text-decoration: none;">
@@ -20693,7 +20700,7 @@
               <div class="voter-card" style="border: 1.5px solid #cbd5e1; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
                 <div>
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span class="voter-id-mono-badge">#${esc(v.VoterSerial || '-')} • ${esc(v.OfficialVoterID || v.VoterID)}</span>
+                    <span class="voter-id-mono-badge">क्र.सं. ${esc(v.VoterSerial || '-')} • ${esc(v.OfficialVoterID || v.VoterID)}</span>
                     <span class="badge" style="background: #eff6ff; color: #1e3a6e; font-weight: 800;">वडा ${v.Ward} • ${esc(v.Tole || 'टोल')}</span>
                   </div>
                   <div onclick="viewVoterProfile('${v.VoterID}', 'overview')" style="font-size: 15px; font-weight: 800; color: #0f172a; cursor: pointer;">
@@ -20741,7 +20748,7 @@
 
         return `
           <tr>
-            <td style="text-align: center; font-weight: 800;">#${esc(v.VoterSerial || '-')}</td>
+            <td style="text-align: center; font-weight: 800;">${esc(v.VoterSerial || '-')}</td>
             <td>
               <div style="font-weight: 800; color: #0f172a; cursor: pointer;" onclick="viewVoterProfile('${v.VoterID}', 'overview')">👉 ${esc(v.Name)}</div>
               <div style="font-size: 11px; color: #64748b; font-family: monospace;">ID: ${esc(v.OfficialVoterID || v.VoterID)} • ${esc(getVoterAgeDisplay(v))}व</div>
@@ -21194,6 +21201,10 @@
     }
 
     function exportAreaLocationMasterCsv() {
+      if (!isSuperAdminUser()) {
+        showToast('⛔ CSV एक्सपोर्ट सुविधा केवल Super Admin लाई मात्र सीमित गरिएको छ।', 'error');
+        return;
+      }
       const voters = getScopedVoters();
       const headers = ['S.N.', 'Voter ID', 'Full Name', 'Ward', 'Booth', 'Tole', 'Household ID', 'Current Location', 'Pickup Cluster / City', 'Election Day Turnout', 'Party Leaning', 'Support Tier', 'Phone'];
       const rows = [headers.join(',')];
@@ -24073,7 +24084,7 @@
 
           return `
             <tr style="${isVoted ? 'background: #f0fdf4;' : ''}">
-              <td style="font-weight: 900; color: #dc2626; font-size: 14px;">#${esc(v.VoterSerial || '-')}</td>
+              <td style="font-weight: 900; color: #dc2626; font-size: 14px;">${esc(v.VoterSerial || '-')}</td>
               <td>
                 <div style="font-weight: 800; color: #0f172a; font-size: 13.5px; cursor: pointer;" onclick="openVoter360Modal('${esc(v.VoterID)}')">${esc(v.Name)}</div>
                 <div style="font-size: 11px; color: #64748b;">उमेर: ${esc(getVoterAgeDisplay(v))} • ${esc(v.Gender || '-')} • बुवा/पति: ${esc(v.FatherName || v.SpouseName || '-')}</div>
@@ -24178,7 +24189,7 @@
       renderElectionReports();
       showToast(
         markVoted
-          ? `✅ मत खस्यो: #${voter.VoterSerial || '-'} ${voter.Name} (वडा ${voter.Ward || voter.WardNo})`
+          ? `✅ मत खस्यो: क्र.सं. ${voter.VoterSerial || '-'} ${voter.Name} (वडा ${voter.Ward || voter.WardNo})`
           : `↩ मतदान हाजिरी हटाइयो: ${voter.Name}`,
         markVoted ? 'success' : 'info'
       );
@@ -24220,7 +24231,7 @@
       if (matches.length === 1) {
         const target = matches[0];
         if (target.HasVoted) {
-          showToast(`ℹ️ #${target.VoterSerial || '-'} ${target.Name} को मत यसअघि नै खसिसकेको छ!`, 'info');
+          showToast(`ℹ️ क्र.सं. ${target.VoterSerial || '-'} ${target.Name} को मत यसअघि नै खसिसकेको छ!`, 'info');
         } else {
           toggleVoterStrikeStatus(target.VoterID, true);
         }
@@ -24241,6 +24252,10 @@
     }
 
     function exportPendingGotvVotersCsv() {
+      if (!isSuperAdminUser()) {
+        showToast('⛔ CSV एक्सपोर्ट सुविधा केवल Super Admin लाई मात्र सीमित गरिएको छ।', 'error');
+        return;
+      }
       const scopedVoters = getScopedVoters();
       const wardVal = (document.getElementById('strikeWardFilter')?.value || '').trim();
       const pendingList = scopedVoters.filter(v => {
@@ -24967,6 +24982,10 @@
     }
 
     function exportSmsLogsCsv() {
+      if (!isSuperAdminUser()) {
+        showToast('⛔ CSV एक्सपोर्ट सुविधा केवल Super Admin लाई मात्र सीमित गरिएको छ।', 'error');
+        return;
+      }
       const rows = (state.smsLogs || []).map((l, i) => ({
         SN: i + 1,
         Recipient: l.RecipientName,
@@ -25137,6 +25156,10 @@
     // 18. REPORTS VIEW & REAL-TIME ELECTION PREDICTION ENGINE
     // ==========================================
     function switchReportTab(tabKey) {
+      if (tabKey === 'csv' && !isSuperAdminUser()) {
+        showToast('⛔ CSV Import/Export सुविधा केवल Super Admin लाई मात्र सीमित गरिएको छ।', 'error');
+        tabKey = 'palika';
+      }
       const tabs = ['palika', 'ward', 'tole', 'csv'];
       tabs.forEach(t => {
         const pane = document.getElementById(`reportTab${capitalize(t)}`);
@@ -25904,7 +25927,7 @@
     ];
 
     function isSuperAdminUser() {
-      return !!(currentUser && (currentUser.Role === 'Super Admin' || currentUser.Role === 'superadmin' || currentUser.TenantID === 'ALL'));
+      return !!(currentUser && (currentUser.Role === 'Super Admin' || currentUser.Role === 'superadmin' || currentUser.TenantID === 'ALL' || currentUser.IsSupportMode));
     }
 
     function exportVotersCsv() {
@@ -25940,6 +25963,10 @@
     }
 
     function exportWardReport() {
+      if (!isSuperAdminUser()) {
+        showToast('⛔ CSV एक्सपोर्ट सुविधा केवल Super Admin लाई मात्र सीमित गरिएको छ।', 'error');
+        return;
+      }
       const rows = [];
       const scoped = getScopedVoters();
       for (const w of getActivePalikaWardNumbers()) {
@@ -25956,6 +25983,10 @@
     }
 
     function downloadSampleTemplate(lang = 'en') {
+      if (!isSuperAdminUser()) {
+        showToast('⛔ CSV टेम्प्लेट डाउनलोड केवल Super Admin लाई मात्र सीमित गरिएको छ।', 'error');
+        return;
+      }
       if (lang === 'ne') {
         downloadCsvFile('voter_import_template_nepali.csv', SAMPLE_VOTER_TEMPLATE_NE);
         showToast('नेपाली नमूना CSV टेम्प्लेट डाउनलोड भयो!', 'success');
@@ -25966,6 +25997,10 @@
     }
 
     function downloadCsvFile(filename, data) {
+      if (!isSuperAdminUser()) {
+        showToast('⛔ CSV एक्सपोर्ट सुविधा केवल Super Admin लाई मात्र सीमित गरिएको छ।', 'error');
+        return;
+      }
       if (!data.length) return showToast('No data to export', 'info');
       const headers = Object.keys(data[0]);
       const csv = [
@@ -26588,6 +26623,10 @@
     }
 
     async function executeBulkStudioImport(containerId = 'bulkStudioPreviewContainer') {
+      if (!isSuperAdminUser()) {
+        showToast('⛔ बल्क CSV इम्पोर्ट केवल Super Admin लाई मात्र अनुमति छ।', 'error');
+        return;
+      }
       const selected = bulkStudioParsedRows.filter(r => r.selected && r.isValid);
       if (!selected.length) return showToast('अपलोड गर्न कम्तीमा १ मान्य मतदाता छान्नुहोस्', 'error');
 
@@ -26690,6 +26729,10 @@
     }
 
     function loadSampleIntoInlineImporter() {
+      if (!isSuperAdminUser()) {
+        showToast('⛔ CSV इम्पोर्ट सुविधा केवल Super Admin लाई मात्र सीमित गरिएको छ।', 'error');
+        return;
+      }
       const defWard = document.getElementById('inlineImportDefaultWard')?.value || 1;
       const defBooth = document.getElementById('inlineImportDefaultBooth')?.value || 'A';
       const headers = Object.keys(SAMPLE_VOTER_TEMPLATE_EN[0]);
@@ -26705,12 +26748,20 @@
     }
 
     function previewUploadedCsv() {
+      if (!isSuperAdminUser()) {
+        showToast('⛔ CSV इम्पोर्ट सुविधा केवल Super Admin लाई मात्र सीमित गरिएको छ।', 'error');
+        return;
+      }
       const fileInput = document.getElementById('csvFileInput');
       if (!fileInput || !fileInput.files.length) return showToast('कृपया पहिले CSV फाइल छान्नुहोस् (Please select a CSV file first)', 'error');
       readAndPreviewBulkCsvFile(fileInput.files[0], 'csvPreviewOutput');
     }
 
     function processCsvImport() {
+      if (!isSuperAdminUser()) {
+        showToast('⛔ CSV इम्पोर्ट सुविधा केवल Super Admin लाई मात्र सीमित गरिएको छ।', 'error');
+        return;
+      }
       if (!bulkStudioParsedRows || !bulkStudioParsedRows.length) {
         const fileInput = document.getElementById('csvFileInput');
         if (fileInput && fileInput.files.length) {
@@ -27585,7 +27636,7 @@
             <div class="slip-banner">
               <div>
                 <span style="font-size: 11px; opacity: 0.9; text-transform: uppercase;">मतदाता नामावली क्रम संख्या</span>
-                <div class="serial">क्र.सं. #${esc(v.VoterSerial || 'N/A')}</div>
+                <div class="serial">क्र.सं. ${esc(v.VoterSerial || 'N/A')}</div>
               </div>
               <div style="text-align: right;">
                 <span style="font-size: 11px; opacity: 0.9;">मतदान केन्द्र / बुथ</span>
@@ -27669,7 +27720,7 @@
         'modal-lg'
       );
 
-      logActivity('message', `${esc(v.Name)} को आधिकारिक मतदाता पर्चा (Slip #${v.VoterSerial || '-'}) तयार गरियो।`);
+      logActivity('message', `${esc(v.Name)} को आधिकारिक मतदाता पर्चा (Slip क्र.सं. ${v.VoterSerial || '-'}) तयार गरियो।`);
     }
 
     function shareVoterSlipWhatsApp(voterId) {
@@ -27680,7 +27731,7 @@
         `📋 *आधिकारिक मतदाता परिचय पर्चा (Voter Information Slip)*\n` +
         `----------------------------------------\n` +
         `👤 *मतदाताको नाम:* ${v.Name}\n` +
-        `🔢 *मतदाता क्र.सं.:* #${v.VoterSerial || 'N/A'}\n` +
+        `🔢 *मतदाता क्र.सं.:* ${v.VoterSerial || 'N/A'}\n` +
         `🆔 *परिचयपत्र नं:* ${v.VoterID}\n` +
         `🏛️ *वडा नं:* वडा ${v.Ward}\n` +
         `📍 *टोल / बस्ती:* ${v.Tole || '-'}\n` +
