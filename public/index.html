@@ -3972,7 +3972,8 @@
 
         <div class="nav-group-title palika-only">COMMS</div>
         <button class="nav-item palika-only" data-view="electionDay" onclick="switchView('electionDay')">
-          <span class="icon">🗳️</span> <span>Voting</span>
+          <span class="icon">🗳️</span> <span>मतदान दिन (Strike Sheet)</span>
+          <span class="nav-badge" id="votedCountNavBadge" style="background: #10b981; color: white; font-weight: 800;">0%</span>
         </button>
         <button class="nav-item palika-only" data-view="notices" onclick="switchView('notices')">
           <span class="icon">📢</span> <span>Notices</span>
@@ -5911,33 +5912,160 @@
           </div>
         </section>
 
-        <!-- 10. ELECTION DAY MODE -->
+        <!-- 10. ELECTION DAY LIVE POLL-BOOTH STRIKE SHEET & GOTV COMMAND CENTER -->
         <section id="viewElectionDay" class="view-section">
-          <div class="card">
-            <div class="card-header">
+          <div class="card" style="margin-bottom: 18px; border: 1.5px solid #047857;">
+            <div class="card-header" style="background: linear-gradient(135deg, #064e3b 0%, #047857 100%); color: white; padding: 18px 20px; border-radius: var(--radius-md) var(--radius-md) 0 0; margin: -16px -16px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
               <div>
-                <h3 class="card-title">🗳️ Election Day Operations — Booth Aggregates</h3>
-                <p style="font-size: 13px; color: var(--slate-600); margin-top: 4px;">
-                  Tracks operational booth turnout & team presence without recording secret ballot choices.
+                <h3 class="card-title" style="color: #ecfdf5; font-size: 19px; display: flex; align-items: center; gap: 8px;">
+                  🗳️ मतदान दिन लाइभ बुथ हाजिरी (Poll-Booth Strike Sheet & GOTV)
+                  <span style="font-size: 11px; background: #fbbf24; color: #0f172a; padding: 2px 9px; border-radius: 999px; font-weight: 800;">LIVE TURN-OUT</span>
+                </h3>
+                <p style="font-size: 12.5px; color: #a7f3d0; margin-top: 4px;">
+                  मतदान केन्द्रमा भोट खसाल्ने मतदातालाई क्र.सं. (S.N.) वा नामबाट १-क्लिकमा टिक (✓) लगाउनुहोस् र भोट खसाल्न बाँकी आफ्ना पक्का समर्थकहरूलाई तुरुन्त परिचालन गर्नुहोस्।
                 </p>
               </div>
-              <button class="btn btn-sm btn-primary" onclick="openRecordBoothReportModal()">+ Post Booth Report</button>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-sm" style="background: #fbbf24; color: #0f172a; font-weight: 800; border: none;" onclick="exportPendingGotvVotersCsv()">
+                  📥 बाँकी पक्का मतदाता CSV
+                </button>
+                <button class="btn btn-sm btn-secondary" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); font-weight: 700;" onclick="openRecordBoothReportModal()">
+                  + बुथ स्थिति रिपोर्ट
+                </button>
+              </div>
             </div>
-            <div class="table-responsive">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Ward / Booth</th>
-                    <th>Team Presence</th>
-                    <th>Operational Status</th>
-                    <th>Aggregate Turnout</th>
-                    <th>Open Issues</th>
-                    <th>Notes</th>
-                  </tr>
-                </thead>
-                <tbody id="electionReportsTableRows"></tbody>
-              </table>
+
+            <!-- 4 Live Turnout KPI Cards -->
+            <div class="kpi-grid" style="margin-bottom: 18px;">
+              <div class="kpi-card" style="border-left: 4px solid #3b82f6;">
+                <div class="kpi-label">👥 कुल दर्ता मतदाता (Scoped)</div>
+                <div class="kpi-val" id="edTotalVotersKpi" style="color: #1e3a8a;">0</div>
+                <div style="font-size: 11px; color: var(--slate-600); margin-top: 4px;" id="edPresentVotersSub">गाउँ/शहरमा उपलब्ध मतदाता</div>
+              </div>
+              <div class="kpi-card" style="border-left: 4px solid #10b981;">
+                <div class="kpi-label">✅ खसेको कुल मत (Votes Cast)</div>
+                <div class="kpi-val" id="edVotedCountKpi" style="color: #047857;">0 (0%)</div>
+                <div style="font-size: 11px; color: var(--slate-600); margin-top: 4px;" id="edRemainingTotalSub">बाँकी खस्न: 0 मत</div>
+              </div>
+              <div class="kpi-card" style="border-left: 4px solid #059669; background: #f0fdf4;">
+                <div class="kpi-label">🟢 हाम्रो पक्का मत खसेको (Our Supporters Voted)</div>
+                <div class="kpi-val" id="edOurSupportersVotedKpi" style="color: #15803d;">0 / 0</div>
+                <div style="font-size: 11px; color: #166534; font-weight: 700; margin-top: 4px;" id="edOurSupportersPctSub">0% पक्का समर्थकले मत खसाले</div>
+              </div>
+              <div class="kpi-card" style="border-left: 4px solid #dc2626; background: #fef2f2;">
+                <div class="kpi-label">🚨 भोट हाल्न बाँकी हाम्रा समर्थक (GOTV Target)</div>
+                <div class="kpi-val" id="edPendingSupportersKpi" style="color: #b91c1c;">0</div>
+                <div style="font-size: 11px; color: #991b1b; font-weight: 700; margin-top: 4px;">तुरुन्त कल/गाडी पठाउनुपर्ने</div>
+              </div>
+            </div>
+
+            <!-- ⚡ Quick S.N. / Voter ID Strike Pad for Polling Agent -->
+            <div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1.5px solid #93c5fd; border-radius: 12px; padding: 14px 16px; margin-bottom: 18px;">
+              <div style="font-size: 13px; font-weight: 800; color: #1e3a8a; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                ⚡ फास्ट बुथ एजेन्ट हाजिरी बार (Quick Serial No. / Voter ID Strike-In)
+              </div>
+              <form onsubmit="handleQuickStrikeCheckIn(event)" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <select id="quickStrikeWard" class="form-control" style="max-width: 140px; font-weight: 700;">
+                  <option value="1">वडा १</option>
+                </select>
+                <input type="text" id="quickStrikeInput" class="form-control" placeholder="क्र.सं. (S.N. जस्तै: 105) वा Voter ID टाइप गरी Enter थिच्नुहोस्..." style="flex: 1; min-width: 220px; font-weight: 700;">
+                <button type="submit" class="btn btn-primary" style="background: #059669; border-color: #047857; font-weight: 800; white-space: nowrap;">
+                  ✅ मत खस्यो (Mark Voted)
+                </button>
+              </form>
+            </div>
+
+            <!-- Sub-Tabs inside Election Day Center -->
+            <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--slate-200); padding-bottom: 10px; margin-bottom: 16px; overflow-x: auto;">
+              <button class="btn btn-sm btn-primary" id="edTabBtnStrike" onclick="switchElectionDaySubTab('strike')" style="font-weight: 800;">
+                📋 लाइभ मतदाता स्ट्राइक सिट (Voter Strike Sheet)
+              </button>
+              <button class="btn btn-sm btn-secondary" id="edTabBtnWards" onclick="switchElectionDaySubTab('wards')" style="font-weight: 700;">
+                📊 वडागत मतदान प्रोग्रेस (Ward Turnout Breakdown)
+              </button>
+              <button class="btn btn-sm btn-secondary" id="edTabBtnReports" onclick="switchElectionDaySubTab('reports')" style="font-weight: 700;">
+                🕒 बुथ घण्टागत रिपोर्ट (Hourly Booth Logs)
+              </button>
+            </div>
+
+            <!-- PANE 1: LIVE STRIKE SHEET -->
+            <div id="edPaneStrike">
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center;">
+                <input type="text" id="strikeSheetSearch" class="form-control" placeholder="🔍 नाम, क्र.सं. (S.N.), Voter ID वा फोन खोज्नुहोस्..." oninput="renderElectionDayStrikeSheet()" style="flex: 1; min-width: 210px;">
+                <select id="strikeWardFilter" class="filter-select" onchange="renderElectionDayStrikeSheet()" style="font-weight: 700;">
+                  <option value="All">सबै वडा (All Wards)</option>
+                </select>
+                <select id="strikeStatusFilter" class="filter-select" onchange="renderElectionDayStrikeSheet()" style="font-weight: 700;">
+                  <option value="All">सबै अवस्था (All Voters)</option>
+                  <option value="PendingSupporters">🚨 भोट नखसालेका हाम्रा समर्थक (GOTV Priority)</option>
+                  <option value="PendingAll">⏳ भोट खसाल्न बाँकी सबै (Yet to Vote)</option>
+                  <option value="VotedOnly">✅ भोट खसालिसकेका (Voted ✓)</option>
+                </select>
+                <select id="strikeTierFilter" class="filter-select" onchange="renderElectionDayStrikeSheet()">
+                  <option value="All">सबै समर्थन तह</option>
+                  <option value="OurSupport">🟢 पक्का + झुकाव (Solid + Lean)</option>
+                  <option value="Swing">🟡 दोधार (Swing / Undecided)</option>
+                  <option value="Opponent">🔴 विपक्षी</option>
+                </select>
+              </div>
+
+              <div class="table-responsive">
+                <table class="official-roll-table">
+                  <thead>
+                    <tr class="official-navy-header">
+                      <th style="width: 70px; text-align: center;">क्र.सं. (S.N.)</th>
+                      <th>Voter ID</th>
+                      <th>मतदाताको नाम र उमेर</th>
+                      <th>वडा / टोल / केन्द्र</th>
+                      <th>समर्थन तह र उपस्थिति</th>
+                      <th>सम्पर्क फोन</th>
+                      <th style="text-align: center; width: 210px;">मतदान हाजिरी (Strike Action)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="strikeSheetTableRows"></tbody>
+                </table>
+              </div>
+              <div id="strikeSheetPaginationInfo" style="margin-top: 10px; font-size: 12px; color: var(--slate-600); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;"></div>
+            </div>
+
+            <!-- PANE 2: WARD & BOOTH TURNOUT BREAKDOWN -->
+            <div id="edPaneWards" style="display: none;">
+              <div class="table-responsive">
+                <table>
+                  <thead>
+                    <tr style="background: #f8fafc;">
+                      <th>वडा नं. (Ward)</th>
+                      <th>कुल मतदाता</th>
+                      <th>उपस्थित (गाउँ/शहर)</th>
+                      <th>✅ कुल खसेको मत</th>
+                      <th>खसेको % (Turnout)</th>
+                      <th>🟢 हाम्रो पक्का मत खसेको</th>
+                      <th>🚨 भोट हाल्न बाँकी समर्थक</th>
+                    </tr>
+                  </thead>
+                  <tbody id="edWardTurnoutTableRows"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- PANE 3: HOURLY BOOTH REPORTS -->
+            <div id="edPaneReports" style="display: none;">
+              <div class="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Ward / Booth</th>
+                      <th>Team Presence</th>
+                      <th>Operational Status</th>
+                      <th>Aggregate Turnout</th>
+                      <th>Open Issues</th>
+                      <th>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody id="electionReportsTableRows"></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
@@ -7619,32 +7747,102 @@
         }
         saveState();
       }
+      // Async hydration from IndexedDB High-Capacity Vault (supports 100,000+ voters beyond 5MB localStorage limit)
+      hydrateStateFromIndexedDB();
     }
 
     let _saveStateTimer = null;
     let _voterIndexDirty = true;
+    const IDB_NAME = 'ElectionOpsHighCapDB';
+    const IDB_STORE = 'state_vault';
+
+    function openElectionIndexedDB() {
+      return new Promise((resolve, reject) => {
+        if (typeof indexedDB === 'undefined') return reject(new Error('IndexedDB unsupported'));
+        const req = indexedDB.open(IDB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(IDB_STORE)) {
+            db.createObjectStore(IDB_STORE);
+          }
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    async function persistStateToIndexedDB(stateSnapshot) {
+      try {
+        const db = await openElectionIndexedDB();
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(stateSnapshot, STORAGE_KEY);
+      } catch (e) {
+        // Silent fallback if private browsing blocks IDB
+      }
+    }
+
+    async function hydrateStateFromIndexedDB() {
+      try {
+        const db = await openElectionIndexedDB();
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const req = tx.objectStore(IDB_STORE).get(STORAGE_KEY);
+        req.onsuccess = () => {
+          const idbState = req.result;
+          if (idbState && Array.isArray(idbState.voters)) {
+            const localVoterCount = (state.voters && state.voters.length) || 0;
+            // Hydrate if IndexedDB has more voters (e.g. localStorage hit 5MB quota) or local votes cast states
+            if (idbState.voters.length > localVoterCount) {
+              state.voters = idbState.voters;
+              if (Array.isArray(idbState.households) && idbState.households.length > (state.households || []).length) {
+                state.households = idbState.households;
+              }
+              _voterIndexDirty = true;
+              if (currentUser) {
+                refreshDashboardMetrics();
+                const activeSec = document.querySelector('.view-section.active');
+                if (activeSec && activeSec.id === 'viewVoters') renderVotersList();
+                else if (activeSec && activeSec.id === 'viewElectionDay') renderElectionReports();
+              }
+            }
+          }
+        };
+      } catch (e) {}
+    }
 
     function invalidateVoterIndex() {
       _voterIndexDirty = true;
+    }
+
+    function writeStateToStorageNow() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (quotaErr) {
+        // If 50,000+ voters exceed 5MB localStorage quota, save lightweight metadata in localStorage and full roll in IndexedDB
+        try {
+          const slimState = { ...state, voters: (state.voters || []).slice(0, 1500) };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(slimState));
+        } catch (e2) {}
+      }
+      persistStateToIndexedDB(state);
     }
 
     function saveState(immediate = false) {
       _voterIndexDirty = true;
       if (immediate) {
         if (_saveStateTimer) clearTimeout(_saveStateTimer);
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+        writeStateToStorageNow();
         return;
       }
       if (_saveStateTimer) clearTimeout(_saveStateTimer);
       _saveStateTimer = setTimeout(() => {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+        writeStateToStorageNow();
       }, 90);
     }
 
     window.addEventListener('beforeunload', () => {
       if (_saveStateTimer) {
         clearTimeout(_saveStateTimer);
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+        writeStateToStorageNow();
       }
     });
 
@@ -9147,6 +9345,8 @@
               ProfessionalDemandNote: parsedNotes.professional_demand_note || '',
               GenZTag: parsedNotes.genz_tag || '',
               SeniorMobilityTag: parsedNotes.senior_mobility_tag || '',
+              HasVoted: parsedNotes.has_voted !== undefined ? !!parsedNotes.has_voted : false,
+              VotedAt: parsedNotes.voted_at || '',
               Active: true
             };
 
@@ -9158,6 +9358,10 @@
               }
               if (!mappedVoter.HouseholdID && state.voters[idx].HouseholdID) {
                 mappedVoter.HouseholdID = state.voters[idx].HouseholdID;
+              }
+              if (parsedNotes.has_voted === undefined && state.voters[idx].HasVoted) {
+                mappedVoter.HasVoted = state.voters[idx].HasVoted;
+                mappedVoter.VotedAt = state.voters[idx].VotedAt || '';
               }
               state.voters[idx] = { ...state.voters[idx], ...mappedVoter };
             } else {
@@ -9200,6 +9404,7 @@
             const activeId = activeSec ? activeSec.id : '';
             if (activeId === 'viewVoters') renderVotersList();
             else if (activeId === 'viewHouseholds') renderHouseholdsList();
+            else if (activeId === 'viewElectionDay') renderElectionReports();
             else if (activeId === 'viewTenants' && currentUser.Role === 'Super Admin') renderTenantsManagement();
           }
         }
@@ -9430,7 +9635,9 @@
         professional_vote_reach: v.ProfessionalVoteReach || '',
         professional_demand_note: v.ProfessionalDemandNote || '',
         genz_tag: v.GenZTag || '',
-        senior_mobility_tag: v.SeniorMobilityTag || ''
+        senior_mobility_tag: v.SeniorMobilityTag || '',
+        has_voted: !!v.HasVoted,
+        voted_at: v.VotedAt || ''
       });
 
       const houseAddress = v.HouseNo ? (String(v.HouseNo).startsWith('घर नं:') ? String(v.HouseNo) : 'घर नं: ' + String(v.HouseNo)) : (v.Address || '');
@@ -10073,9 +10280,9 @@
         icon: '🏘️',
         defaultView: 'dayBook',
         allowedViews: [
-          'dayBook', 'voters', 'households', 'areas', 'community', 'genZ', 'seniors', 'visits', 'notices', 'issues'
+          'dayBook', 'voters', 'households', 'areas', 'community', 'genZ', 'seniors', 'visits', 'notices', 'issues', 'electionDay'
         ],
-        description: 'टोल स्तरको घरदैलो, मतदाता भेटघाट र समस्या संकलन।'
+        description: 'टोल स्तरको घरदैलो, मतदाता भेटघाट, समस्या संकलन र मतदान दिन हाजिरी।'
       },
       'Field Worker': {
         label: 'फिल्ड कार्यकर्ता (Data Collector)',
@@ -10085,9 +10292,9 @@
         icon: '🚶',
         defaultView: 'dayBook',
         allowedViews: [
-          'dayBook', 'voters', 'community', 'visits', 'notices', 'issues'
+          'dayBook', 'voters', 'community', 'visits', 'notices', 'issues', 'electionDay'
         ],
-        description: 'स्थलगत घरदैलो, मतदाता विवरण संकलन र दैनिक कार्य डायरी।'
+        description: 'स्थलगत घरदैलो, मतदाता विवरण संकलन, दैनिक कार्य डायरी र बुथ स्ट्राइक हाजिरी।'
       }
     };
 
@@ -10565,11 +10772,14 @@
       const pendingFollow = scopedFol.filter(x => x.Status === 'Pending').length;
       const openIssues = scopedIss.filter(x => x.Status !== 'Resolved').length;
       const publicPending = scopedPub.filter(x => x.Status === 'Pending Review').length;
+      const votedCount = v.filter(x => !!x.HasVoted).length;
 
       document.getElementById('voterCountBadge').textContent = total;
       document.getElementById('pendingFollowBadge').textContent = pendingFollow;
       document.getElementById('issuesBadge').textContent = openIssues;
       document.getElementById('publicBadge').textContent = publicPending;
+      const votedNavEl = document.getElementById('votedCountNavBadge');
+      if (votedNavEl) votedNavEl.textContent = votedCount;
 
       const wardNums = getActivePalikaWardNumbers();
       const wardLabel = isWardRestrictedUser() ? `Ward ${currentUser.Ward}` : `Across ${wardNums.length || 7} Wards`;
@@ -10880,7 +11090,9 @@
         'areaMasterWardFilter',
         'toleReportWardFilter',
         'locTurnoutWardFilter',
-        'smsFilterWard'
+        'smsFilterWard',
+        'quickStrikeWard',
+        'strikeWardFilter'
       ];
       selects.forEach(id => {
         const el = document.getElementById(id);
@@ -23671,77 +23883,458 @@
     }
 
     // ==========================================
-    // 16. ELECTION DAY REPORTING
+    // 16. ELECTION DAY LIVE POLL-BOOTH STRIKE SHEET & GOTV COMMAND
     // ==========================================
+    let currentStrikePage = 1;
+    const STRIKE_PAGE_SIZE = 50;
+    let activeElectionDaySubTab = 'strike';
+
+    function switchElectionDaySubTab(tab) {
+      activeElectionDaySubTab = tab || 'strike';
+      const tabs = ['strike', 'wards', 'reports'];
+      tabs.forEach(t => {
+        const btn = document.getElementById('edTab' + capitalize(t));
+        const pane = document.getElementById('edPane' + capitalize(t));
+        const isActive = (t === activeElectionDaySubTab);
+        if (btn) {
+          btn.style.background = isActive ? '#dc2626' : '#f1f5f9';
+          btn.style.color = isActive ? '#ffffff' : '#334155';
+        }
+        if (pane) {
+          pane.style.display = isActive ? 'block' : 'none';
+        }
+      });
+      renderElectionReports();
+    }
+
+    function setStrikeSheetPage(p) {
+      currentStrikePage = Math.max(1, Number(p) || 1);
+      renderElectionDayStrikeSheet();
+    }
+
     function renderElectionReports() {
+      populateWardDropdowns();
+      const scopedVoters = getScopedVoters();
+      const totalVoters = scopedVoters.length;
+      const votedVoters = scopedVoters.filter(v => !!v.HasVoted);
+      const votedCount = votedVoters.length;
+      const pendingCount = totalVoters - votedCount;
+      const turnoutPct = totalVoters ? ((votedCount / totalVoters) * 100).toFixed(1) : '0.0';
+
+      const curPartyKey = state.settings.PARTY_THEME || 'CPN-UML';
+      const partyLeaningMap = {
+        'CPN-UML': 'UML',
+        'Nepali Congress': 'Congress',
+        'RSP': 'RSP',
+        'CPN-Maoist': 'Maoist',
+        'RPP': 'RPP',
+        'Independent': 'Independent'
+      };
+      const targetPartyCode = partyLeaningMap[curPartyKey] || 'UML';
+
+      const ourSolidSupporters = scopedVoters.filter(v =>
+        v.SupportLevel === 'Strong Support' ||
+        v.SupportLevel === 'Likely Support' ||
+        v.SupportStatus === 'Committed' ||
+        v.SupportStatus === 'Leaning' ||
+        v.PartyLeaning === targetPartyCode
+      );
+      const ourVotedSupporters = ourSolidSupporters.filter(v => !!v.HasVoted);
+      const gotvPendingSupporters = ourSolidSupporters.length - ourVotedSupporters.length;
+
+      // Update Top KPI Cards & Nav Badge
+      const elTotal = document.getElementById('edKpiTotalVoters');
+      const elTurnoutSub = document.getElementById('edKpiTurnoutPctSub');
+      const elVoted = document.getElementById('edKpiVotedCount');
+      const elPending = document.getElementById('edKpiPendingCount');
+      const elGotv = document.getElementById('edKpiGotvRemaining');
+      const elGotvSub = document.getElementById('edKpiGotvVotedSub');
+      const navBadge = document.getElementById('votedCountNavBadge');
+
+      if (elTotal) elTotal.textContent = totalVoters.toLocaleString();
+      if (elTurnoutSub) elTurnoutSub.textContent = `मतदान प्रतिशत: ${turnoutPct}%`;
+      if (elVoted) elVoted.textContent = votedCount.toLocaleString();
+      if (elPending) elPending.textContent = pendingCount.toLocaleString();
+      if (elGotv) elGotv.textContent = gotvPendingSupporters.toLocaleString();
+      if (elGotvSub) elGotvSub.textContent = `हाम्रा खसेको मत: ${ourVotedSupporters.length.toLocaleString()} / ${ourSolidSupporters.length.toLocaleString()}`;
+      if (navBadge) navBadge.textContent = votedCount;
+
+      // Render Active Sub-Panes
+      renderElectionDayStrikeSheet();
+      renderWardTurnoutProgressRows(scopedVoters, targetPartyCode);
+
+      // Render Hourly Booth Reports Table
       const tbody = document.getElementById('electionReportsTableRows');
-      if (!state.electionReports.length) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 32px; color: var(--slate-600);">No booth turnout reports posted yet.</td></tr>`;
+      if (tbody) {
+        const activeTid = getActiveTenantId();
+        const scopedReports = (state.electionReports || []).filter(r => !r.TenantID || r.TenantID === activeTid);
+        if (!scopedReports.length) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 32px; color: var(--slate-600);">अहिलेसम्म कुनै पनि बुथको आवधिक रिपोर्ट प्राप्त भएको छैन।</td></tr>`;
+        } else {
+          tbody.innerHTML = scopedReports.map(r => `
+            <tr>
+              <td><b>${esc(r.ReportTime)}</b></td>
+              <td>वडा ${esc(r.WardNo)} • बुथ ${esc(r.BoothCode)}</td>
+              <td><span class="badge badge-verified">${esc(r.TeamStatus)}</span></td>
+              <td><span class="badge ${r.OperationalStatus === 'Normal' ? 'badge-verified' : 'badge-urgent'}">${esc(r.OperationalStatus)}</span></td>
+              <td><b>${esc(r.TurnoutCount)}</b> मत</td>
+              <td>${esc(r.OpenIssues)}</td>
+              <td>${esc(r.Notes || '-')}</td>
+            </tr>
+          `).join('');
+        }
+      }
+    }
+
+    function renderElectionDayStrikeSheet() {
+      const tbody = document.getElementById('strikeSheetTableRows');
+      if (!tbody) return;
+
+      const scopedVoters = getScopedVoters();
+      const curPartyKey = state.settings.PARTY_THEME || 'CPN-UML';
+      const partyLeaningMap = {
+        'CPN-UML': 'UML',
+        'Nepali Congress': 'Congress',
+        'RSP': 'RSP',
+        'CPN-Maoist': 'Maoist',
+        'RPP': 'RPP',
+        'Independent': 'Independent'
+      };
+      const targetPartyCode = partyLeaningMap[curPartyKey] || 'UML';
+
+      // Populate dynamic Tole dropdown for selected ward
+      const wardVal = (document.getElementById('strikeWardFilter')?.value || '').trim();
+      const toleSelect = document.getElementById('strikeToleFilter');
+      if (toleSelect) {
+        const prevTole = toleSelect.value;
+        const wardScoped = wardVal ? scopedVoters.filter(v => String(v.Ward || v.WardNo || '') === wardVal) : scopedVoters;
+        const uniqueToles = Array.from(new Set(wardScoped.map(v => (v.Tole || '').trim()).filter(Boolean))).sort();
+        toleSelect.innerHTML = '<option value="">सबै टोल / वस्ती</option>' +
+          uniqueToles.map(t => `<option value="${esc(t)}" ${prevTole === t ? 'selected' : ''}>${esc(t)}</option>`).join('');
+      }
+
+      const toleVal = (document.getElementById('strikeToleFilter')?.value || '').trim();
+      const statusVal = (document.getElementById('strikeStatusFilter')?.value || 'ALL').trim();
+      const query = (document.getElementById('strikeSearchInput')?.value || '').trim().toLowerCase();
+
+      const filtered = scopedVoters.filter(v => {
+        if (wardVal && String(v.Ward || v.WardNo || '') !== wardVal) return false;
+        if (toleVal && (v.Tole || '').trim() !== toleVal) return false;
+
+        const isOurSupporter = (
+          v.SupportLevel === 'Strong Support' ||
+          v.SupportLevel === 'Likely Support' ||
+          v.SupportStatus === 'Committed' ||
+          v.SupportStatus === 'Leaning' ||
+          v.PartyLeaning === targetPartyCode
+        );
+        const isSwing = (!v.PartyLeaning || v.PartyLeaning === 'Undecided' || v.SupportLevel === 'Neutral' || v.SupportStatus === 'Neutral');
+
+        if (statusVal === 'PENDING' && v.HasVoted) return false;
+        if (statusVal === 'VOTED' && !v.HasVoted) return false;
+        if (statusVal === 'GOTV_OUR_PENDING' && (v.HasVoted || !isOurSupporter)) return false;
+        if (statusVal === 'GOTV_SWING_PENDING' && (v.HasVoted || !isSwing)) return false;
+
+        if (query) {
+          const serialStr = String(v.VoterSerial || '').toLowerCase();
+          const idStr = String(v.OfficialVoterID || v.VoterID || '').toLowerCase();
+          const nameStr = String(v.Name || '').toLowerCase();
+          const phoneStr = String(v.Phone || v.Mobile || '').toLowerCase();
+          const toleStr = String(v.Tole || '').toLowerCase();
+          if (!serialStr.includes(query) && !idStr.includes(query) && !nameStr.includes(query) && !phoneStr.includes(query) && !toleStr.includes(query)) {
+            return false;
+          }
+        }
+        return true;
+      });
+
+      const totalFiltered = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(totalFiltered / STRIKE_PAGE_SIZE));
+      if (currentStrikePage > totalPages) currentStrikePage = totalPages;
+      const startIdx = (currentStrikePage - 1) * STRIKE_PAGE_SIZE;
+      const pageItems = filtered.slice(startIdx, startIdx + STRIKE_PAGE_SIZE);
+
+      if (!pageItems.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 28px; color: #64748b;">यो फिल्टरमा कुनै मतदाता भेटिएन।</td></tr>`;
+      } else {
+        tbody.innerHTML = pageItems.map(v => {
+          const isVoted = !!v.HasVoted;
+          const votedTime = v.VotedAt ? new Date(v.VotedAt).toLocaleTimeString('ne-NP', { hour: '2-digit', minute: '2-digit' }) : '';
+          const phone = (v.Phone || v.Mobile || '').trim();
+          const isOur = (
+            v.SupportLevel === 'Strong Support' ||
+            v.SupportLevel === 'Likely Support' ||
+            v.SupportStatus === 'Committed' ||
+            v.PartyLeaning === targetPartyCode
+          );
+          const supportPill = isOur
+            ? `<span class="badge" style="background:#dcfce7; color:#166534; border:1px solid #86efac;">🎯 हाम्रो समर्थक</span>`
+            : `<span class="badge" style="background:#f1f5f9; color:#475569;">${esc(v.PartyLeaning || v.SupportLevel || 'Neutral')}</span>`;
+
+          return `
+            <tr style="${isVoted ? 'background: #f0fdf4;' : ''}">
+              <td style="font-weight: 900; color: #dc2626; font-size: 14px;">#${esc(v.VoterSerial || '-')}</td>
+              <td>
+                <div style="font-weight: 800; color: #0f172a; font-size: 13.5px; cursor: pointer;" onclick="openVoter360Modal('${esc(v.VoterID)}')">${esc(v.Name)}</div>
+                <div style="font-size: 11px; color: #64748b;">उमेर: ${esc(getVoterAgeDisplay(v))} • ${esc(v.Gender || '-')} • बुवा/पति: ${esc(v.FatherName || v.SpouseName || '-')}</div>
+              </td>
+              <td style="font-family: monospace; font-weight: 700; color: #1e3a6e;">${esc(v.OfficialVoterID || v.VoterID)}</td>
+              <td>
+                <div style="font-weight: 700;">वडा ${esc(v.Ward || v.WardNo)} • ${esc(v.Tole || '-')}</div>
+                <div style="font-size: 11px; color: #64748b;">बुथ: ${esc(v.BoothNo || 'A')}</div>
+              </td>
+              <td>${supportPill}</td>
+              <td>
+                ${phone ? `<a href="tel:${esc(phone)}" class="btn btn-secondary btn-sm" style="padding: 3px 8px; font-size: 11.5px; font-weight: 800; color: #0284c7;">📞 ${esc(phone)}</a>` : '<span style="color:#94a3b8; font-size:11px;">नम्बर छैन</span>'}
+              </td>
+              <td style="text-align: center;">
+                ${isVoted ? `
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <span class="badge" style="background: #16a34a; color: #fff; font-weight: 800; padding: 5px 10px;">✅ खस्यो ${votedTime ? `(${votedTime})` : ''}</span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleVoterStrikeStatus('${esc(v.VoterID)}', false)" title="रद्द गर्नुहोस् (Undo)" style="padding: 3px 7px; font-size: 11px;">↩</button>
+                  </div>
+                ` : `
+                  <button type="button" class="btn btn-primary btn-sm" onclick="toggleVoterStrikeStatus('${esc(v.VoterID)}', true)" style="background: #16a34a; border-color: #15803d; font-weight: 800; padding: 6px 12px; width: 100%; justify-content: center;">
+                    ☑️ मत खस्यो (Strike)
+                  </button>
+                `}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      const pagBar = document.getElementById('strikePaginationBar');
+      if (pagBar) {
+        pagBar.innerHTML = `
+          <div>देखाउँदै: <b>${totalFiltered ? startIdx + 1 : 0}–${Math.min(startIdx + STRIKE_PAGE_SIZE, totalFiltered)}</b> / जम्मा <b>${totalFiltered}</b> मतदाता</div>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setStrikeSheetPage(${currentStrikePage - 1})" ${currentStrikePage <= 1 ? 'disabled' : ''}>◀ अघिल्लो</button>
+            <span style="padding: 4px 10px; font-weight: 800; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px;">पेज ${currentStrikePage} / ${totalPages}</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setStrikeSheetPage(${currentStrikePage + 1})" ${currentStrikePage >= totalPages ? 'disabled' : ''}>पछिल्लो ▶</button>
+          </div>
+        `;
+      }
+    }
+
+    function renderWardTurnoutProgressRows(scopedVoters, targetPartyCode) {
+      const tbody = document.getElementById('edWardTurnoutRows');
+      if (!tbody) return;
+
+      const wardNums = getActivePalikaWardNumbers();
+      const wardsToShow = isWardRestrictedUser()
+        ? wardNums.filter(w => String(w) === String(currentUser.Ward))
+        : wardNums;
+
+      tbody.innerHTML = wardsToShow.map(wNo => {
+        const wVoters = scopedVoters.filter(v => Number(v.Ward || v.WardNo || 0) === Number(wNo));
+        const total = wVoters.length;
+        const voted = wVoters.filter(v => !!v.HasVoted).length;
+        const pending = total - voted;
+        const pct = total ? Math.round((voted / total) * 100) : 0;
+
+        const ourSupporters = wVoters.filter(v =>
+          v.SupportLevel === 'Strong Support' ||
+          v.SupportLevel === 'Likely Support' ||
+          v.SupportStatus === 'Committed' ||
+          v.PartyLeaning === targetPartyCode
+        );
+        const ourVoted = ourSupporters.filter(v => !!v.HasVoted).length;
+        const ourPending = ourSupporters.length - ourVoted;
+
+        return `
+          <tr>
+            <td><b>वडा नं. ${wNo}</b></td>
+            <td><b>${total.toLocaleString()}</b></td>
+            <td><span class="badge" style="background:#dcfce7; color:#166534; font-weight:800;">${voted.toLocaleString()}</span></td>
+            <td><span class="badge" style="background:#fef3c7; color:#92400e; font-weight:800;">${pending.toLocaleString()}</span></td>
+            <td><span class="badge" style="background:#fee2e2; color:#991b1b; font-weight:800;">🎯 ${ourPending.toLocaleString()} बाँकी (खसेको: ${ourVoted})</span></td>
+            <td style="min-width: 170px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="flex:1; height:10px; background:#e2e8f0; border-radius:999px; overflow:hidden;">
+                  <div style="width:${pct}%; height:100%; background:${pct >= 65 ? '#16a34a' : (pct >= 40 ? '#0284c7' : '#f59e0b')};"></div>
+                </div>
+                <b style="font-size:12px; min-width:36px;">${pct}%</b>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function toggleVoterStrikeStatus(voterId, markVoted) {
+      const voter = getVoterByIdFast(voterId) || state.voters.find(v => String(v.VoterID) === String(voterId));
+      if (!voter) return showToast('मतदाता भेटिएन', 'error');
+
+      voter.HasVoted = !!markVoted;
+      voter.VotedAt = markVoted ? new Date().toISOString() : null;
+      voter.VotedBy = markVoted ? (currentUser?.UserID || 'booth_agent') : null;
+
+      saveState();
+      if (typeof syncVoterToCloud === 'function') {
+        syncVoterToCloud(voter);
+      }
+
+      renderElectionReports();
+      showToast(
+        markVoted
+          ? `✅ मत खस्यो: #${voter.VoterSerial || '-'} ${voter.Name} (वडा ${voter.Ward || voter.WardNo})`
+          : `↩ मतदान हाजिरी हटाइयो: ${voter.Name}`,
+        markVoted ? 'success' : 'info'
+      );
+    }
+
+    function handleQuickStrikeCheckIn(e) {
+      if (e) e.preventDefault();
+      const inputEl = document.getElementById('quickStrikeSerialInput');
+      const wardEl = document.getElementById('quickStrikeWard');
+      if (!inputEl) return;
+
+      const rawVal = (inputEl.value || '').trim();
+      if (!rawVal) return showToast('कृपया मतदाता क्र.सं. (S.N.), मतदाता नं. वा नाम लेख्नुहोस्', 'warning');
+
+      const selectedWard = (wardEl?.value || '').trim();
+      const scoped = getScopedVoters();
+      const pool = selectedWard ? scoped.filter(v => String(v.Ward || v.WardNo || '') === selectedWard) : scoped;
+
+      // 1. Exact match by VoterSerial or OfficialVoterID or VoterID
+      let matches = pool.filter(v =>
+        String(v.VoterSerial || '').trim() === rawVal ||
+        String(v.OfficialVoterID || '').trim() === rawVal ||
+        String(v.VoterID || '').trim().toLowerCase() === rawVal.toLowerCase()
+      );
+
+      // 2. Fallback partial match by Name or Phone if no exact ID/Serial match
+      if (!matches.length) {
+        const q = rawVal.toLowerCase();
+        matches = pool.filter(v =>
+          String(v.Name || '').toLowerCase().includes(q) ||
+          String(v.Phone || v.Mobile || '').includes(q)
+        );
+      }
+
+      if (!matches.length) {
+        return showToast(`❌ '${rawVal}' सँग मिल्ने कुनै मतदाता फेला परेन${selectedWard ? ` (वडा ${selectedWard} मा)` : ' (वडा छानेर प्रयास गर्नुहोस्)'}`, 'error');
+      }
+
+      if (matches.length === 1) {
+        const target = matches[0];
+        if (target.HasVoted) {
+          showToast(`ℹ️ #${target.VoterSerial || '-'} ${target.Name} को मत यसअघि नै खसिसकेको छ!`, 'info');
+        } else {
+          toggleVoterStrikeStatus(target.VoterID, true);
+        }
+        inputEl.value = '';
+        inputEl.focus();
         return;
       }
 
-      tbody.innerHTML = state.electionReports.map(r => `
-        <tr>
-          <td><b>${r.ReportTime}</b></td>
-          <td>Ward ${r.WardNo} • Booth ${r.BoothCode}</td>
-          <td><span class="badge badge-verified">${r.TeamStatus}</span></td>
-          <td><span class="badge ${r.OperationalStatus === 'Normal' ? 'badge-verified' : 'badge-urgent'}">${r.OperationalStatus}</span></td>
-          <td><b>${r.TurnoutCount}</b> voters</td>
-          <td>${r.OpenIssues}</td>
-          <td>${esc(r.Notes || '-')}</td>
-        </tr>
-      `).join('');
+      // Multiple matches found (e.g. same S.N. across different wards when All Wards selected) -> Filter strike sheet to show them
+      const searchBox = document.getElementById('strikeSearchInput');
+      if (searchBox) {
+        searchBox.value = rawVal;
+        currentStrikePage = 1;
+        switchElectionDaySubTab('strike');
+        renderElectionDayStrikeSheet();
+        showToast(`🔍 '${rawVal}' नाम/क्र.सं. भएका ${matches.length} जना भेटिए — तलको सूचीबाट छान्नुहोस् वा माथि वडा छान्नुहोस्।`, 'info');
+      }
+    }
+
+    function exportPendingGotvVotersCsv() {
+      const scopedVoters = getScopedVoters();
+      const wardVal = (document.getElementById('strikeWardFilter')?.value || '').trim();
+      const pendingList = scopedVoters.filter(v => {
+        if (v.HasVoted) return false;
+        if (wardVal && String(v.Ward || v.WardNo || '') !== wardVal) return false;
+        return true;
+      });
+
+      if (!pendingList.length) {
+        return showToast('मत खसाउन बाँकी कुनै मतदाता छैनन्!', 'info');
+      }
+
+      const headers = ['VoterSerial', 'OfficialVoterID', 'Name', 'Ward', 'Tole', 'BoothNo', 'Age', 'Gender', 'Phone', 'PartyLeaning', 'SupportLevel', 'FatherOrSpouse'];
+      const rows = pendingList.map(v => [
+        v.VoterSerial || '',
+        v.OfficialVoterID || v.VoterID || '',
+        v.Name || '',
+        v.Ward || v.WardNo || '',
+        v.Tole || '',
+        v.BoothNo || '',
+        v.Age || '',
+        v.Gender || '',
+        v.Phone || v.Mobile || '',
+        v.PartyLeaning || '',
+        v.SupportLevel || '',
+        v.FatherName || v.SpouseName || ''
+      ]);
+
+      const csvContent = '\uFEFF' + [headers, ...rows]
+        .map(row => row.map(cell => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `GOTV_Pending_Voters_${wardVal ? 'Ward_' + wardVal : 'All_Wards'}_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`📥 ${pendingList.length} जना बाँकी मतदाताहरूको GOTV सूची डाउनलोड भयो!`, 'success');
     }
 
     function openRecordBoothReportModal() {
+      const wardNums = getActivePalikaWardNumbers();
       openModal(
-        'Post Booth Turnout Update',
+        '🕒 आवधिक बुथ मतदान अपडेट (Post Booth Turnout Report)',
         `
         <form id="recordBoothForm" onsubmit="saveBoothReport(event)">
           <div class="form-grid">
             <div class="form-group">
-              <label class="form-label">Ward *</label>
+              <label class="form-label">वडा नं. (Ward) *</label>
               <select name="WardNo" required class="form-control">
-                ${state.wards.map(w => `<option value="${w.WardNo}">Ward ${w.WardNo}</option>`).join('')}
+                ${wardNums.map(wNo => `<option value="${wNo}" ${currentUser?.Ward && String(currentUser.Ward) === String(wNo) ? 'selected' : ''}>वडा नं. ${wNo}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">Booth Code *</label>
-              <input type="text" name="BoothCode" required class="form-control" placeholder="e.g. A">
+              <label class="form-label">बुथ कोड (Booth Code) *</label>
+              <input type="text" name="BoothCode" required class="form-control" placeholder="उदा: A वा क">
             </div>
             <div class="form-group">
-              <label class="form-label">Team Status</label>
+              <label class="form-label">टोली उपस्थिति (Team Status)</label>
               <select name="TeamStatus" class="form-control">
-                <option value="All Present">All Present</option>
-                <option value="Partial">Partial Presence</option>
-                <option value="Shortage">Staff Shortage</option>
+                <option value="All Present">सबै उपस्थित (All Present)</option>
+                <option value="Partial">आंशिक उपस्थिति (Partial)</option>
+                <option value="Shortage">थप स्वयंसेवक आवश्यक (Shortage)</option>
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">Operational Status</label>
+              <label class="form-label">बुथको स्थिति (Operational Status)</label>
               <select name="OperationalStatus" class="form-control">
-                <option value="Normal">Normal</option>
-                <option value="Attention Needed">Attention Needed</option>
-                <option value="Critical">Critical</option>
+                <option value="Normal">सामान्य / शान्त (Normal)</option>
+                <option value="Attention Needed">ध्यान दिनुपर्ने (Attention Needed)</option>
+                <option value="Critical">संवेदनशील / विवाद (Critical)</option>
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">Aggregate Turnout (Voter Count)</label>
+              <label class="form-label">हालसम्म खसेको कुल मत (Turnout Count)</label>
               <input type="number" name="TurnoutCount" required class="form-control" value="0">
             </div>
             <div class="form-group">
-              <label class="form-label">Open Issues</label>
+              <label class="form-label">खुला समस्या संख्या (Open Issues)</label>
               <input type="number" name="OpenIssues" class="form-control" value="0">
             </div>
           </div>
           <div class="form-group" style="margin-bottom: 16px;">
-            <label class="form-label">Notes</label>
-            <textarea name="Notes" class="form-control" rows="2" placeholder="Booth situation summary..."></textarea>
+            <label class="form-label">बुथको संक्षिप्त विवरण (Notes)</label>
+            <textarea name="Notes" class="form-control" rows="2" placeholder="मतदान केन्द्रको लाइन, सुरक्षा वा विशेष कैफियत..."></textarea>
           </div>
-          <button type="submit" class="btn btn-primary" style="width: 100%;">Post Update</button>
+          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">✅ बुथ अपडेट सेभ गर्नुहोस्</button>
         </form>
         `,
-        `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>`
+        `<button class="btn btn-secondary" onclick="closeModal()">बन्द गर्नुहोस्</button>`
       );
     }
 
@@ -23754,6 +24347,7 @@
 
       state.electionReports.unshift({
         ReportID: 'EDR_' + Date.now().toString(36).toUpperCase(),
+        TenantID: getActiveTenantId(),
         ReportTime: timeStr,
         WardNo: Number(formData.get('WardNo')),
         BoothCode: formData.get('BoothCode').trim(),
@@ -23766,8 +24360,9 @@
 
       saveState();
       closeModal();
+      switchElectionDaySubTab('reports');
       renderElectionReports();
-      showToast('Booth turnout update posted', 'success');
+      showToast('🕒 बुथको आवधिक मतदान रिपोर्ट अपडेट गरियो!', 'success');
     }
 
     function toggleElectionDayMode() {
@@ -23779,6 +24374,7 @@
 
     function updateElectionBadge() {
       const b = document.getElementById('electionModeBadge');
+      if (!b) return;
       if (state.settings.ELECTION_MODE) {
         b.className = 'badge-mode election-mode';
         b.innerHTML = '🗳️ ELECTION DAY ACTIVE';
