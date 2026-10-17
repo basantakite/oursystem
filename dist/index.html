@@ -4071,6 +4071,9 @@
 
         <!-- 1. DASHBOARD OVERVIEW -->
         <section id="viewDashboard" class="view-section active">
+          <!-- 🚩 DYNAMIC TENANT CAMPAIGN HERO BANNER -->
+          <div id="dashboardTenantCampaignBanner"></div>
+
           <div class="kpi-grid" id="kpiGrid"></div>
 
           <!-- 🎂 TODAY'S BIRTHDAYS WIDGET (DOB & BIRTHDAY WISH ENGINE) -->
@@ -4078,7 +4081,7 @@
 
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title"><span>🏛️</span> Ward-wise Field Operational Progress <span id="dashboardWardCountBadge" class="badge" style="background: #eef2ff; color: #4338ca; font-size: 11px;">७ वडा लाइभ</span></h3>
+              <h3 class="card-title"><span>🏛️</span> Ward-wise Field Operational Progress <span id="dashboardWardCountBadge" class="badge" style="background: #eef2ff; color: #4338ca; font-size: 11px;">लाइभ</span></h3>
               <button class="btn btn-sm btn-secondary super-admin-only" style="display: none;" onclick="exportWardReport()">Export CSV</button>
             </div>
             <div class="table-responsive">
@@ -8080,7 +8083,7 @@
       if (userField && !userField.value) userField.value = 'admin';
     }
 
-    function setupTenantAdminScreen(tenant) {
+    function setupTenantAdminScreen(tenant, preserveInputs = false) {
       showAuthScreen('admin');
       const titleEl = document.getElementById('tenantDisplayTitle');
       const jurisEl = document.getElementById('tenantJurisdictionSubtitle');
@@ -8088,17 +8091,22 @@
       const userField = document.getElementById('tenantAdminUserField');
       const passField = document.getElementById('tenantAdminPassField');
 
+      const partyCode = normalizePartyCode(tenant.Party || 'NC');
+      const pInfo = PARTY_PALETTES[partyCode] || PARTY_PALETTES.NC;
+      applyPartyTheme(partyCode);
+
       if (titleEl) titleEl.textContent = tenant.TenantName || tenant.PalikaName;
-      if (jurisEl) jurisEl.textContent = `कार्य क्षेत्र: ${tenant.PalikaName}`;
+      if (jurisEl) jurisEl.textContent = `कार्य क्षेत्र: ${tenant.PalikaName} • दल: ${pInfo.symbol} ${pInfo.name}`;
       if (iconEl) {
-        const pInfo = PARTY_PALETTES[tenant.Party || 'NC'] || PARTY_PALETTES.NC;
         iconEl.textContent = pInfo.symbol || '🏛️';
         iconEl.style.background = pInfo.primary || '#047857';
       }
-      if (userField) userField.value = '';
-      if (passField) passField.value = '';
-      const lockoutMsg = document.getElementById('tenantLoginLockoutMsg');
-      if (lockoutMsg) lockoutMsg.style.display = 'none';
+      if (!preserveInputs) {
+        if (userField) userField.value = '';
+        if (passField) passField.value = '';
+        const lockoutMsg = document.getElementById('tenantLoginLockoutMsg');
+        if (lockoutMsg) lockoutMsg.style.display = 'none';
+      }
     }
 
     function setupWorkerScreen(target, tenant) {
@@ -8107,6 +8115,10 @@
       const roleBadgeEl = document.getElementById('workerDisplayRoleBadge');
       const tenantBadgeEl = document.getElementById('workerDisplayTenantBadge');
       const brandIconEl = document.getElementById('workerTenantBrandIcon');
+
+      if (tenant) {
+        applyPartyTheme(normalizePartyCode(tenant.Party || 'NC'));
+      }
 
       if (greetingEl) greetingEl.textContent = `स्वागत छ, ${target.Name} जी!`;
       if (roleBadgeEl) {
@@ -8125,7 +8137,7 @@
         tenantBadgeEl.textContent = tenant ? (tenant.TenantName || tenant.PalikaName) : 'निर्वाचन कमान्ड';
       }
       if (brandIconEl && tenant) {
-        const pInfo = PARTY_PALETTES[tenant.Party || 'NC'] || PARTY_PALETTES.NC;
+        const pInfo = PARTY_PALETTES[normalizePartyCode(tenant.Party || 'NC')] || PARTY_PALETTES.NC;
         brandIconEl.textContent = pInfo.symbol || '👤';
         brandIconEl.style.background = pInfo.primary || '#0284c7';
       }
@@ -8207,8 +8219,18 @@
       );
     }
 
+    function findTenantBySlugOrId(slugParam) {
+      if (!slugParam) return null;
+      const s = slugParam.trim().toLowerCase();
+      return (state.tenants || []).find(t =>
+        (t.Slug && t.Slug.toLowerCase() === s) ||
+        (t.TenantID && t.TenantID.toLowerCase() === s) ||
+        (t.AdminUsername && t.AdminUsername.toLowerCase() === s)
+      ) || (s === 'helambu' ? (state.tenants && state.tenants[0]) : null);
+    }
+
     // STRICT URL ROUTING ENGINE (SECTION 2: 3 PURE SCREENS)
-    function handleUrlRouting() {
+    function handleUrlRouting(preserveInputs = false) {
       const params = new URLSearchParams(window.location.search);
 
       // Route P: Public Candidate Digital Brochure (?brochure=<cand_id> or ?candidate=<cand_id>)
@@ -8235,10 +8257,7 @@
 
       // SCREEN C: Staff & Candidate Personal PIN Login (?palika=slug&u=opaque-token)
       if (slugParam && tokenParam) {
-        const tenant = (state.tenants || []).find(t => 
-          (t.Slug && t.Slug.toLowerCase() === slugParam) ||
-          (t.TenantID && t.TenantID.toLowerCase() === slugParam)
-        ) || (slugParam === 'helambu' ? (state.tenants && state.tenants[0]) : null);
+        const tenant = findTenantBySlugOrId(slugParam);
 
         if (!tenant) {
           showInvalidLinkNotice('अमान्य पालिका/Tenant लिङ्क', 'यो लिङ्कमा तोकिएको पालिका वा Tenant प्रणालीमा फेला परेन। कृपया आफ्नो Admin लाई सम्पर्क गर्नुहोस्।');
@@ -8283,10 +8302,7 @@
 
       // SCREEN B: Dedicated Tenant Admin Login (?palika=slug)
       if (slugParam) {
-        const tenant = (state.tenants || []).find(t => 
-          (t.Slug && t.Slug.toLowerCase() === slugParam) ||
-          (t.TenantID && t.TenantID.toLowerCase() === slugParam)
-        ) || (slugParam === 'helambu' ? (state.tenants && state.tenants[0]) : null);
+        const tenant = findTenantBySlugOrId(slugParam);
 
         if (!tenant) {
           showInvalidLinkNotice('पालिका/Tenant लिङ्क फेला परेन', 'तपाईंले खोलेको Tenant लिङ्क अमान्य छ। कृपया सही लिङ्क प्रयोग गर्नुहोस् वा केन्द्रीय व्यवस्थापकसँग सम्पर्क गर्नुहोस्।');
@@ -8299,7 +8315,7 @@
         }
 
         activeTenantContext = tenant;
-        setupTenantAdminScreen(tenant);
+        setupTenantAdminScreen(tenant, preserveInputs);
         return;
       }
 
@@ -8471,11 +8487,37 @@
         return;
       }
 
+      const userLower = rawUser.toLowerCase();
+      const cleanDigits = rawUser.replace(/[^0-9]/g, '');
+
       let tenant = activeTenantContext;
-      if (!tenant) {
-        const params = new URLSearchParams(window.location.search);
-        const slug = (params.get('palika') || params.get('tenant') || params.get('p') || '').trim().toLowerCase();
-        if (slug) {
+      const params = new URLSearchParams(window.location.search);
+      const slug = (params.get('palika') || params.get('tenant') || params.get('p') || '').trim().toLowerCase();
+
+      // Helper to test if a tenant matches the entered username or phone
+      const doesTenantMatchUser = (t) => {
+        if (!t) return false;
+        const tU = (t.AdminUsername || '').toLowerCase();
+        const tP = (t.Phone || '').replace(/[^0-9]/g, '');
+        return (tU && tU === userLower) ||
+               (cleanDigits.length >= 7 && tP === cleanDigits) ||
+               (rawUser === t.AdminUsername);
+      };
+
+      // If activeTenantContext doesn't match the entered username/phone, search matching tenants (handling multiple party tenants in the same Palika)
+      if (!tenant || !doesTenantMatchUser(tenant)) {
+        const bySlugAndUser = slug ? (state.tenants || []).find(t =>
+          ((t.Slug && t.Slug.toLowerCase() === slug) || (t.TenantID && t.TenantID.toLowerCase() === slug)) &&
+          doesTenantMatchUser(t)
+        ) : null;
+        const byAnyUser = (state.tenants || []).find(t => doesTenantMatchUser(t));
+        if (bySlugAndUser) {
+          tenant = bySlugAndUser;
+          activeTenantContext = tenant;
+        } else if (byAnyUser) {
+          tenant = byAnyUser;
+          activeTenantContext = tenant;
+        } else if (!tenant && slug) {
           tenant = (state.tenants || []).find(t => 
             (t.Slug && t.Slug.toLowerCase() === slug) ||
             (t.TenantID && t.TenantID.toLowerCase() === slug)
@@ -8504,15 +8546,7 @@
         return;
       }
 
-      const userLower = rawUser.toLowerCase();
-      const cleanDigits = rawUser.replace(/[^0-9]/g, '');
-      const tUser = (tenant.AdminUsername || '').toLowerCase();
-      const tPhone = (tenant.Phone || '').replace(/[^0-9]/g, '');
-
-      const isUserMatch = (tUser && tUser === userLower) || 
-                          (cleanDigits.length >= 7 && tPhone === cleanDigits) ||
-                          (rawUser === tenant.AdminUsername);
-
+      const isUserMatch = doesTenantMatchUser(tenant);
       const isPassMatch = isUserMatch && (await verifySecret(pass, tenant.AdminPassword));
 
       if (isUserMatch && isPassMatch) {
@@ -8524,6 +8558,12 @@
           saveState();
         }
 
+        const partyCode = normalizePartyCode(tenant.Party || 'NC');
+        tenant.Party = partyCode;
+        if (typeof ensureTenantPartyCandidates === 'function') {
+          ensureTenantPartyCandidates(tenant);
+        }
+
         currentUser = {
           UserID: 'USR_' + (tenant.TenantID || 'ADMIN'),
           Name: `${tenant.TenantName || tenant.PalikaName} Admin`,
@@ -8532,13 +8572,13 @@
           TenantID: tenant.TenantID,
           TenantName: tenant.TenantName || tenant.PalikaName,
           PalikaName: tenant.PalikaName,
-          Party: tenant.Party || 'NC',
+          Party: partyCode,
           Ward: 'All'
         };
         state.settings.MUNICIPALITY = tenant.PalikaName;
         state.settings.PALIKA_SLUG = tenant.Slug || 'helambu';
-        state.activeParty = tenant.Party || 'NC';
-        applyPartyTheme(tenant.Party || 'NC');
+        state.activeParty = partyCode;
+        applyPartyTheme(partyCode);
         saveState();
         launchDashboard();
         switchView('dashboard');
@@ -8728,7 +8768,8 @@
       const fullName = (formData.get('FullName') || '').trim();
       const phone = (formData.get('Phone') || '').trim().replace(/[^0-9]/g, '');
       const palikaName = (formData.get('PalikaName') || '').trim();
-      const party = formData.get('Party') || 'NC';
+      const party = normalizePartyCode(formData.get('Party') || 'NC');
+      const pInfo = PARTY_PALETTES[party] || PARTY_PALETTES.NC;
       const pass = (formData.get('Password') || '').trim();
       const confirmPass = (formData.get('ConfirmPassword') || '').trim();
 
@@ -8754,11 +8795,18 @@
         return;
       }
 
-      const slug = palikaName.toLowerCase().replace(/[^a-z0-9]/g, '') || ('client_' + Date.now().toString(36));
+      let slug = makeSafePalikaSlug(palikaName) || ('client_' + Date.now().toString(36));
+      if (party !== 'NC' || (state.tenants || []).some(t => (t.Slug || '').toLowerCase() === slug)) {
+        slug = `${slug}_${party.toLowerCase()}`;
+      }
+      if ((state.tenants || []).some(t => (t.Slug || '').toLowerCase() === slug)) {
+        slug = `${slug}_${Date.now().toString(36).slice(-3)}`;
+      }
       const tenantId = 'TNT_' + Date.now().toString(36).toUpperCase();
 
       const newPendingTenant = {
         TenantID: tenantId,
+        TenantName: `${pInfo.name} ${palikaName} निर्वाचन अभियान समिति`,
         PalikaName: palikaName,
         Party: party,
         Slug: slug,
@@ -8774,7 +8822,8 @@
         Features: { sms: true, familyTree: true, reports: true, voterSlips: true },
         SmsCredits: 1000,
         SmsUsed: 0,
-        CreatedAt: new Date().toISOString().slice(0, 10)
+        CreatedAt: new Date().toISOString().slice(0, 10),
+        UpdatedAt: Date.now()
       };
 
       if (!state.tenants) state.tenants = [];
@@ -8791,28 +8840,31 @@
         PIN: '1234',
         TenantID: tenantId,
         PalikaName: palikaName,
+        Party: party,
         Ward: 'All',
         Status: 'Pending_Approval',
         Active: false
       });
 
       saveState();
+      saveTenantsToCloud();
 
       // Push to Supabase Cloud Users Table
       if (typeof pushUserToSupabase === 'function') {
         pushUserToSupabase({
           UserID: 'USR_' + tenantId,
+          TenantID: tenantId,
           Name: fullName,
           Phone: phone,
           Role: 'Palika Admin',
           PIN: pass,
           Ward: 'All',
           Active: false,
-          notes: JSON.stringify({ palika: palikaName, party, status: 'Pending_Approval' })
+          notes: JSON.stringify({ tenant_id: tenantId, palika: palikaName, party, slug, status: 'Pending_Approval' })
         });
       }
 
-      logActivity('saas_security', `📝 नयाँ खाता दर्ता अनुरोध: ${fullName} (${palikaName}, फोन: ${phone})`);
+      logActivity('saas_security', `📝 नयाँ खाता दर्ता अनुरोध: ${fullName} (${palikaName}, दल: ${pInfo.name}, फोन: ${phone})`);
       closeModal();
 
       // Show Confirmation Modal with Super Admin WhatsApp Direct Link
@@ -8824,7 +8876,7 @@
           <h3 style="color: #047857; margin-bottom: 8px;">तपाईंको खाता दर्ता भयो!</h3>
           <p style="font-size: 14px; color: var(--slate-600); line-height: 1.6;">
             तपाईंको User ID: <b>${phone}</b><br>
-            पालिका: <b>${esc(palikaName)}</b><br><br>
+            पालिका: <b>${esc(palikaName)} (${esc(pInfo.name)})</b><br><br>
             सुरक्षाका कारणले <b>Super Admin</b> ले स्वीकृत (Approve) गरेपछि मात्र तपाईंको लगइन सक्रिय हुनेछ।
           </p>
           <div style="margin-top: 16px; padding: 14px; background: #ecfdf5; border-radius: 12px; border: 1px solid #a7f3d0;">
@@ -8832,7 +8884,7 @@
               📲 Super Admin लाई तत्काल Approval को सन्देश पठाउनुहोस्:
             </p>
             <div style="margin-top: 10px;">
-              <a href="https://wa.me/9779851170967?text=${encodeURIComponent(`नमस्ते Super Admin ज्यू, मैले नयाँ निर्वाचन खाता दर्ता गरेको छु:\n- नाम: ${fullName}\n- पालिका: ${palikaName}\n- फोन: ${phone}\nकृपया खाता स्वीकृत (Approve) गरिदिनुहुन अनुरोध छ।`)}" target="_blank" rel="noopener noreferrer" class="btn" style="background: #25D366; color: white; text-decoration: none; font-weight: 800; padding: 10px 18px; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;">
+              <a href="https://wa.me/9779851170967?text=${encodeURIComponent(`नमस्ते Super Admin ज्यू, मैले नयाँ निर्वाचन खाता दर्ता गरेको छु:\n- नाम: ${fullName}\n- पालिका: ${palikaName}\n- दल: ${pInfo.name}\n- फोन: ${phone}\nकृपया खाता स्वीकृत (Approve) गरिदिनुहुन अनुरोध छ।`)}" target="_blank" rel="noopener noreferrer" class="btn" style="background: #25D366; color: white; text-decoration: none; font-weight: 800; padding: 10px 18px; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;">
                 🟢 WhatsApp मा अनुरोध पठाउनुहोस्
               </a>
             </div>
@@ -8944,6 +8996,7 @@
           return;
         }
         tenant.AdminPassword = newPass;
+        tenant.UpdatedAt = Date.now();
         const matchingUser = (state.users || []).find(u => u.TenantID === tenant.TenantID && u.Role === 'Palika Admin');
         if (matchingUser) matchingUser.Password = newPass;
         saveState();
@@ -8963,6 +9016,7 @@
 
       t.Status = 'Active';
       t.BillingStatus = 'Paid';
+      t.UpdatedAt = Date.now();
 
       // Update matching user
       const u = (state.users || []).find(x => x.TenantID === tenantId || (x.Phone && x.Phone === t.Phone));
@@ -8972,17 +9026,20 @@
       }
 
       saveState();
+      saveTenantsToCloud();
 
       // Sync user to Supabase
       if (typeof pushUserToSupabase === 'function') {
         pushUserToSupabase({
           UserID: 'USR_' + t.TenantID,
+          TenantID: t.TenantID,
           Name: t.ContactPerson || `${t.PalikaName} Admin`,
           Phone: t.Phone,
           Role: 'Palika Admin',
           PIN: t.AdminPassword || '1234',
           Ward: 'All',
-          Active: true
+          Active: true,
+          notes: JSON.stringify({ tenant_id: t.TenantID, party: t.Party, slug: t.Slug })
         });
       }
 
@@ -9000,10 +9057,10 @@
         const slug = t.Slug || (t.PalikaName ? t.PalikaName.toLowerCase().replace(/[^a-z0-9]/g, '') : 'helambu');
         const baseUrl = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
           ? (window.location.origin + window.location.pathname)
-          : 'https://vrm-five.vercel.app/';
+          : 'https://vrm-globaleramultiservice-6070.vercel.app/';
         const portalLink = `${baseUrl}?palika=${encodeURIComponent(slug)}`;
         const text = `नमस्ते ${t.ContactPerson || t.PalikaName} ज्यू!\n\n` +
-          `बधाई छ, तपाईंको निर्वाचन कमान्ड खाता (${t.PalikaName}) Super Admin द्वारा स्वीकृत (Approved) भएको छ।\n\n` +
+          `बधाई छ, तपाईंको निर्वाचन कमान्ड खाता (${t.TenantName || t.PalikaName}) Super Admin द्वारा स्वीकृत (Approved) भएको छ।\n\n` +
           `🌐 लगइन पोर्टल: ${portalLink}\n` +
           `📱 User ID: ${t.Phone}\n` +
           `🔑 Password: ${t.AdminPassword}\n\n` +
@@ -9028,6 +9085,7 @@
             Role: 'Super Admin'
           });
           saveState();
+          saveTenantsToCloud();
           renderTenantsManagement();
           showToast(`${t.PalikaName} को खाता अनुरोध अस्वीकृत गरियो।`, 'info');
         }
@@ -9211,14 +9269,36 @@
               if (row.key === 'municipality_name') state.settings.MUNICIPALITY = typeof row.value === 'string' ? row.value.replace(/"/g, '') : String(row.value);
               if (row.key === 'saas_tenants_registry') {
                 try {
+                  // Do not overwrite if a local tenant save just happened within the last 8 seconds
+                  if (typeof _lastLocalTenantSaveTime !== 'undefined' && (Date.now() - _lastLocalTenantSaveTime < 8000)) {
+                    return;
+                  }
                   const cloudTenants = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
                   if (Array.isArray(cloudTenants) && cloudTenants.length > 0) {
-                    const tenantMap = new Map((state.tenants || []).map(t => [t.TenantID, t]));
+                    const localMap = new Map((state.tenants || []).map(t => [t.TenantID, t]));
+                    const mergedMap = new Map();
+
+                    // Put cloudTenants first so newly created tenants stay at the top (instead of default TNT_HELAMBU)
                     cloudTenants.forEach(ct => {
+                      if (!ct || !ct.TenantID) return;
                       if (!ct.TenantName) ct.TenantName = ct.PalikaName;
-                      tenantMap.set(ct.TenantID, { ...(tenantMap.get(ct.TenantID) || {}), ...ct });
+                      ct.Party = normalizePartyCode(ct.Party || 'NC');
+                      const localT = localMap.get(ct.TenantID);
+                      if (localT && localT.UpdatedAt && (!ct.UpdatedAt || localT.UpdatedAt > ct.UpdatedAt)) {
+                        mergedMap.set(ct.TenantID, { ...ct, ...localT, Party: normalizePartyCode(localT.Party || ct.Party || 'NC') });
+                      } else {
+                        mergedMap.set(ct.TenantID, { ...(localT || {}), ...ct });
+                      }
                     });
-                    state.tenants = Array.from(tenantMap.values());
+
+                    // Append any local tenants that haven't been pushed to cloud yet
+                    (state.tenants || []).forEach(lt => {
+                      if (lt && lt.TenantID && !mergedMap.has(lt.TenantID)) {
+                        mergedMap.set(lt.TenantID, lt);
+                      }
+                    });
+
+                    state.tenants = Array.from(mergedMap.values());
                   }
                 } catch(e) {
                   console.warn('Error reading saas_tenants_registry:', e);
@@ -9235,11 +9315,21 @@
             const userIdxMap = new Map(state.users.map((u, i) => [String(u.UserID), i]));
             uData.forEach(cloudUser => {
               let userTenantId = cloudUser.tenant_id;
-              if (!userTenantId && cloudUser.notes) {
+              let pNotes = {};
+              if (cloudUser.notes) {
                 try {
-                  const pNotes = JSON.parse(cloudUser.notes);
-                  userTenantId = pNotes.tenant_id;
+                  pNotes = JSON.parse(cloudUser.notes);
+                  if (!userTenantId && pNotes.tenant_id) userTenantId = pNotes.tenant_id;
                 } catch(e) {}
+              }
+              if (!userTenantId && String(cloudUser.user_id || '').startsWith('USR_TNT_')) {
+                userTenantId = String(cloudUser.user_id).replace(/^USR_/, '');
+              }
+              if (userTenantId && pNotes.party) {
+                const matchedT = (state.tenants || []).find(t => t.TenantID === userTenantId);
+                if (matchedT && (!matchedT.UpdatedAt)) {
+                  matchedT.Party = normalizePartyCode(pNotes.party);
+                }
               }
               const mapped = {
                 UserID: cloudUser.user_id,
@@ -9398,6 +9488,17 @@
 
         // Auto-refresh active view without disrupting user typing or active modal
         if (currentUser) {
+          if (currentUser.Role !== 'Super Admin' && currentUser.TenantID && currentUser.TenantID !== 'ALL') {
+            const activeT = (state.tenants || []).find(t => t.TenantID === currentUser.TenantID);
+            if (activeT) {
+              const syncedParty = normalizePartyCode(activeT.Party || 'NC');
+              currentUser.Party = syncedParty;
+              currentUser.TenantName = activeT.TenantName || activeT.PalikaName;
+              state.activeParty = syncedParty;
+              if (typeof ensureTenantPartyCandidates === 'function') ensureTenantPartyCandidates(activeT);
+              applyPartyTheme(syncedParty);
+            }
+          }
           refreshDashboardMetrics();
           const modalActive = document.getElementById('modalOverlay') && document.getElementById('modalOverlay').classList.contains('active');
           const activeEl = document.activeElement;
@@ -9410,6 +9511,13 @@
             else if (activeId === 'viewHouseholds') renderHouseholdsList();
             else if (activeId === 'viewElectionDay') renderElectionReports();
             else if (activeId === 'viewTenants' && currentUser.Role === 'Super Admin') renderTenantsManagement();
+          }
+        } else {
+          // If on login screen (?palika=slug) and cloud tenants just synced, refresh tenant branding without clearing typed inputs
+          const params = new URLSearchParams(window.location.search);
+          const slugParam = (params.get('palika') || params.get('tenant') || params.get('p') || '').trim().toLowerCase();
+          if (slugParam) {
+            handleUrlRouting(true);
           }
         }
 
@@ -9523,9 +9631,11 @@
       console.log('🚀 Supabase Real-Time Triad Engine Initialized (WebSocket + 10s Heartbeat + Focus Sync)');
     }
 
-    // Push new or updated user to Supabase Cloud
+    let _lastLocalTenantSaveTime = 0;
+
     // Persist multi-tenant SaaS registry to Supabase Cloud for cross-device persistence
     async function saveTenantsToCloud() {
+      _lastLocalTenantSaveTime = Date.now();
       const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
       const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
       if (!url || !key) return;
@@ -9555,6 +9665,13 @@
       const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
       if (!url || !key) return;
 
+      let extraNotes = {};
+      if (userObj.notes) {
+        try {
+          extraNotes = typeof userObj.notes === 'string' ? JSON.parse(userObj.notes) : userObj.notes;
+        } catch(e) {}
+      }
+
       try {
         await cloudFetch(`${url}/rest/v1/users`, {
           method: 'POST',
@@ -9575,9 +9692,10 @@
             active: userObj.Active !== false,
             access_token: userObj.AccessToken || null,
             notes: JSON.stringify({
-              tenant_id: userObj.TenantID || 'TNT_HELAMBU',
-              access_token: userObj.AccessToken || null,
-              created_at: new Date().toISOString()
+              ...extraNotes,
+              tenant_id: userObj.TenantID || extraNotes.tenant_id || 'TNT_HELAMBU',
+              access_token: userObj.AccessToken || extraNotes.access_token || null,
+              created_at: extraNotes.created_at || new Date().toISOString()
             })
           })
         });
@@ -10374,32 +10492,45 @@
       const partyBadge = document.getElementById('topbarPartyBadge');
       if (partyBadge) {
         const curParty = getActivePartyPalette();
+        const sym = document.getElementById('topbarPartySymbol');
+        const name = document.getElementById('topbarPartyName');
+        if (sym) sym.textContent = curParty.symbol;
+        if (name) name.textContent = curParty.name;
+        partyBadge.style.background = curParty.accentBg;
+        partyBadge.style.color = curParty.primary;
+        partyBadge.style.borderColor = curParty.border;
         partyBadge.title = `${curParty.name} (${curParty.symbol}) - पालिकाको आधिकारिक दल`;
       }
 
-      // 2. Update Muni Workspace Title
+      // 2. Update Muni Workspace Title (Support Tenant Context)
       const muniLabel = document.getElementById('sbMuniTitle');
+      const curTenant = (state.tenants || []).find(t => t.TenantID === (user && user.TenantID));
+      const tName = (user && user.TenantName) || (curTenant ? (curTenant.TenantName || curTenant.PalikaName) : '') || (state.settings && state.settings.MUNICIPALITY) || 'हेलम्बु गाउँपालिका';
       if (muniLabel) {
         if (role === 'Super Admin') {
           muniLabel.textContent = '👑 SaaS Master Platform HQ';
         } else if (role === 'Candidate') {
-          muniLabel.textContent = `🎯 ${user.Post || 'उम्मेदवार'} कन्सोल`;
+          muniLabel.textContent = `🎯 ${user.Post || 'उम्मेदवार'} कन्सोल (${tName})`;
         } else if (user.Ward && user.Ward !== 'All') {
-          muniLabel.textContent = `🏛️ वडा नं. ${user.Ward} कार्यक्षेत्र`;
+          muniLabel.textContent = `🏛️ वडा नं. ${user.Ward} - ${tName}`;
         } else {
-          muniLabel.textContent = `🏛️ ${state.settings.MUNICIPALITY || 'Helambu Rural Municipality'}`;
+          muniLabel.textContent = `🏛️ ${tName}`;
         }
       }
 
-      // 3. Strict Sidebar Navigation Filtering
+      // 3. Strict Sidebar Navigation Filtering (Roles + Tenant Feature Flags)
+      const feat = (curTenant && curTenant.Features) || { sms: true, familyTree: true, reports: true, voterSlips: true };
       const navItems = document.querySelectorAll('.sidebar-nav .nav-item[data-view]');
       navItems.forEach(item => {
         const v = item.getAttribute('data-view');
-        if (perm.allowedViews.includes(v)) {
-          item.style.display = 'flex';
-        } else {
-          item.style.display = 'none';
+        let allowed = perm.allowedViews.includes(v);
+        if (allowed && curTenant) {
+          if (v === 'sms' && feat.sms === false) allowed = false;
+          if (v === 'households' && feat.familyTree === false) allowed = false;
+          if (v === 'reports' && feat.reports === false) allowed = false;
+          if (v === 'voterSlips' && feat.voterSlips === false) allowed = false;
         }
+        item.style.display = allowed ? 'flex' : 'none';
       });
 
       // 4. Hide empty group titles
@@ -10775,6 +10906,117 @@
     // ==========================================
     // 5. METRICS & DASHBOARD
     // ==========================================
+    function renderDashboardCampaignBanner() {
+      const container = document.getElementById('dashboardTenantCampaignBanner');
+      if (!container) return;
+
+      if (!currentUser) {
+        container.innerHTML = '';
+        return;
+      }
+
+      const pInfo = getActivePartyPalette();
+      const isSuper = currentUser.Role === 'Super Admin';
+
+      if (isSuper) {
+        const activeTenantsCount = (state.tenants || []).filter(t => t.Status !== 'Suspended').length;
+        const totalVoters = (state.voters || []).length;
+        container.innerHTML = `
+          <div class="card" style="margin-bottom: 24px; border: 2px solid #3b82f6; background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0369a1 100%); color: white; border-radius: 14px; padding: 22px 24px; box-shadow: 0 8px 24px rgba(15,23,42,0.18);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="width: 58px; height: 58px; border-radius: 14px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">
+                  👑
+                </div>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.3px;">SaaS Platform Command HQ</h2>
+                    <span class="badge" style="background: #fbbf24; color: #0f172a; font-weight: 800; font-size: 11.5px;">Super Admin Control</span>
+                    <span class="badge" style="background: rgba(255,255,255,0.2); color: #fff; font-weight: 700; font-size: 11.5px;">बागमती प्रदेश कमान</span>
+                  </div>
+                  <p style="margin: 5px 0 0; font-size: 13px; color: #cbd5e1; line-height: 1.4;">
+                    १३ जिल्ला • ११९ स्थानीय तह • १,१२१ वडा • १,७९२ मतदान स्थल | सक्रिय ग्राहक: <b>${activeTenantsCount}</b> Tenants | कुल मतदाता: <b>${totalVoters.toLocaleString()}</b>
+                  </p>
+                </div>
+              </div>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-sm" onclick="switchView('tenants')" style="background: #fbbf24; color: #0f172a; font-weight: 800; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12.5px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                  🏛️ Tenants व्यवस्थापन
+                </button>
+                <button class="btn btn-sm btn-primary" onclick="openSuperAdmin3TierImportStudio()" style="background: #22c55e; border-color: #16a34a; font-weight: 800; padding: 8px 16px; border-radius: 8px; font-size: 12.5px;">
+                  📥 ३-तह Bulk Import
+                </button>
+                <button class="btn btn-sm" onclick="switchView('platformAnalytics')" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); font-weight: 700; padding: 8px 14px; border-radius: 8px; font-size: 12.5px;">
+                  📈 Analytics
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Tenant-specific branding
+      const curTenant = (state.tenants || []).find(t => t.TenantID === currentUser.TenantID);
+      const tenantTitle = currentUser.TenantName || (curTenant ? (curTenant.TenantName || curTenant.PalikaName) : '') || state.settings.MUNICIPALITY || 'हेलम्बु गाउँपालिका';
+      const palikaDisplay = currentUser.PalikaName || (curTenant ? curTenant.PalikaName : '') || state.settings.MUNICIPALITY || 'हेलम्बु गाउँपालिका';
+      const districtDisplay = (curTenant && curTenant.District) || currentUser.District || 'सिन्धुपाल्चोक';
+      const wardNums = getActivePalikaWardNumbers();
+      const wardScopeText = isWardRestrictedUser() ? `वडा नं. ${currentUser.Ward} कार्यक्षेत्र` : `समग्र ${wardNums.length || 7} वडा कार्यक्षेत्र`;
+
+      const scopedVoters = getScopedVoters();
+      const contactedVoters = scopedVoters.filter(v => v.ContactStatus === 'Contacted').length;
+      const progressPercent = scopedVoters.length ? Math.round((contactedVoters / scopedVoters.length) * 100) : 0;
+
+      container.innerHTML = `
+        <div class="card tenant-campaign-banner" style="margin-bottom: 24px; border: 2px solid ${pInfo.heroBorder || pInfo.primary}; background: ${pInfo.heroGradient || pInfo.gradient}; color: white; border-radius: 14px; padding: 22px 24px; box-shadow: 0 8px 24px ${pInfo.glow || 'rgba(0,0,0,0.15)'}; position: relative; overflow: hidden;">
+          <div style="position: absolute; right: -15px; bottom: -25px; font-size: 120px; opacity: 0.12; pointer-events: none; user-select: none;">
+            ${pInfo.symbol}
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; position: relative; z-index: 1;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 60px; height: 60px; min-width: 60px; border-radius: 14px; background: rgba(255, 255, 255, 0.22); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); border: 2px solid rgba(255,255,255,0.4);">
+                ${pInfo.symbol}
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <h2 style="margin: 0; font-size: 21px; font-weight: 900; color: #ffffff; letter-spacing: -0.3px;">
+                    ${esc(tenantTitle)}
+                  </h2>
+                  <span class="badge" style="background: rgba(255, 255, 255, 0.25); color: #ffffff; font-weight: 800; font-size: 12px; border: 1.5px solid rgba(255,255,255,0.4); padding: 3px 10px;">
+                    ${pInfo.symbol} ${pInfo.name}
+                  </span>
+                  <span class="badge" style="background: #fbbf24; color: #0f172a; font-weight: 800; font-size: 11.5px; padding: 3px 8px;">
+                    ${esc(currentUser.Role || 'Palika Admin')}
+                  </span>
+                </div>
+                <p style="margin: 5px 0 0; font-size: 13px; color: #f1f5f9; line-height: 1.4; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                  <span>📍 ${esc(palikaDisplay)}, ${esc(districtDisplay)}</span>
+                  <span>•</span>
+                  <span>🏛️ ${wardScopeText}</span>
+                  <span>•</span>
+                  <span>🎯 सम्पर्क प्रगति: <b>${contactedVoters.toLocaleString()} / ${scopedVoters.length.toLocaleString()}</b> (${progressPercent}%)</span>
+                </p>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <button class="btn btn-sm" onclick="switchView('voters')" style="background: rgba(255,255,255,0.22); color: #ffffff; font-weight: 700; border: 1px solid rgba(255,255,255,0.35); padding: 7px 14px; border-radius: 8px; font-size: 12.5px;">
+                👥 मतदाता सूची
+              </button>
+              <button class="btn btn-sm" onclick="switchView('warRoom')" style="background: #fbbf24; color: #0f172a; font-weight: 800; border: none; padding: 7px 14px; border-radius: 8px; font-size: 12.5px; box-shadow: 0 2px 8px rgba(0,0,0,0.18);">
+                🎯 War Room (जित मिटर)
+              </button>
+              <button class="btn btn-sm" onclick="switchView('visits')" style="background: rgba(255,255,255,0.22); color: #ffffff; font-weight: 700; border: 1px solid rgba(255,255,255,0.35); padding: 7px 14px; border-radius: 8px; font-size: 12.5px;">
+                🚶 घरदैलो
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     function refreshDashboardMetrics() {
       if (typeof syncActivePalikaHierarchyToState === 'function') syncActivePalikaHierarchyToState();
       if ((!state.households || state.households.length === 0) && state.voters && state.voters.length > 0 && typeof autoBuildStrictHouseholds === 'function') {
@@ -10782,6 +11024,7 @@
       }
       if (typeof updateGenZNavBadge === 'function') updateGenZNavBadge();
       if (typeof updateSeniorsNavBadge === 'function') updateSeniorsNavBadge();
+      renderDashboardCampaignBanner();
       const v = getScopedVoters();
       const scopedHh = getScopedHouseholds();
       const scopedVis = getScopedVisits();
@@ -10821,10 +11064,11 @@
         { label: 'Open Issues', val: openIssues, sub: 'Operational' }
       ];
 
+      const pInfo = getActivePartyPalette();
       document.getElementById('kpiGrid').innerHTML = kpis.map(k => `
-        <div class="kpi-card">
+        <div class="kpi-card" style="border-top: 3.5px solid ${pInfo.primary}; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.04);">
           <div class="kpi-label">${k.label}</div>
-          <div class="kpi-val">${k.val}</div>
+          <div class="kpi-val" style="color: ${pInfo.primaryDark};">${k.val}</div>
           <div class="kpi-sub">${k.sub}</div>
         </div>
       `).join('');
@@ -13712,10 +13956,83 @@
       onSuperTenantPalikaChange(chosen);
     }
 
+    function computeUniqueTenantSlug(palikaName, partyCode, excludeTenantId = '') {
+      const baseSlug = makeSafePalikaSlug(palikaName);
+      const pCode = normalizePartyCode(partyCode || 'NC');
+      const pSuffix = pCode.toLowerCase();
+      const existing = (state.tenants || []).filter(t => t.TenantID !== excludeTenantId);
+      const baseTaken = existing.some(t => (t.Slug || '').toLowerCase() === baseSlug);
+      let candidateSlug = (pCode !== 'NC' || baseTaken) ? `${baseSlug}_${pSuffix}` : baseSlug;
+      if (existing.some(t => (t.Slug || '').toLowerCase() === candidateSlug)) {
+        let counter = 2;
+        while (existing.some(t => (t.Slug || '').toLowerCase() === `${candidateSlug}_${counter}`)) {
+          counter++;
+        }
+        candidateSlug = `${candidateSlug}_${counter}`;
+      }
+      return candidateSlug;
+    }
+
+    function ensureTenantPartyCandidates(tenant) {
+      if (!tenant || !tenant.TenantID || tenant.TenantID === 'ALL') return;
+      if (!state.candidates || !Array.isArray(state.candidates)) state.candidates = [];
+      const partyCode = normalizePartyCode(tenant.Party || 'NC');
+      const pInfo = PARTY_PALETTES[partyCode] || PARTY_PALETTES.NC;
+      const existingForTenant = state.candidates.filter(c => c.TenantID === tenant.TenantID);
+      if (existingForTenant.length > 0) {
+        existingForTenant.forEach(c => {
+          c.Party = pInfo.name;
+          c.Symbol = pInfo.symbol;
+        });
+      } else {
+        const palikaLabel = tenant.PalikaName || 'पालिका';
+        state.candidates.push(
+          {
+            CandidateID: 'CND_' + tenant.TenantID + '_01',
+            Name: `${palikaLabel} प्रमुख उम्मेदवार (${pInfo.name})`,
+            Post: 'पालिका प्रमुख / अध्यक्ष (Mayor/Chair)',
+            Level: 'स्थानीय तह (Local Level)',
+            Ward: 'All',
+            Party: pInfo.name,
+            Symbol: pInfo.symbol,
+            PIN: '2026',
+            Phone: tenant.Phone || '9851000000',
+            TargetVotes: 4500,
+            TenantID: tenant.TenantID
+          },
+          {
+            CandidateID: 'CND_' + tenant.TenantID + '_02',
+            Name: `${palikaLabel} उपप्रमुख उम्मेदवार (${pInfo.name})`,
+            Post: 'पालिका उपप्रमुख / उपाध्यक्ष (Deputy)',
+            Level: 'स्थानीय तह (Local Level)',
+            Ward: 'All',
+            Party: pInfo.name,
+            Symbol: pInfo.symbol,
+            PIN: '2027',
+            Phone: tenant.Phone || '9851000000',
+            TargetVotes: 4500,
+            TenantID: tenant.TenantID
+          }
+        );
+      }
+    }
+
+    function onSuperTenantPartyChange(partyVal) {
+      const palikaSel = document.getElementById('superTenantPalikaSelect');
+      const palikaName = (palikaSel && palikaSel.value) || document.getElementById('superTenantPalikaNameInput')?.value || '';
+      if (palikaName) {
+        onSuperTenantPalikaChange(palikaName);
+      }
+    }
+
     function onSuperTenantPalikaChange(palikaName) {
       const distName = document.getElementById('superTenantDistrictSelect')?.value || '';
       const pObj = findPalikaInBagmatiHierarchy(palikaName, distName);
       if (!pObj) return;
+
+      const partySelect = document.getElementById('superTenantPartySelect');
+      const partyCode = normalizePartyCode(partySelect ? partySelect.value : 'NC');
+      const pInfo = PARTY_PALETTES[partyCode] || PARTY_PALETTES.NC;
 
       const nameInput = document.getElementById('superTenantPalikaNameInput');
       const tenantNameInput = document.getElementById('superTenantNameInput');
@@ -13726,17 +14043,17 @@
 
       if (nameInput) nameInput.value = pObj.name;
       if (tenantNameInput && !tenantNameInput.dataset.manuallyEdited) {
-        tenantNameInput.value = pObj.name + ' निर्वाचन अभियान समिति';
+        tenantNameInput.value = `${pInfo.name} ${pObj.name} निर्वाचन अभियान समिति`;
       }
       if (wardsInput) wardsInput.value = pObj.ward_count;
-      const slug = makeSafePalikaSlug(pObj.name);
-      if (slugInput) slugInput.value = slug;
-      if (userInput) userInput.value = slug + '_admin';
+      const slug = computeUniqueTenantSlug(pObj.name, partyCode);
+      if (slugInput && !slugInput.dataset.manuallyEdited) slugInput.value = slug;
+      if (userInput && !userInput.dataset.manuallyEdited) userInput.value = slug + '_admin';
 
       if (previewBox) {
         previewBox.innerHTML = `
           <div style="font-weight: 900; color: #0f172a; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
-            <span>📍 ${esc(pObj.district)} ➔ ${esc(pObj.name)}</span>
+            <span>📍 ${esc(pObj.district)} ➔ ${esc(pObj.name)} (${pInfo.symbol} ${esc(pInfo.name)})</span>
             <span class="badge" style="background: #dcfce7; color: #166534; font-weight: 800;">जम्मा ${pObj.ward_count} वडा • ${pObj.location_count} मतदान स्थल</span>
           </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px;">
@@ -26965,7 +27282,8 @@
       const container = document.getElementById('todayBirthdaysSection');
       if (!container) return;
 
-      const birthdayVoters = state.voters.filter(v => isTodayBirthday(v.DOB));
+      const scopedList = (typeof getScopedVoters === 'function' ? getScopedVoters() : state.voters) || [];
+      const birthdayVoters = scopedList.filter(v => isTodayBirthday(v.DOB));
 
       if (birthdayVoters.length === 0) {
         container.innerHTML = '';
@@ -27852,13 +28170,16 @@
                     </tr>
                   </thead>
                   <tbody>
-                    ${pendingTenants.map((pt, pIdx) => `
+                    ${pendingTenants.map((pt, pIdx) => {
+                      const ptCode = normalizePartyCode(pt.Party || 'NC');
+                      const ptInfo = PARTY_PALETTES[ptCode] || PARTY_PALETTES.NC;
+                      return `
                       <tr>
                         <td style="text-align: center; font-weight: 700; padding: 10px;">${pIdx + 1}</td>
-                        <td style="padding: 10px;"><b style="font-size: 14px; color: #1e3a8a;">${esc(pt.PalikaName)}</b></td>
+                        <td style="padding: 10px;"><b style="font-size: 14px; color: #1e3a8a;">${esc(pt.TenantName || pt.PalikaName)}</b><div style="font-size: 11px; color: #64748b;">📍 ${esc(pt.PalikaName)}</div></td>
                         <td style="padding: 10px;"><code style="font-size: 13px; font-weight: 800; color: #047857;">${esc(pt.Phone)}</code></td>
                         <td style="padding: 10px;"><b>${esc(pt.ContactPerson || '-')}</b></td>
-                        <td style="padding: 10px;"><span class="badge" style="background: #eef2ff; color: #3730a3; font-weight: 700;">${esc(pt.Party || 'NC')}</span></td>
+                        <td style="padding: 10px;"><span class="badge" style="background: ${ptInfo.accentBg}; color: ${ptInfo.primary}; border: 1px solid ${ptInfo.border}; font-weight: 700;">${ptInfo.symbol} ${ptInfo.name}</span></td>
                         <td style="font-size: 12px; color: #64748b; padding: 10px;">${esc(pt.CreatedAt || 'हालै')}</td>
                         <td style="text-align: center; padding: 10px;">
                           <div style="display: flex; gap: 6px; justify-content: center;">
@@ -27871,7 +28192,7 @@
                           </div>
                         </td>
                       </tr>
-                    `).join('')}
+                    `;}).join('')}
                   </tbody>
                 </table>
               </div>
@@ -27888,20 +28209,22 @@
         const isActive = t.Status === 'Active';
         const isPaid = t.BillingStatus === 'Paid';
         const slug = t.Slug || (t.PalikaName ? t.PalikaName.toLowerCase().replace(/[^a-z0-9]/g, '') : t.TenantID.toLowerCase());
-        const pCode = t.Party || 'NC';
+        const pCode = normalizePartyCode(t.Party || 'NC');
         const pInfo = PARTY_PALETTES[pCode] || PARTY_PALETTES.NC;
+        const displayTitle = t.TenantName || t.PalikaName;
 
         return `
           <tr style="cursor: pointer; transition: background 0.15s; ${!isActive ? 'background: #fff1f2;' : ''}" onclick="openTenantDossierModal('${t.TenantID}')" class="tenant-row-item" title="क्लिक गरी सम्पूर्ण प्रोफाइल र सेटिङ्स खोल्नुहोस्">
             <td style="text-align: center; font-weight: 700; color: var(--slate-600); padding: 12px 8px;">${idx + 1}</td>
             <td style="padding: 12px;">
               <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <span style="font-weight: 800; font-size: 14px; color: var(--navy-900);">${esc(t.PalikaName)}</span>
+                <span style="font-weight: 800; font-size: 14px; color: var(--navy-900);">${esc(displayTitle)}</span>
                 <span style="background: ${pInfo.accentBg}; color: ${pInfo.primary}; border: 1px solid ${pInfo.border}; padding: 2px 7px; border-radius: 6px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;">
                   <span>${pInfo.symbol}</span> <span>${pInfo.name}</span>
                 </span>
               </div>
               <div style="margin-top: 4px; font-size: 11.5px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                ${t.TenantName && t.TenantName !== t.PalikaName ? `<span style="color: #475569; font-weight: 700;">📍 ${esc(t.PalikaName)}</span>` : ''}
                 <code style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700;">?palika=${slug}</code>
                 <button class="btn btn-sm" onclick="event.stopPropagation(); copyPortalLink('${slug}')" style="padding: 2px 6px; font-size: 11px; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 700; border-radius: 4px;" title="Copy Private Portal Link">
                   📋 लिङ्क
@@ -27966,7 +28289,7 @@
       if (!t) return;
       if (!t.Features) t.Features = { sms: true, familyTree: true, reports: true, voterSlips: true };
 
-      const pCode = t.Party || 'NC';
+      const pCode = normalizePartyCode(t.Party || 'NC');
       const pInfo = PARTY_PALETTES[pCode] || PARTY_PALETTES.NC;
       const isActive = t.Status === 'Active';
       const slug = t.Slug || (t.PalikaName ? t.PalikaName.toLowerCase().replace(/[^a-z0-9]/g, '') : t.TenantID.toLowerCase());
@@ -27984,12 +28307,14 @@
                 </div>
                 <div>
                   <div style="display: flex; align-items: center; gap: 8px;">
-                    <h3 style="margin: 0; color: #fff; font-size: 18px; font-weight: 800;">${esc(t.PalikaName)}</h3>
+                    <h3 style="margin: 0; color: #fff; font-size: 18px; font-weight: 800;">${esc(t.TenantName || t.PalikaName)}</h3>
                     <span class="badge" style="background: ${isActive ? '#10b981' : '#ef4444'}; color: #fff; font-size: 11px; font-weight: 800; padding: 2px 8px;">
                       ${isActive ? '🟢 Active' : '🔴 Suspended'}
                     </span>
                   </div>
-                  <div style="font-size: 12px; color: #94a3b8; margin-top: 3px; display: flex; align-items: center; gap: 8px;">
+                  <div style="font-size: 12px; color: #94a3b8; margin-top: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span>पालिका: <b style="color: #f8fafc;">${esc(t.PalikaName)}</b></span>
+                    <span>•</span>
                     <span>दल: <b style="color: #f8fafc;">${pInfo.name} (${pCode})</b></span>
                     <span>•</span>
                     <span>सम्पर्क: <b style="color: #f8fafc;">${esc(t.ContactPerson || '-')}</b> (${esc(t.Phone || '-')})</span>
@@ -28036,15 +28361,19 @@
             <div class="form-grid">
               <div class="form-group full">
                 <label class="form-label" style="font-weight: 800; color: #1e3a8a;">आधिकारिक राजनीतिक दल (Party Branding) *</label>
-                <select id="dossierParty" class="form-control" style="font-weight: 700; font-size: 13.5px; border: 1.5px solid #93c5fd; background: #eff6ff;">
-                  <option value="NC" ${t.Party === 'NC' ? 'selected' : ''}>🌳 नेपाली काँग्रेस (Nepali Congress)</option>
-                  <option value="UML" ${t.Party === 'UML' ? 'selected' : ''}>☀️ नेकपा (एमाले) (CPN UML)</option>
-                  <option value="RSP" ${t.Party === 'RSP' ? 'selected' : ''}>🔔 राष्ट्रिय स्वतन्त्र पार्टी (RSP)</option>
-                  <option value="MAOIST" ${t.Party === 'MAOIST' ? 'selected' : ''}>☭ नेकपा (माओवादी केन्द्र) (Maoist Centre)</option>
-                  <option value="RPP" ${t.Party === 'RPP' ? 'selected' : ''}>🌾 राष्ट्रिय प्रजातन्त्र पार्टी (RPP)</option>
-                  <option value="INDEPENDENT" ${t.Party === 'INDEPENDENT' ? 'selected' : ''}>⚖️ स्वतन्त्र / साझा कमाण्ड (Independent)</option>
+                <select id="dossierParty" class="form-control" style="font-weight: 700; font-size: 13.5px; border: 1.5px solid #93c5fd; background: #eff6ff;" onchange="onDossierPartyChange(this.value)">
+                  <option value="NC" ${pCode === 'NC' ? 'selected' : ''}>🌳 नेपाली काँग्रेस (Nepali Congress)</option>
+                  <option value="UML" ${pCode === 'UML' ? 'selected' : ''}>☀️ नेकपा (एमाले) (CPN UML)</option>
+                  <option value="RSP" ${pCode === 'RSP' ? 'selected' : ''}>🔔 राष्ट्रिय स्वतन्त्र पार्टी (RSP)</option>
+                  <option value="MAOIST" ${pCode === 'MAOIST' ? 'selected' : ''}>☭ नेकपा (माओवादी केन्द्र) (Maoist Centre)</option>
+                  <option value="RPP" ${pCode === 'RPP' ? 'selected' : ''}>🌾 राष्ट्रिय प्रजातन्त्र पार्टी (RPP)</option>
+                  <option value="INDEPENDENT" ${pCode === 'INDEPENDENT' ? 'selected' : ''}>⚖️ स्वतन्त्र / साझा कमाण्ड (Independent)</option>
                 </select>
                 <span style="font-size: 11px; color: var(--slate-600);">यस पालिकाका Admin र कार्यकर्ताहरूले लगइन गर्दा सम्पूर्ण प्रणाली यही दलको आधिकारिक रङ र चुनाव चिन्हमा खुल्नेछ।</span>
+              </div>
+              <div class="form-group full">
+                <label class="form-label">दल / समिति / कार्यालयको नाम (Tenant Name) *</label>
+                <input type="text" id="dossierTenantName" class="form-control" value="${esc(t.TenantName || `${pInfo.name} — ${t.PalikaName}`)}" style="font-weight: 800;">
               </div>
               <div class="form-group">
                 <label class="form-label">पालिकाको पूरा नाम (Palika / Unit Name) *</label>
@@ -28052,7 +28381,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Dedicated URL Slug (लिङ्क कोड) *</label>
-                <input type="text" id="dossierSlug" class="form-control" value="${esc(slug)}" oninput="this.value = this.value.toLowerCase().replace(/[^a-z0-9]/g, '')">
+                <input type="text" id="dossierSlug" class="form-control" value="${esc(slug)}" oninput="this.value = this.value.toLowerCase().replace(/[^a-z0-9_]/g, '')">
                 <span style="font-size: 11px; color: var(--slate-600);">URL: <code>domain.com/?palika=<b>${slug}</b></code></span>
               </div>
               <div class="form-group">
@@ -28304,7 +28633,22 @@
         </div>
       `;
 
-      openModal(`🏛️ ${t.PalikaName} — प्रोफाइल तथा कन्ट्रोल सेन्टर`, bodyHtml, footerHtml, 'modal-xl');
+      openModal(`🏛️ ${t.TenantName || t.PalikaName} — प्रोफाइल तथा कन्ट्रोल सेन्टर`, bodyHtml, footerHtml, 'modal-xl');
+    }
+
+    function onDossierPartyChange(newPartyCode) {
+      const pCode = normalizePartyCode(newPartyCode || 'NC');
+      const pInfo = PARTY_PALETTES[pCode] || PARTY_PALETTES.NC;
+      const palikaEl = document.getElementById('dossierPalikaName');
+      const tenantNameEl = document.getElementById('dossierTenantName');
+      if (palikaEl && tenantNameEl) {
+        const palikaVal = palikaEl.value.trim();
+        const curName = tenantNameEl.value.trim();
+        const isDefault = !curName || Object.values(PARTY_PALETTES).some(p => curName.startsWith(p.name));
+        if (isDefault && palikaVal) {
+          tenantNameEl.value = `${pInfo.name} — ${palikaVal}`;
+        }
+      }
     }
 
     function switchDossierTab(tabId) {
@@ -28353,13 +28697,15 @@
 
       state.settings.MASTER_SMS_CREDITS = masterPool - amt;
       t.SmsCredits = (t.SmsCredits || 0) + amt;
+      t.UpdatedAt = Date.now();
       saveState();
+      saveTenantsToCloud();
 
       const disp = document.getElementById('dossierSmsBalDisplay');
       if (disp) disp.innerHTML = `${(t.SmsCredits).toLocaleString()} <span style="font-size: 14px;">SMS</span>`;
 
       renderTenantsManagement();
-      showToast(`✅ ${t.PalikaName} लाई ${amt.toLocaleString()} SMS थप गरियो! (नयाँ ब्यालेन्स: ${(t.SmsCredits).toLocaleString()})`, 'success');
+      showToast(`✅ ${t.TenantName || t.PalikaName} लाई ${amt.toLocaleString()} SMS थप गरियो! (नयाँ ब्यालेन्स: ${(t.SmsCredits).toLocaleString()})`, 'success');
     }
 
     function saveTenantDossier(tenantId) {
@@ -28371,8 +28717,9 @@
       if (!t) return;
 
       const palikaName = (document.getElementById('dossierPalikaName')?.value || '').trim();
-      const slug = (document.getElementById('dossierSlug')?.value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-      const party = document.getElementById('dossierParty')?.value || 'NC';
+      const tenantName = (document.getElementById('dossierTenantName')?.value || palikaName).trim();
+      const slug = (document.getElementById('dossierSlug')?.value || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+      const party = normalizePartyCode(document.getElementById('dossierParty')?.value || 'NC');
       const contactPerson = (document.getElementById('dossierContactPerson')?.value || '').trim();
       const phone = (document.getElementById('dossierPhone')?.value || '').trim();
       const adminUsername = (document.getElementById('dossierAdminUsername')?.value || '').trim().toLowerCase();
@@ -28392,12 +28739,14 @@
       if (!phone) return showToast('कृपया सम्पर्क फोन नम्बर हाल्नुहोस्।', 'error');
 
       t.PalikaName = palikaName;
-      t.Slug = slug;
+      t.TenantName = tenantName || palikaName;
+      t.Slug = slug || computeUniqueTenantSlug(palikaName, party, t.TenantID);
       t.Party = party;
       t.ContactPerson = contactPerson;
       t.Phone = phone;
       t.AdminUsername = adminUsername;
       t.AdminPassword = adminPassword;
+      t.UpdatedAt = Date.now();
 
       t.Features = {
         sms: featSms,
@@ -28411,23 +28760,35 @@
       t.BillingStatus = billingStatus;
       t.ExpiresAt = expiresAt;
 
+      ensureTenantPartyCandidates(t);
       saveState();
+
+      // Persist updated tenant registry to Supabase Cloud so background sync doesn't revert Party to NC!
+      saveTenantsToCloud();
 
       // Push updated credentials to Supabase
       pushUserToSupabase({
         UserID: 'USR_' + t.TenantID,
-        Name: `${t.PalikaName} Admin`,
+        TenantID: t.TenantID,
+        Name: `${t.TenantName || t.PalikaName} Admin`,
         Phone: t.Phone,
         Role: 'Palika Admin',
         PIN: t.AdminPassword || '1234',
         Ward: 'All',
         Active: t.Status === 'Active',
-        notes: JSON.stringify({ party: t.Party, slug: t.Slug })
+        notes: JSON.stringify({
+          party: t.Party,
+          slug: t.Slug,
+          district: t.District,
+          total_wards: t.TotalWards,
+          tenant_name: t.TenantName
+        })
       });
 
-      logActivity('user_manage', `👑 Super Admin ले ${t.PalikaName} को प्रोफाइल र सेटिङ्स अद्यावधिक गर्नुभयो।`);
+      logActivity('user_manage', `👑 Super Admin ले ${t.TenantName || t.PalikaName} को प्रोफाइल र दल (${t.Party}) सेटिङ्स अद्यावधिक गर्नुभयो।`);
       closeModal();
       renderTenantsManagement();
+      showToast(`✅ ${t.TenantName || t.PalikaName} (${PARTY_PALETTES[t.Party]?.name || t.Party}) सेटिङ सुरक्षित भयो!`, 'success');
     }
 
     // =========================================================================
@@ -28639,6 +29000,87 @@
       }).join('');
     }
 
+    // HELPER: Resolve Tenant Polling Hierarchy (Wards + Polling Stations)
+    function getTenantPollingHierarchy(tenantId) {
+      const t = (state.tenants || []).find(x => x.TenantID === tenantId) || (state.tenants && state.tenants[0]);
+      let wardsList = [];
+      if (t && Array.isArray(t.WardsConfig) && t.WardsConfig.length > 0) {
+        wardsList = t.WardsConfig;
+      } else if (t && t.PalikaName) {
+        const matched = typeof findPalikaInBagmatiHierarchy === 'function' ? findPalikaInBagmatiHierarchy(t.PalikaName, t.District) : null;
+        if (matched && Array.isArray(matched.wards) && matched.wards.length > 0) {
+          wardsList = matched.wards;
+        }
+      }
+      if (!wardsList || wardsList.length === 0) {
+        const palikaName = (t && t.PalikaName) || (state.settings && state.settings.MUNICIPALITY) || 'हेलम्बु गाउँपालिका';
+        const matched = typeof findPalikaInBagmatiHierarchy === 'function' ? findPalikaInBagmatiHierarchy(palikaName) : null;
+        if (matched && Array.isArray(matched.wards) && matched.wards.length > 0) {
+          wardsList = matched.wards;
+        }
+      }
+      if (!wardsList || wardsList.length === 0) {
+        const totalWards = (t && Number(t.TotalWards)) || 7;
+        wardsList = Array.from({ length: totalWards }, (_, i) => ({
+          number: i + 1,
+          locations: [
+            { id: `PL_DEF_${i+1}_1`, name: `वडा नं. ${i+1} केन्द्र / विद्यालय` }
+          ]
+        }));
+      }
+      return { tenant: t, wards: wardsList };
+    }
+
+    // Event Handlers for Cascading Dropdowns
+    function onSaasTierTenantChange(tenantId) {
+      saasImportSelectedTenantId = tenantId;
+      switchSuperAdminImportTier(saasImportActiveTier);
+    }
+
+    function onSaasTierWardChange(wardNo) {
+      const { wards } = getTenantPollingHierarchy(saasImportSelectedTenantId);
+      const wObj = wards.find(w => String(w.number || w.WardNo) === String(wardNo)) || wards[0];
+      const locSelect = document.getElementById('saasTierLocationSelect');
+      const customLocInput = document.getElementById('saasTierLocationCustom');
+      if (locSelect) {
+        const locations = (wObj && Array.isArray(wObj.locations)) ? wObj.locations : [];
+        let optHtml = '';
+        if (locations.length > 0) {
+          optHtml = locations.map(l => `<option value="${esc(l.name)}">🏫 ${esc(l.name)}</option>`).join('');
+        } else {
+          optHtml = `<option value="वडा नं. ${wardNo} मतदान स्थल">🏫 वडा नं. ${wardNo} मतदान स्थल</option>`;
+        }
+        optHtml += `<option value="__custom__">✏️ अन्य / नयाँ मतदान स्थल टाइप गर्नुहोस्...</option>`;
+        locSelect.innerHTML = optHtml;
+        if (customLocInput) {
+          customLocInput.style.display = 'none';
+          customLocInput.value = '';
+        }
+      }
+    }
+
+    function onSaasTierLocationChange(val) {
+      const customInput = document.getElementById('saasTierLocationCustom');
+      if (!customInput) return;
+      if (val === '__custom__') {
+        customInput.style.display = 'block';
+        customInput.focus();
+      } else {
+        customInput.style.display = 'none';
+      }
+    }
+
+    function onSaasTierCentreChange(val) {
+      const customInput = document.getElementById('saasTierCentreCustom');
+      if (!customInput) return;
+      if (val === '__custom__') {
+        customInput.style.display = 'block';
+        customInput.focus();
+      } else {
+        customInput.style.display = 'none';
+      }
+    }
+
     // OPEN 3-TIER SUPER ADMIN VOTER IMPORT STUDIO MODAL (SECTION 8)
     function openSuperAdmin3TierImportStudio(preselectedTenantId) {
       if (!isSuperAdminUser()) {
@@ -28680,8 +29122,12 @@
               </label>
               <span style="font-size: 11.5px; color: #64748b;">यो डेटा सोही Tenant को अधिकारभित्र मात्र भण्डारण हुनेछ।</span>
             </div>
-            <select id="saasImportTenantSelect" class="form-control" style="font-weight: 700; font-size: 13.5px; border: 1.5px solid #93c5fd; background: #eff6ff;" onchange="saasImportSelectedTenantId = this.value;">
-              ${tenantsList.map(t => `<option value="${t.TenantID}" ${t.TenantID === saasImportSelectedTenantId ? 'selected' : ''}>${esc(t.PalikaName)} (ID: ${t.TenantID} • Slug: ${t.Slug || 'palika'})</option>`).join('')}
+            <select id="saasImportTenantSelect" class="form-control" style="font-weight: 700; font-size: 13.5px; border: 1.5px solid #93c5fd; background: #eff6ff;" onchange="onSaasTierTenantChange(this.value)">
+              ${tenantsList.map(t => {
+                const pObj = PARTY_PALETTES[normalizePartyCode(t.Party || 'NC')] || PARTY_PALETTES.NC;
+                const isSel = t.TenantID === saasImportSelectedTenantId;
+                return `<option value="${t.TenantID}" ${isSel ? 'selected' : ''}>${esc(t.TenantName || t.PalikaName)} (${pObj.symbol} ${pObj.name} • ${esc(t.PalikaName)})</option>`;
+              }).join('')}
             </select>
           </div>
 
@@ -28782,29 +29228,50 @@
       const destBox = document.getElementById('saasTierDestOptionsBox');
       if (!destBox) return;
 
-      const wards = state.wards && state.wards.length ? state.wards : [
-        { WardNo: 1 }, { WardNo: 2 }, { WardNo: 3 }, { WardNo: 4 }, { WardNo: 5 }, { WardNo: 6 }, { WardNo: 7 }
-      ];
+      const { tenant, wards } = getTenantPollingHierarchy(saasImportSelectedTenantId);
+      const selWardNo = wards[0] ? (wards[0].number || wards[0].WardNo || 1) : 1;
+      const firstWardLocations = (wards[0] && Array.isArray(wards[0].locations)) ? wards[0].locations : [];
 
       if (tier === 'single_centre') {
         destBox.innerHTML = `
           <div style="font-size: 12px; font-weight: 800; color: #1e3a8a; margin-bottom: 8px;">
-            🎯 विधि १ गन्तव्य: वडा, मतदान स्थल र केन्द्र छनोट (८ स्तम्भ मात्र पर्याप्त हुन्छ)
+            🎯 विधि १ गन्तव्य: वडा, मतदान स्थल र केन्द्र छनोट (ड्रपडाउन तथा आवश्यकता अनुसार Custom विकल्प)
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 10px;">
+          <div style="display: grid; grid-template-columns: 1fr 1.6fr 1.2fr; gap: 10px; align-items: start;">
+            <!-- Ward Select -->
             <div>
-              <label class="form-label" style="font-size: 11.5px;">वडा नं. (Ward) *</label>
-              <select id="saasTierWard" class="form-control" style="font-weight: 700; font-size: 12.5px;">
-                ${wards.map(w => `<option value="${w.WardNo}">वडा नं. ${w.WardNo}</option>`).join('')}
+              <label class="form-label" style="font-size: 11.5px; font-weight: 700;">वडा नं. (Ward) *</label>
+              <select id="saasTierWard" class="form-control" style="font-weight: 700; font-size: 12.5px; border: 1.5px solid #93c5fd;" onchange="onSaasTierWardChange(this.value)">
+                ${wards.map(w => `<option value="${w.number || w.WardNo}">वडा नं. ${w.number || w.WardNo}</option>`).join('')}
               </select>
             </div>
+
+            <!-- Polling Station / Location Cascading Dropdown -->
             <div>
-              <label class="form-label" style="font-size: 11.5px;">मतदान स्थल (Polling Location / School) *</label>
-              <input type="text" id="saasTierLocation" class="form-control" value="श्री सेतीदेवी मावि (स्थान/भवन)" placeholder="उदा: श्री सेतीदेवी मावि / वडा भवन" style="font-size: 12px;">
+              <label class="form-label" style="font-size: 11.5px; font-weight: 700;">मतदान स्थल (Polling Location) *</label>
+              <select id="saasTierLocationSelect" class="form-control" style="font-size: 12.5px; font-weight: 600; border: 1.5px solid #93c5fd; background: #ffffff;" onchange="onSaasTierLocationChange(this.value)">
+                ${firstWardLocations.length > 0 
+                  ? firstWardLocations.map(l => `<option value="${esc(l.name)}">🏫 ${esc(l.name)}</option>`).join('')
+                  : `<option value="वडा नं. ${selWardNo} मतदान स्थल">🏫 वडा नं. ${selWardNo} मतदान स्थल</option>`}
+                <option value="__custom__">✏️ अन्य / नयाँ मतदान स्थल टाइप गर्नुहोस्...</option>
+              </select>
+              <input type="text" id="saasTierLocationCustom" class="form-control" placeholder="नयाँ मतदान स्थलको नाम यहाँ लेख्नुहोस्..." style="display: none; margin-top: 6px; font-size: 12px; border: 1.5px solid #f59e0b; background: #fffbeb;">
             </div>
+
+            <!-- Polling Centre / Booth Cascading Dropdown -->
             <div>
-              <label class="form-label" style="font-size: 11.5px;">मतदान केन्द्र (Centre: 'क'/'ख' वा A/B) *</label>
-              <input type="text" id="saasTierCentre" class="form-control" value="A" placeholder="उदा: A, B, क, वा ख" style="font-size: 12px; font-weight: 800;">
+              <label class="form-label" style="font-size: 11.5px; font-weight: 700;">मतदान केन्द्र (Centre / Booth) *</label>
+              <select id="saasTierCentreSelect" class="form-control" style="font-size: 12.5px; font-weight: 700; border: 1.5px solid #93c5fd;" onchange="onSaasTierCentreChange(this.value)">
+                <option value="क">केन्द्र (क)</option>
+                <option value="ख">केन्द्र (ख)</option>
+                <option value="ग">केन्द्र (ग)</option>
+                <option value="घ">केन्द्र (घ)</option>
+                <option value="A">केन्द्र A</option>
+                <option value="B">केन्द्र B</option>
+                <option value="C">केन्द्र C</option>
+                <option value="__custom__">✏️ अन्य / फरक कोड लेख्नुहोस्...</option>
+              </select>
+              <input type="text" id="saasTierCentreCustom" class="form-control" placeholder="उदा: केन्द्र (ङ) वा Booth-1" style="display: none; margin-top: 6px; font-size: 12px; font-weight: 800; border: 1.5px solid #f59e0b; background: #fffbeb;">
             </div>
           </div>
         `;
@@ -28815,9 +29282,9 @@
           </div>
           <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; align-items: center;">
             <div>
-              <label class="form-label" style="font-size: 11.5px;">गन्तव्य वडा नं. (Ward) *</label>
-              <select id="saasTierWard" class="form-control" style="font-weight: 700; font-size: 12.5px;">
-                ${wards.map(w => `<option value="${w.WardNo}">वडा नं. ${w.WardNo}</option>`).join('')}
+              <label class="form-label" style="font-size: 11.5px; font-weight: 700;">गन्तव्य वडा नं. (Ward) *</label>
+              <select id="saasTierWard" class="form-control" style="font-weight: 700; font-size: 12.5px; border: 1.5px solid #93c5fd;">
+                ${wards.map(w => `<option value="${w.number || w.WardNo}">वडा नं. ${w.number || w.WardNo}</option>`).join('')}
               </select>
             </div>
             <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 11.5px; color: #475569;">
@@ -28934,8 +29401,31 @@
       };
 
       const defWard = Number(document.getElementById('saasTierWard')?.value || 1);
-      const defLocation = (document.getElementById('saasTierLocation')?.value || '').trim();
-      const defCentre = (document.getElementById('saasTierCentre')?.value || 'A').trim();
+      let defLocation = '';
+      const locSel = document.getElementById('saasTierLocationSelect');
+      if (locSel) {
+        if (locSel.value === '__custom__') {
+          defLocation = (document.getElementById('saasTierLocationCustom')?.value || '').trim();
+        } else {
+          defLocation = locSel.value;
+        }
+      }
+      if (!defLocation) {
+        defLocation = (document.getElementById('saasTierLocation')?.value || '').trim() || `वडा नं. ${defWard} मतदान स्थल`;
+      }
+
+      let defCentre = 'क';
+      const cenSel = document.getElementById('saasTierCentreSelect');
+      if (cenSel) {
+        if (cenSel.value === '__custom__') {
+          defCentre = (document.getElementById('saasTierCentreCustom')?.value || '').trim();
+        } else {
+          defCentre = cenSel.value;
+        }
+      }
+      if (!defCentre) {
+        defCentre = (document.getElementById('saasTierCentre')?.value || 'A').trim();
+      }
       const activeTenant = saasImportSelectedTenantId;
 
       const existingVoterMap = new Set(
@@ -29329,7 +29819,7 @@
         <form id="createTenantForm" onsubmit="saveTenant(event)">
           <div style="background: linear-gradient(90deg, #eff6ff 0%, #f0fdf4 100%); border: 1.5px solid #3b82f6; border-radius: 10px; padding: 11px 14px; margin-bottom: 14px; font-size: 12.5px; color: #1e3a8a;">
             <b>⚡ बागमती प्रदेश पूर्ण पदानुक्रम (१३ जिल्ला • ११९ स्थानीय तह • १,१२१ वडा • १,७९२ मतदान स्थल):</b><br>
-            तल जिल्ला र पालिका छान्ने बित्तिकै सो पालिकामा कति वटा वडा र कुन-कुन मतदान स्थल छन् भन्ने <b>स्वतः लोड (Auto-Configure)</b> हुन्छ!
+            तल जिल्ला, पालिका र राजनीतिक दल छान्ने बित्तिकै सो पालिकाको वडा, मतदान स्थल र दल अनुसारको <b>अलग्गै पोर्टल लिङ्क र थिम स्वतः सेट</b> हुन्छ!
           </div>
 
           <div class="form-grid">
@@ -29363,7 +29853,7 @@
 
             <div class="form-group full" style="margin-bottom: 4px;">
               <label class="form-label" style="font-weight: 800; color: #1e3a8a;">राजनीतिक दल (Political Party / Branding) *</label>
-              <select name="Party" required class="form-control" style="font-weight: 700; font-size: 13.5px; border: 1.5px solid #93c5fd; background: #eff6ff;">
+              <select name="Party" id="superTenantPartySelect" required class="form-control" style="font-weight: 700; font-size: 13.5px; border: 1.5px solid #93c5fd; background: #eff6ff;" onchange="onSuperTenantPartyChange(this.value)">
                 <option value="NC">🌳 नेपाली काँग्रेस (Nepali Congress - Royal Blue & Crimson)</option>
                 <option value="UML">☀️ नेकपा (एमाले) (CPN UML - Communist Red & Sun Gold)</option>
                 <option value="RSP">🔔 राष्ट्रिय स्वतन्त्र पार्टी (RSP - Sky Bell Blue & Yellow)</option>
@@ -29375,8 +29865,8 @@
 
             <div class="form-group full">
               <label class="form-label" style="font-weight: 800; color: #1e3a8a;">दल / संस्था / उम्मेदवार कार्यालयको नाम (Tenant Name) *</label>
-              <input type="text" name="TenantName" id="superTenantNameInput" required class="form-control" placeholder="उदा: नेपाली काँग्रेस हेलाम्बु गाउँ कार्यसमिति वा स्वतन्त्र अभियान कार्यालय" style="font-weight: 800; border: 1.5px solid #2563eb;">
-              <small style="color: #64748b; font-size: 11px;">Tenant भनेको सिस्टम प्रयोग गर्ने राजनीतिक दलको समिति वा उम्मेदवारको कार्यालय हो। एउटै पालिकामा धेरै Tenant हुन सक्छन्।</small>
+              <input type="text" name="TenantName" id="superTenantNameInput" required class="form-control" placeholder="उदा: नेकपा (एमाले) — हेलम्बु गाउँपालिका" style="font-weight: 800; border: 1.5px solid #2563eb;" oninput="this.dataset.manuallyEdited = '1'">
+              <small style="color: #64748b; font-size: 11px;">Tenant भनेको सिस्टम प्रयोग गर्ने राजनीतिक दलको समिति वा उम्मेदवारको कार्यालय हो। एउटै पालिकामा विभिन्न दलका अलग-अलग Tenant हुन सक्छन्।</small>
             </div>
 
             <div class="form-group">
@@ -29390,11 +29880,11 @@
 
             <div class="form-group">
               <label class="form-label">Dedicated URL Slug (लिङ्क कोड) *</label>
-              <input type="text" id="tenantSlugInput" name="Slug" required class="form-control" placeholder="उदा: helambu" oninput="this.value = this.value.toLowerCase().replace(/[^a-z0-9_]/g, '')">
+              <input type="text" id="tenantSlugInput" name="Slug" required class="form-control" placeholder="उदा: helambu_uml" oninput="this.dataset.manuallyEdited = '1'; this.value = this.value.toLowerCase().replace(/[^a-z0-9_]/g, '')">
             </div>
             <div class="form-group">
               <label class="form-label">Admin Username *</label>
-              <input type="text" name="AdminUsername" id="superTenantAdminUserInput" required class="form-control" placeholder="उदा: helambu_admin">
+              <input type="text" name="AdminUsername" id="superTenantAdminUserInput" required class="form-control" placeholder="उदा: helambu_uml_admin" oninput="this.dataset.manuallyEdited = '1'">
             </div>
             <div class="form-group">
               <label class="form-label">Admin Password *</label>
@@ -29437,8 +29927,10 @@
 
     function autoSuggestSlug(val) {
       const input = document.getElementById('tenantSlugInput');
+      const partyEl = document.getElementById('superTenantPartySelect');
+      const partyCode = normalizePartyCode(partyEl ? partyEl.value : 'NC');
       if (input && !input.dataset.manuallyEdited) {
-        input.value = makeSafePalikaSlug(val);
+        input.value = computeUniqueTenantSlug(val, partyCode);
       }
     }
 
@@ -29453,9 +29945,17 @@
 
       const districtName = (formData.get('District') || 'सिन्धुपाल्चोक').trim();
       const palikaName = (formData.get('PalikaName') || '').trim();
-      const tenantName = (formData.get('TenantName') || palikaName).trim();
-      const rawSlug = formData.get('Slug') || makeSafePalikaSlug(palikaName);
-      const slug = rawSlug.trim().toLowerCase().replace(/[^a-z0-9_]/g, '') || ('palika_' + Date.now().toString(36));
+      const partyCode = normalizePartyCode(formData.get('Party') || 'NC');
+      const partyObj = PARTY_PALETTES[partyCode] || PARTY_PALETTES.NC;
+      const tenantName = (formData.get('TenantName') || `${partyObj.name} — ${palikaName}`).trim();
+
+      let rawSlug = (formData.get('Slug') || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+      const slugTaken = (state.tenants || []).some(t => (t.Slug || '').toLowerCase() === rawSlug);
+      const slug = (!rawSlug || slugTaken) ? computeUniqueTenantSlug(palikaName, partyCode) : rawSlug;
+
+      let rawAdminUser = (formData.get('AdminUsername') || '').trim().toLowerCase();
+      const userTaken = (state.tenants || []).some(t => (t.AdminUsername || '').toLowerCase() === rawAdminUser);
+      const adminUsername = (!rawAdminUser || userTaken) ? `${slug}_admin` : rawAdminUser;
 
       const matchedPalikaObj = findPalikaInBagmatiHierarchy(palikaName, districtName);
       const totalWards = Number(formData.get('TotalWards')) || (matchedPalikaObj ? matchedPalikaObj.ward_count : 7);
@@ -29474,9 +29974,9 @@
         TotalWards: totalWards,
         TotalPollingLocations: totalPollingLocations,
         WardsConfig: wardsConfig,
-        Party: formData.get('Party') || 'NC',
+        Party: partyCode,
         Slug: slug,
-        AdminUsername: formData.get('AdminUsername').trim().toLowerCase(),
+        AdminUsername: adminUsername,
         AdminPassword: formData.get('AdminPassword').trim(),
         ContactPerson: formData.get('ContactPerson').trim(),
         Phone: formData.get('Phone').trim(),
@@ -29496,11 +29996,13 @@
         SmsCredits: Number(formData.get('SmsCredits')) || 5000,
         SmsUsed: 0,
         ExpiresAt: formData.get('ExpiresAt'),
-        CreatedAt: new Date().toISOString().slice(0,10)
+        CreatedAt: new Date().toISOString().slice(0,10),
+        UpdatedAt: Date.now()
       };
 
       state.tenants.unshift(newTenant);
       registerPalikaIntoOfficialHierarchy(newTenant);
+      ensureTenantPartyCandidates(newTenant);
       saveState();
 
       // Persist to Supabase Cloud Registry
@@ -29513,7 +30015,7 @@
         Name: `${newTenant.TenantName || newTenant.PalikaName} Admin`,
         Phone: newTenant.Phone,
         Role: 'Palika Admin',
-        PIN: '1234',
+        PIN: newTenant.AdminPassword || '1234',
         Ward: 'All',
         Active: true,
         notes: JSON.stringify({
@@ -29525,10 +30027,10 @@
         })
       });
 
-      logActivity('user_manage', `👑 Super Admin ले ${newTenant.District} जिल्लाको ${newTenant.PalikaName} का लागि नयाँ Tenant "${newTenant.TenantName}" (${newTenant.AdminUsername}) सिर्जना गर्नुभयो।`);
+      logActivity('user_manage', `👑 Super Admin ले ${newTenant.District} जिल्लाको ${newTenant.PalikaName} का लागि ${partyObj.name} को नयाँ Tenant "${newTenant.TenantName}" (${newTenant.AdminUsername}) सिर्जना गर्नुभयो।`);
       closeModal();
       renderTenantsManagement();
-      showToast(`✅ ${newTenant.TenantName} (${newTenant.PalikaName}) सफलतापूर्वक सक्रिय भयो!`, 'success');
+      showToast(`✅ ${newTenant.TenantName} (${partyObj.symbol} ${partyObj.name}) सफलतापूर्वक सक्रिय भयो!`, 'success');
       showTenantPortalQr(newTenant.TenantID);
     }
 
@@ -29569,18 +30071,20 @@
       if (!t) return;
       const nextStatus = t.Status === 'Active' ? 'Suspended' : 'Active';
       const confirmMsg = nextStatus === 'Suspended' ? 
-        `के तपाईं साच्चिकै ${t.PalikaName} को सेवा बन्द (Turn OFF / Suspend) गर्न चाहनुहुन्छ? यसपछि उनीहरूको लगइन र कार्यकर्ता पहुँच तुरुन्त रोकिनेछ।` :
-        `के तपाईं ${t.PalikaName} को सेवा पुनः सुचारु (Turn ON / Activate) गर्न चाहनुहुन्छ?`;
+        `के तपाईं साच्चिकै ${t.TenantName || t.PalikaName} को सेवा बन्द (Turn OFF / Suspend) गर्न चाहनुहुन्छ? यसपछि उनीहरूको लगइन र कार्यकर्ता पहुँच तुरुन्त रोकिनेछ।` :
+        `के तपाईं ${t.TenantName || t.PalikaName} को सेवा पुनः सुचारु (Turn ON / Activate) गर्न चाहनुहुन्छ?`;
 
       openConfirmModal(
         nextStatus === 'Suspended' ? '⛔ सेवा बन्द (Kill-Switch)' : '✅ सेवा सुचारु (Activate)',
         confirmMsg,
         () => {
           t.Status = nextStatus;
+          t.UpdatedAt = Date.now();
           saveState();
-          logActivity('user_manage', `👑 Super Admin ले ${t.PalikaName} को अवस्था परिवर्तन गरी "${t.Status}" बनाउनुभयो।`);
+          saveTenantsToCloud();
+          logActivity('user_manage', `👑 Super Admin ले ${t.TenantName || t.PalikaName} को अवस्था परिवर्तन गरी "${t.Status}" बनाउनुभयो।`);
           renderTenantsManagement();
-          showToast(`${t.PalikaName} status set to ${t.Status}!`, nextStatus === 'Active' ? 'success' : 'error');
+          showToast(`${t.TenantName || t.PalikaName} status set to ${t.Status}!`, nextStatus === 'Active' ? 'success' : 'error');
         },
         nextStatus === 'Suspended' ? '⛔ बन्द गर्नुहोस्' : '✅ सुचारु गर्नुहोस्',
         nextStatus === 'Suspended' ? 'btn-danger' : 'btn-success'
@@ -29592,9 +30096,11 @@
       if (!t) return;
       const slug = t.Slug || (t.PalikaName ? t.PalikaName.toLowerCase().replace(/[^a-z0-9]/g, '') : t.TenantID.toLowerCase());
       const portalUrl = `${window.location.origin}${window.location.pathname}?palika=${slug}`;
-      const text = `Election Ops Platform Login Credentials:\nPalika: ${t.PalikaName}\nDedicated Portal URL: ${portalUrl}\nUsername: ${t.AdminUsername}\nPassword: ${t.AdminPassword}\nExpiry: ${t.ExpiresAt}`;
+      const pCode = normalizePartyCode(t.Party || 'NC');
+      const pInfo = PARTY_PALETTES[pCode] || PARTY_PALETTES.NC;
+      const text = `Election Ops Platform Login Credentials:\nTenant: ${t.TenantName || t.PalikaName}\nParty: ${pInfo.name} (${pInfo.symbol})\nPalika: ${t.PalikaName}\nDedicated Portal URL: ${portalUrl}\nUsername: ${t.AdminUsername}\nPassword: ${t.AdminPassword}\nExpiry: ${t.ExpiresAt}`;
       navigator.clipboard.writeText(text);
-      showToast(`${t.PalikaName} लगइन विवरण कपी भयो!`, 'success');
+      showToast(`${t.TenantName || t.PalikaName} लगइन विवरण कपी भयो!`, 'success');
     }
 
     function deleteTenant(tenantId) {
@@ -29602,10 +30108,11 @@
       if (!t) return;
       openConfirmModal(
         '🗑️ पालिका खाता हटाउने',
-        `के तपाईं स्थायी रूपमा ${t.PalikaName} को खाता मेटाउन चाहनुहुन्छ?`,
+        `के तपाईं स्थायी रूपमा ${t.TenantName || t.PalikaName} को खाता मेटाउन चाहनुहुन्छ?`,
         () => {
           state.tenants = state.tenants.filter(x => x.TenantID !== tenantId);
           saveState();
+          saveTenantsToCloud();
           renderTenantsManagement();
           showToast('Palika account removed', 'info');
         }
@@ -29621,36 +30128,51 @@
       const t = (state.tenants || []).find(x => x.TenantID === tenantId);
       if (!t) return;
 
+      const partyCode = normalizePartyCode(t.Party || 'NC');
+      t.Party = partyCode;
+      ensureTenantPartyCandidates(t);
+
       currentUser = {
         UserID: 'USR_' + t.TenantID,
-        Name: `${t.PalikaName} Admin`,
+        Name: `${t.TenantName || t.PalikaName} Admin`,
         Role: 'Palika Admin',
         TenantID: t.TenantID,
         PalikaName: t.PalikaName,
+        TenantName: t.TenantName || t.PalikaName,
+        District: t.District || 'सिन्धुपाल्चोक',
+        TotalWards: Number(t.TotalWards) || 7,
+        Party: partyCode,
         Ward: 'All',
         IsSupportMode: true
       };
+      state.activeParty = partyCode;
       state.settings.MUNICIPALITY = t.PalikaName;
+      state.settings.DISTRICT = t.District || 'सिन्धुपाल्चोक';
+      state.settings.TOTAL_WARDS = Number(t.TotalWards) || 7;
       saveState();
 
+      applyPartyTheme(partyCode);
       launchDashboard();
       switchView('dashboard');
       renderSupportModeBanner();
-      logActivity('login', `👁️ Super Admin ले प्राविधिक सहयोग (Support Mode) का लागि ${t.PalikaName} को Admin ड्यासबोर्ड खोल्नुभयो।`);
-      showToast(`👁️ Support Mode: ${t.PalikaName} Admin को ड्यासबोर्ड खोलियो।`, 'info');
+      const pInfo = PARTY_PALETTES[partyCode] || PARTY_PALETTES.NC;
+      logActivity('login', `👁️ Super Admin ले प्राविधिक सहयोग (Support Mode) का लागि ${t.TenantName || t.PalikaName} (${pInfo.name}) को Admin ड्यासबोर्ड खोल्नुभयो।`);
+      showToast(`👁️ Support Mode: ${t.TenantName || t.PalikaName} (${pInfo.symbol} ${pInfo.name}) खोलियो।`, 'info');
     }
 
     function renderSupportModeBanner() {
       const container = document.getElementById('supportModeBannerContainer');
       if (!container) return;
       if (currentUser && currentUser.IsSupportMode) {
+        const pCode = normalizePartyCode(currentUser.Party || 'NC');
+        const pInfo = PARTY_PALETTES[pCode] || PARTY_PALETTES.NC;
         container.innerHTML = `
           <div id="supportModeBanner" style="background: linear-gradient(90deg, #991b1b, #b91c1c); color: white; padding: 10px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(185, 28, 28, 0.25); z-index: 1000; position: sticky; top: 0;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <span style="font-size: 20px;">⚠️</span>
               <div>
-                <div style="font-weight: 800; font-size: 13px; letter-spacing: 0.2px;">SUPPORT & IMPERSONATION MODE ACTIVATED</div>
-                <div style="font-size: 11.5px; opacity: 0.9;">तपाईं अहिले <b>${esc(currentUser.PalikaName)}</b> को Admin का रूपमा प्रत्यक्ष काम गरिरहनुभएको छ।</div>
+                <div style="font-weight: 800; font-size: 13px; letter-spacing: 0.2px;">SUPPORT & IMPERSONATION MODE ACTIVATED (${pInfo.symbol} ${pInfo.name})</div>
+                <div style="font-size: 11.5px; opacity: 0.9;">तपाईं अहिले <b>${esc(currentUser.TenantName || currentUser.PalikaName)}</b> को Admin का रूपमा प्रत्यक्ष काम गरिरहनुभएको छ।</div>
               </div>
             </div>
             <button class="btn btn-sm" onclick="exitSupportMode()" style="background: #fbbf24; color: #0f172a; font-weight: 800; border: none; padding: 6px 14px; font-size: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
@@ -29800,10 +30322,12 @@
       const t = (state.tenants || []).find(x => x.TenantID === tenantId);
       if (!t) return;
       t.BillingStatus = t.BillingStatus === 'Paid' ? 'Pending' : 'Paid';
+      t.UpdatedAt = Date.now();
       saveState();
+      saveTenantsToCloud();
       renderTenantsManagement();
       openTenantInvoiceModal(tenantId);
-      showToast(`${t.PalikaName} भुक्तानी स्थिति परिवर्तन भयो: ${t.BillingStatus}`, 'success');
+      showToast(`${t.TenantName || t.PalikaName} भुक्तानी स्थिति परिवर्तन भयो: ${t.BillingStatus}`, 'success');
     }
 
     // 3. ⚙️ FEATURE FLAGS & MODULE TOGGLE PER PALIKA
@@ -29815,7 +30339,7 @@
       }
 
       openModal(
-        `⚙️ मोड्युल कन्ट्रोल: ${t.PalikaName}`,
+        `⚙️ मोड्युल कन्ट्रोल: ${t.TenantName || t.PalikaName}`,
         `
         <div style="font-size: 13.5px; color: var(--slate-700);">
           <p style="margin-bottom: 14px; color: var(--slate-600); line-height: 1.5;">
@@ -29880,10 +30404,12 @@
         reports: document.getElementById('modalFeatReports').checked,
         voterSlips: document.getElementById('modalFeatVoterSlips').checked
       };
+      t.UpdatedAt = Date.now();
       saveState();
+      saveTenantsToCloud();
       closeModal();
       renderTenantsManagement();
-      showToast(`${t.PalikaName} को मोड्युल कन्फिगरेसन सुरक्षित भयो!`, 'success');
+      showToast(`${t.TenantName || t.PalikaName} को मोड्युल कन्फिगरेसन सुरक्षित भयो!`, 'success');
     }
 
     // 4. 🗄️ TENANT DATA VAULT EXPORT (1-CLICK FULL BACKUP)
@@ -30112,7 +30638,7 @@
     // 23. CANDIDATE WAR-ROOM & VICTORY INTELLIGENCE ENGINE
     // ==========================================
     function getScopedCandidates() {
-      if (!state.candidates || !Array.isArray(state.candidates)) return [];
+      if (!state.candidates || !Array.isArray(state.candidates)) state.candidates = [];
       const activePal = getActivePartyPalette();
       const activeTenantId = (currentUser && currentUser.TenantID) || (state.tenants && state.tenants[0] && state.tenants[0].TenantID) || 'TNT_HELAMBU';
 
@@ -30120,22 +30646,41 @@
         return state.candidates;
       }
 
+      // Ensure active tenant has its own party candidates seeded
+      if (activeTenantId && activeTenantId !== 'ALL') {
+        const activeTenantObj = (state.tenants || []).find(t => t.TenantID === activeTenantId);
+        if (activeTenantObj) {
+          ensureTenantPartyCandidates(activeTenantObj);
+        }
+      }
+
       return state.candidates.filter(c => {
-        const matchesTenant = !c.TenantID || c.TenantID === activeTenantId || c.TenantID === 'ALL';
-        const cParty = (c.Party || '').toLowerCase();
-        const matchesParty = cParty.includes(activePal.name.toLowerCase()) || 
-                             cParty.includes(activePal.id.toLowerCase()) ||
-                             (activePal.id === 'NC' && (cParty.includes('काँग्रेस') || cParty.includes('congress') || cParty.includes('रुख'))) ||
-                             (activePal.id === 'UML' && (cParty.includes('एमाले') || cParty.includes('uml') || cParty.includes('सूर्य'))) ||
-                             (activePal.id === 'RSP' && (cParty.includes('स्वतन्त्र') || cParty.includes('rsp') || cParty.includes('घण्टी'))) ||
-                             (activePal.id === 'MAOIST' && (cParty.includes('माओवादी') || cParty.includes('maoist')));
+        const matchesTenant = (c.TenantID === activeTenantId) || (!c.TenantID && activeTenantId === 'TNT_HELAMBU') || c.TenantID === 'ALL';
+        const cPartyCode = normalizePartyCode(c.PartyCode || c.Party || 'NC');
+        const matchesParty = (cPartyCode === activePal.id);
         return matchesTenant && matchesParty;
       });
     }
 
     function getSelectedCandidate() {
       const candidates = getScopedCandidates();
-      if (!candidates || !candidates.length) return (state.candidates && state.candidates[0]) || null;
+      if (!candidates || !candidates.length) {
+        const activePal = getActivePartyPalette();
+        const activeTenantId = (currentUser && currentUser.TenantID) || 'TNT_HELAMBU';
+        const palikaName = (currentUser && currentUser.PalikaName) || state.settings.MUNICIPALITY || 'पालिका';
+        return {
+          CandidateID: `CND_${activeTenantId}_CHAIR`,
+          TenantID: activeTenantId,
+          Name: `${palikaName} प्रमुख उम्मेदवार (${activePal.name})`,
+          Post: 'अध्यक्ष / प्रमुख',
+          Ward: 'All',
+          Party: activePal.name,
+          PartyCode: activePal.id,
+          Symbol: `${activePal.name} (${activePal.symbol})`,
+          TargetMargin: 600,
+          Slogan: `समृद्ध र पारदर्शी ${palikaName} निर्माणको अभियान`
+        };
+      }
       if (currentUser && currentUser.Role === 'Candidate' && currentUser.CandidateID) {
         return candidates.find(c => c.CandidateID === currentUser.CandidateID) || candidates[0];
       }

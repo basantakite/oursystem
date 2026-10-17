@@ -4071,6 +4071,9 @@
 
         <!-- 1. DASHBOARD OVERVIEW -->
         <section id="viewDashboard" class="view-section active">
+          <!-- 🚩 DYNAMIC TENANT CAMPAIGN HERO BANNER -->
+          <div id="dashboardTenantCampaignBanner"></div>
+
           <div class="kpi-grid" id="kpiGrid"></div>
 
           <!-- 🎂 TODAY'S BIRTHDAYS WIDGET (DOB & BIRTHDAY WISH ENGINE) -->
@@ -4078,7 +4081,7 @@
 
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title"><span>🏛️</span> Ward-wise Field Operational Progress <span id="dashboardWardCountBadge" class="badge" style="background: #eef2ff; color: #4338ca; font-size: 11px;">७ वडा लाइभ</span></h3>
+              <h3 class="card-title"><span>🏛️</span> Ward-wise Field Operational Progress <span id="dashboardWardCountBadge" class="badge" style="background: #eef2ff; color: #4338ca; font-size: 11px;">लाइभ</span></h3>
               <button class="btn btn-sm btn-secondary super-admin-only" style="display: none;" onclick="exportWardReport()">Export CSV</button>
             </div>
             <div class="table-responsive">
@@ -10489,32 +10492,45 @@
       const partyBadge = document.getElementById('topbarPartyBadge');
       if (partyBadge) {
         const curParty = getActivePartyPalette();
+        const sym = document.getElementById('topbarPartySymbol');
+        const name = document.getElementById('topbarPartyName');
+        if (sym) sym.textContent = curParty.symbol;
+        if (name) name.textContent = curParty.name;
+        partyBadge.style.background = curParty.accentBg;
+        partyBadge.style.color = curParty.primary;
+        partyBadge.style.borderColor = curParty.border;
         partyBadge.title = `${curParty.name} (${curParty.symbol}) - पालिकाको आधिकारिक दल`;
       }
 
-      // 2. Update Muni Workspace Title
+      // 2. Update Muni Workspace Title (Support Tenant Context)
       const muniLabel = document.getElementById('sbMuniTitle');
+      const curTenant = (state.tenants || []).find(t => t.TenantID === (user && user.TenantID));
+      const tName = (user && user.TenantName) || (curTenant ? (curTenant.TenantName || curTenant.PalikaName) : '') || (state.settings && state.settings.MUNICIPALITY) || 'हेलम्बु गाउँपालिका';
       if (muniLabel) {
         if (role === 'Super Admin') {
           muniLabel.textContent = '👑 SaaS Master Platform HQ';
         } else if (role === 'Candidate') {
-          muniLabel.textContent = `🎯 ${user.Post || 'उम्मेदवार'} कन्सोल`;
+          muniLabel.textContent = `🎯 ${user.Post || 'उम्मेदवार'} कन्सोल (${tName})`;
         } else if (user.Ward && user.Ward !== 'All') {
-          muniLabel.textContent = `🏛️ वडा नं. ${user.Ward} कार्यक्षेत्र`;
+          muniLabel.textContent = `🏛️ वडा नं. ${user.Ward} - ${tName}`;
         } else {
-          muniLabel.textContent = `🏛️ ${state.settings.MUNICIPALITY || 'Helambu Rural Municipality'}`;
+          muniLabel.textContent = `🏛️ ${tName}`;
         }
       }
 
-      // 3. Strict Sidebar Navigation Filtering
+      // 3. Strict Sidebar Navigation Filtering (Roles + Tenant Feature Flags)
+      const feat = (curTenant && curTenant.Features) || { sms: true, familyTree: true, reports: true, voterSlips: true };
       const navItems = document.querySelectorAll('.sidebar-nav .nav-item[data-view]');
       navItems.forEach(item => {
         const v = item.getAttribute('data-view');
-        if (perm.allowedViews.includes(v)) {
-          item.style.display = 'flex';
-        } else {
-          item.style.display = 'none';
+        let allowed = perm.allowedViews.includes(v);
+        if (allowed && curTenant) {
+          if (v === 'sms' && feat.sms === false) allowed = false;
+          if (v === 'households' && feat.familyTree === false) allowed = false;
+          if (v === 'reports' && feat.reports === false) allowed = false;
+          if (v === 'voterSlips' && feat.voterSlips === false) allowed = false;
         }
+        item.style.display = allowed ? 'flex' : 'none';
       });
 
       // 4. Hide empty group titles
@@ -10890,6 +10906,117 @@
     // ==========================================
     // 5. METRICS & DASHBOARD
     // ==========================================
+    function renderDashboardCampaignBanner() {
+      const container = document.getElementById('dashboardTenantCampaignBanner');
+      if (!container) return;
+
+      if (!currentUser) {
+        container.innerHTML = '';
+        return;
+      }
+
+      const pInfo = getActivePartyPalette();
+      const isSuper = currentUser.Role === 'Super Admin';
+
+      if (isSuper) {
+        const activeTenantsCount = (state.tenants || []).filter(t => t.Status !== 'Suspended').length;
+        const totalVoters = (state.voters || []).length;
+        container.innerHTML = `
+          <div class="card" style="margin-bottom: 24px; border: 2px solid #3b82f6; background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0369a1 100%); color: white; border-radius: 14px; padding: 22px 24px; box-shadow: 0 8px 24px rgba(15,23,42,0.18);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="width: 58px; height: 58px; border-radius: 14px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 4px 14px rgba(0,0,0,0.25);">
+                  👑
+                </div>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.3px;">SaaS Platform Command HQ</h2>
+                    <span class="badge" style="background: #fbbf24; color: #0f172a; font-weight: 800; font-size: 11.5px;">Super Admin Control</span>
+                    <span class="badge" style="background: rgba(255,255,255,0.2); color: #fff; font-weight: 700; font-size: 11.5px;">बागमती प्रदेश कमान</span>
+                  </div>
+                  <p style="margin: 5px 0 0; font-size: 13px; color: #cbd5e1; line-height: 1.4;">
+                    १३ जिल्ला • ११९ स्थानीय तह • १,१२१ वडा • १,७९२ मतदान स्थल | सक्रिय ग्राहक: <b>${activeTenantsCount}</b> Tenants | कुल मतदाता: <b>${totalVoters.toLocaleString()}</b>
+                  </p>
+                </div>
+              </div>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-sm" onclick="switchView('tenants')" style="background: #fbbf24; color: #0f172a; font-weight: 800; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12.5px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                  🏛️ Tenants व्यवस्थापन
+                </button>
+                <button class="btn btn-sm btn-primary" onclick="openSuperAdmin3TierImportStudio()" style="background: #22c55e; border-color: #16a34a; font-weight: 800; padding: 8px 16px; border-radius: 8px; font-size: 12.5px;">
+                  📥 ३-तह Bulk Import
+                </button>
+                <button class="btn btn-sm" onclick="switchView('platformAnalytics')" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); font-weight: 700; padding: 8px 14px; border-radius: 8px; font-size: 12.5px;">
+                  📈 Analytics
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Tenant-specific branding
+      const curTenant = (state.tenants || []).find(t => t.TenantID === currentUser.TenantID);
+      const tenantTitle = currentUser.TenantName || (curTenant ? (curTenant.TenantName || curTenant.PalikaName) : '') || state.settings.MUNICIPALITY || 'हेलम्बु गाउँपालिका';
+      const palikaDisplay = currentUser.PalikaName || (curTenant ? curTenant.PalikaName : '') || state.settings.MUNICIPALITY || 'हेलम्बु गाउँपालिका';
+      const districtDisplay = (curTenant && curTenant.District) || currentUser.District || 'सिन्धुपाल्चोक';
+      const wardNums = getActivePalikaWardNumbers();
+      const wardScopeText = isWardRestrictedUser() ? `वडा नं. ${currentUser.Ward} कार्यक्षेत्र` : `समग्र ${wardNums.length || 7} वडा कार्यक्षेत्र`;
+
+      const scopedVoters = getScopedVoters();
+      const contactedVoters = scopedVoters.filter(v => v.ContactStatus === 'Contacted').length;
+      const progressPercent = scopedVoters.length ? Math.round((contactedVoters / scopedVoters.length) * 100) : 0;
+
+      container.innerHTML = `
+        <div class="card tenant-campaign-banner" style="margin-bottom: 24px; border: 2px solid ${pInfo.heroBorder || pInfo.primary}; background: ${pInfo.heroGradient || pInfo.gradient}; color: white; border-radius: 14px; padding: 22px 24px; box-shadow: 0 8px 24px ${pInfo.glow || 'rgba(0,0,0,0.15)'}; position: relative; overflow: hidden;">
+          <div style="position: absolute; right: -15px; bottom: -25px; font-size: 120px; opacity: 0.12; pointer-events: none; user-select: none;">
+            ${pInfo.symbol}
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; position: relative; z-index: 1;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 60px; height: 60px; min-width: 60px; border-radius: 14px; background: rgba(255, 255, 255, 0.22); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); border: 2px solid rgba(255,255,255,0.4);">
+                ${pInfo.symbol}
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <h2 style="margin: 0; font-size: 21px; font-weight: 900; color: #ffffff; letter-spacing: -0.3px;">
+                    ${esc(tenantTitle)}
+                  </h2>
+                  <span class="badge" style="background: rgba(255, 255, 255, 0.25); color: #ffffff; font-weight: 800; font-size: 12px; border: 1.5px solid rgba(255,255,255,0.4); padding: 3px 10px;">
+                    ${pInfo.symbol} ${pInfo.name}
+                  </span>
+                  <span class="badge" style="background: #fbbf24; color: #0f172a; font-weight: 800; font-size: 11.5px; padding: 3px 8px;">
+                    ${esc(currentUser.Role || 'Palika Admin')}
+                  </span>
+                </div>
+                <p style="margin: 5px 0 0; font-size: 13px; color: #f1f5f9; line-height: 1.4; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                  <span>📍 ${esc(palikaDisplay)}, ${esc(districtDisplay)}</span>
+                  <span>•</span>
+                  <span>🏛️ ${wardScopeText}</span>
+                  <span>•</span>
+                  <span>🎯 सम्पर्क प्रगति: <b>${contactedVoters.toLocaleString()} / ${scopedVoters.length.toLocaleString()}</b> (${progressPercent}%)</span>
+                </p>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <button class="btn btn-sm" onclick="switchView('voters')" style="background: rgba(255,255,255,0.22); color: #ffffff; font-weight: 700; border: 1px solid rgba(255,255,255,0.35); padding: 7px 14px; border-radius: 8px; font-size: 12.5px;">
+                👥 मतदाता सूची
+              </button>
+              <button class="btn btn-sm" onclick="switchView('warRoom')" style="background: #fbbf24; color: #0f172a; font-weight: 800; border: none; padding: 7px 14px; border-radius: 8px; font-size: 12.5px; box-shadow: 0 2px 8px rgba(0,0,0,0.18);">
+                🎯 War Room (जित मिटर)
+              </button>
+              <button class="btn btn-sm" onclick="switchView('visits')" style="background: rgba(255,255,255,0.22); color: #ffffff; font-weight: 700; border: 1px solid rgba(255,255,255,0.35); padding: 7px 14px; border-radius: 8px; font-size: 12.5px;">
+                🚶 घरदैलो
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     function refreshDashboardMetrics() {
       if (typeof syncActivePalikaHierarchyToState === 'function') syncActivePalikaHierarchyToState();
       if ((!state.households || state.households.length === 0) && state.voters && state.voters.length > 0 && typeof autoBuildStrictHouseholds === 'function') {
@@ -10897,6 +11024,7 @@
       }
       if (typeof updateGenZNavBadge === 'function') updateGenZNavBadge();
       if (typeof updateSeniorsNavBadge === 'function') updateSeniorsNavBadge();
+      renderDashboardCampaignBanner();
       const v = getScopedVoters();
       const scopedHh = getScopedHouseholds();
       const scopedVis = getScopedVisits();
@@ -10936,10 +11064,11 @@
         { label: 'Open Issues', val: openIssues, sub: 'Operational' }
       ];
 
+      const pInfo = getActivePartyPalette();
       document.getElementById('kpiGrid').innerHTML = kpis.map(k => `
-        <div class="kpi-card">
+        <div class="kpi-card" style="border-top: 3.5px solid ${pInfo.primary}; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.04);">
           <div class="kpi-label">${k.label}</div>
-          <div class="kpi-val">${k.val}</div>
+          <div class="kpi-val" style="color: ${pInfo.primaryDark};">${k.val}</div>
           <div class="kpi-sub">${k.sub}</div>
         </div>
       `).join('');
@@ -27153,7 +27282,8 @@
       const container = document.getElementById('todayBirthdaysSection');
       if (!container) return;
 
-      const birthdayVoters = state.voters.filter(v => isTodayBirthday(v.DOB));
+      const scopedList = (typeof getScopedVoters === 'function' ? getScopedVoters() : state.voters) || [];
+      const birthdayVoters = scopedList.filter(v => isTodayBirthday(v.DOB));
 
       if (birthdayVoters.length === 0) {
         container.innerHTML = '';
@@ -28870,6 +29000,87 @@
       }).join('');
     }
 
+    // HELPER: Resolve Tenant Polling Hierarchy (Wards + Polling Stations)
+    function getTenantPollingHierarchy(tenantId) {
+      const t = (state.tenants || []).find(x => x.TenantID === tenantId) || (state.tenants && state.tenants[0]);
+      let wardsList = [];
+      if (t && Array.isArray(t.WardsConfig) && t.WardsConfig.length > 0) {
+        wardsList = t.WardsConfig;
+      } else if (t && t.PalikaName) {
+        const matched = typeof findPalikaInBagmatiHierarchy === 'function' ? findPalikaInBagmatiHierarchy(t.PalikaName, t.District) : null;
+        if (matched && Array.isArray(matched.wards) && matched.wards.length > 0) {
+          wardsList = matched.wards;
+        }
+      }
+      if (!wardsList || wardsList.length === 0) {
+        const palikaName = (t && t.PalikaName) || (state.settings && state.settings.MUNICIPALITY) || 'हेलम्बु गाउँपालिका';
+        const matched = typeof findPalikaInBagmatiHierarchy === 'function' ? findPalikaInBagmatiHierarchy(palikaName) : null;
+        if (matched && Array.isArray(matched.wards) && matched.wards.length > 0) {
+          wardsList = matched.wards;
+        }
+      }
+      if (!wardsList || wardsList.length === 0) {
+        const totalWards = (t && Number(t.TotalWards)) || 7;
+        wardsList = Array.from({ length: totalWards }, (_, i) => ({
+          number: i + 1,
+          locations: [
+            { id: `PL_DEF_${i+1}_1`, name: `वडा नं. ${i+1} केन्द्र / विद्यालय` }
+          ]
+        }));
+      }
+      return { tenant: t, wards: wardsList };
+    }
+
+    // Event Handlers for Cascading Dropdowns
+    function onSaasTierTenantChange(tenantId) {
+      saasImportSelectedTenantId = tenantId;
+      switchSuperAdminImportTier(saasImportActiveTier);
+    }
+
+    function onSaasTierWardChange(wardNo) {
+      const { wards } = getTenantPollingHierarchy(saasImportSelectedTenantId);
+      const wObj = wards.find(w => String(w.number || w.WardNo) === String(wardNo)) || wards[0];
+      const locSelect = document.getElementById('saasTierLocationSelect');
+      const customLocInput = document.getElementById('saasTierLocationCustom');
+      if (locSelect) {
+        const locations = (wObj && Array.isArray(wObj.locations)) ? wObj.locations : [];
+        let optHtml = '';
+        if (locations.length > 0) {
+          optHtml = locations.map(l => `<option value="${esc(l.name)}">🏫 ${esc(l.name)}</option>`).join('');
+        } else {
+          optHtml = `<option value="वडा नं. ${wardNo} मतदान स्थल">🏫 वडा नं. ${wardNo} मतदान स्थल</option>`;
+        }
+        optHtml += `<option value="__custom__">✏️ अन्य / नयाँ मतदान स्थल टाइप गर्नुहोस्...</option>`;
+        locSelect.innerHTML = optHtml;
+        if (customLocInput) {
+          customLocInput.style.display = 'none';
+          customLocInput.value = '';
+        }
+      }
+    }
+
+    function onSaasTierLocationChange(val) {
+      const customInput = document.getElementById('saasTierLocationCustom');
+      if (!customInput) return;
+      if (val === '__custom__') {
+        customInput.style.display = 'block';
+        customInput.focus();
+      } else {
+        customInput.style.display = 'none';
+      }
+    }
+
+    function onSaasTierCentreChange(val) {
+      const customInput = document.getElementById('saasTierCentreCustom');
+      if (!customInput) return;
+      if (val === '__custom__') {
+        customInput.style.display = 'block';
+        customInput.focus();
+      } else {
+        customInput.style.display = 'none';
+      }
+    }
+
     // OPEN 3-TIER SUPER ADMIN VOTER IMPORT STUDIO MODAL (SECTION 8)
     function openSuperAdmin3TierImportStudio(preselectedTenantId) {
       if (!isSuperAdminUser()) {
@@ -28911,8 +29122,12 @@
               </label>
               <span style="font-size: 11.5px; color: #64748b;">यो डेटा सोही Tenant को अधिकारभित्र मात्र भण्डारण हुनेछ।</span>
             </div>
-            <select id="saasImportTenantSelect" class="form-control" style="font-weight: 700; font-size: 13.5px; border: 1.5px solid #93c5fd; background: #eff6ff;" onchange="saasImportSelectedTenantId = this.value;">
-              ${tenantsList.map(t => `<option value="${t.TenantID}" ${t.TenantID === saasImportSelectedTenantId ? 'selected' : ''}>${esc(t.PalikaName)} (ID: ${t.TenantID} • Slug: ${t.Slug || 'palika'})</option>`).join('')}
+            <select id="saasImportTenantSelect" class="form-control" style="font-weight: 700; font-size: 13.5px; border: 1.5px solid #93c5fd; background: #eff6ff;" onchange="onSaasTierTenantChange(this.value)">
+              ${tenantsList.map(t => {
+                const pObj = PARTY_PALETTES[normalizePartyCode(t.Party || 'NC')] || PARTY_PALETTES.NC;
+                const isSel = t.TenantID === saasImportSelectedTenantId;
+                return `<option value="${t.TenantID}" ${isSel ? 'selected' : ''}>${esc(t.TenantName || t.PalikaName)} (${pObj.symbol} ${pObj.name} • ${esc(t.PalikaName)})</option>`;
+              }).join('')}
             </select>
           </div>
 
@@ -29013,29 +29228,50 @@
       const destBox = document.getElementById('saasTierDestOptionsBox');
       if (!destBox) return;
 
-      const wards = state.wards && state.wards.length ? state.wards : [
-        { WardNo: 1 }, { WardNo: 2 }, { WardNo: 3 }, { WardNo: 4 }, { WardNo: 5 }, { WardNo: 6 }, { WardNo: 7 }
-      ];
+      const { tenant, wards } = getTenantPollingHierarchy(saasImportSelectedTenantId);
+      const selWardNo = wards[0] ? (wards[0].number || wards[0].WardNo || 1) : 1;
+      const firstWardLocations = (wards[0] && Array.isArray(wards[0].locations)) ? wards[0].locations : [];
 
       if (tier === 'single_centre') {
         destBox.innerHTML = `
           <div style="font-size: 12px; font-weight: 800; color: #1e3a8a; margin-bottom: 8px;">
-            🎯 विधि १ गन्तव्य: वडा, मतदान स्थल र केन्द्र छनोट (८ स्तम्भ मात्र पर्याप्त हुन्छ)
+            🎯 विधि १ गन्तव्य: वडा, मतदान स्थल र केन्द्र छनोट (ड्रपडाउन तथा आवश्यकता अनुसार Custom विकल्प)
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 10px;">
+          <div style="display: grid; grid-template-columns: 1fr 1.6fr 1.2fr; gap: 10px; align-items: start;">
+            <!-- Ward Select -->
             <div>
-              <label class="form-label" style="font-size: 11.5px;">वडा नं. (Ward) *</label>
-              <select id="saasTierWard" class="form-control" style="font-weight: 700; font-size: 12.5px;">
-                ${wards.map(w => `<option value="${w.WardNo}">वडा नं. ${w.WardNo}</option>`).join('')}
+              <label class="form-label" style="font-size: 11.5px; font-weight: 700;">वडा नं. (Ward) *</label>
+              <select id="saasTierWard" class="form-control" style="font-weight: 700; font-size: 12.5px; border: 1.5px solid #93c5fd;" onchange="onSaasTierWardChange(this.value)">
+                ${wards.map(w => `<option value="${w.number || w.WardNo}">वडा नं. ${w.number || w.WardNo}</option>`).join('')}
               </select>
             </div>
+
+            <!-- Polling Station / Location Cascading Dropdown -->
             <div>
-              <label class="form-label" style="font-size: 11.5px;">मतदान स्थल (Polling Location / School) *</label>
-              <input type="text" id="saasTierLocation" class="form-control" value="श्री सेतीदेवी मावि (स्थान/भवन)" placeholder="उदा: श्री सेतीदेवी मावि / वडा भवन" style="font-size: 12px;">
+              <label class="form-label" style="font-size: 11.5px; font-weight: 700;">मतदान स्थल (Polling Location) *</label>
+              <select id="saasTierLocationSelect" class="form-control" style="font-size: 12.5px; font-weight: 600; border: 1.5px solid #93c5fd; background: #ffffff;" onchange="onSaasTierLocationChange(this.value)">
+                ${firstWardLocations.length > 0 
+                  ? firstWardLocations.map(l => `<option value="${esc(l.name)}">🏫 ${esc(l.name)}</option>`).join('')
+                  : `<option value="वडा नं. ${selWardNo} मतदान स्थल">🏫 वडा नं. ${selWardNo} मतदान स्थल</option>`}
+                <option value="__custom__">✏️ अन्य / नयाँ मतदान स्थल टाइप गर्नुहोस्...</option>
+              </select>
+              <input type="text" id="saasTierLocationCustom" class="form-control" placeholder="नयाँ मतदान स्थलको नाम यहाँ लेख्नुहोस्..." style="display: none; margin-top: 6px; font-size: 12px; border: 1.5px solid #f59e0b; background: #fffbeb;">
             </div>
+
+            <!-- Polling Centre / Booth Cascading Dropdown -->
             <div>
-              <label class="form-label" style="font-size: 11.5px;">मतदान केन्द्र (Centre: 'क'/'ख' वा A/B) *</label>
-              <input type="text" id="saasTierCentre" class="form-control" value="A" placeholder="उदा: A, B, क, वा ख" style="font-size: 12px; font-weight: 800;">
+              <label class="form-label" style="font-size: 11.5px; font-weight: 700;">मतदान केन्द्र (Centre / Booth) *</label>
+              <select id="saasTierCentreSelect" class="form-control" style="font-size: 12.5px; font-weight: 700; border: 1.5px solid #93c5fd;" onchange="onSaasTierCentreChange(this.value)">
+                <option value="क">केन्द्र (क)</option>
+                <option value="ख">केन्द्र (ख)</option>
+                <option value="ग">केन्द्र (ग)</option>
+                <option value="घ">केन्द्र (घ)</option>
+                <option value="A">केन्द्र A</option>
+                <option value="B">केन्द्र B</option>
+                <option value="C">केन्द्र C</option>
+                <option value="__custom__">✏️ अन्य / फरक कोड लेख्नुहोस्...</option>
+              </select>
+              <input type="text" id="saasTierCentreCustom" class="form-control" placeholder="उदा: केन्द्र (ङ) वा Booth-1" style="display: none; margin-top: 6px; font-size: 12px; font-weight: 800; border: 1.5px solid #f59e0b; background: #fffbeb;">
             </div>
           </div>
         `;
@@ -29046,9 +29282,9 @@
           </div>
           <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; align-items: center;">
             <div>
-              <label class="form-label" style="font-size: 11.5px;">गन्तव्य वडा नं. (Ward) *</label>
-              <select id="saasTierWard" class="form-control" style="font-weight: 700; font-size: 12.5px;">
-                ${wards.map(w => `<option value="${w.WardNo}">वडा नं. ${w.WardNo}</option>`).join('')}
+              <label class="form-label" style="font-size: 11.5px; font-weight: 700;">गन्तव्य वडा नं. (Ward) *</label>
+              <select id="saasTierWard" class="form-control" style="font-weight: 700; font-size: 12.5px; border: 1.5px solid #93c5fd;">
+                ${wards.map(w => `<option value="${w.number || w.WardNo}">वडा नं. ${w.number || w.WardNo}</option>`).join('')}
               </select>
             </div>
             <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 11.5px; color: #475569;">
@@ -29165,8 +29401,31 @@
       };
 
       const defWard = Number(document.getElementById('saasTierWard')?.value || 1);
-      const defLocation = (document.getElementById('saasTierLocation')?.value || '').trim();
-      const defCentre = (document.getElementById('saasTierCentre')?.value || 'A').trim();
+      let defLocation = '';
+      const locSel = document.getElementById('saasTierLocationSelect');
+      if (locSel) {
+        if (locSel.value === '__custom__') {
+          defLocation = (document.getElementById('saasTierLocationCustom')?.value || '').trim();
+        } else {
+          defLocation = locSel.value;
+        }
+      }
+      if (!defLocation) {
+        defLocation = (document.getElementById('saasTierLocation')?.value || '').trim() || `वडा नं. ${defWard} मतदान स्थल`;
+      }
+
+      let defCentre = 'क';
+      const cenSel = document.getElementById('saasTierCentreSelect');
+      if (cenSel) {
+        if (cenSel.value === '__custom__') {
+          defCentre = (document.getElementById('saasTierCentreCustom')?.value || '').trim();
+        } else {
+          defCentre = cenSel.value;
+        }
+      }
+      if (!defCentre) {
+        defCentre = (document.getElementById('saasTierCentre')?.value || 'A').trim();
+      }
       const activeTenant = saasImportSelectedTenantId;
 
       const existingVoterMap = new Set(
