@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v16 - Community Groups & CBOs Module)
-const CACHE_NAME = 'election-ops-v16';
+// Service Worker for Offline & Installable App Experience (v17 - Clean Serial Numbers & Super Admin CSV Guard)
+const CACHE_NAME = 'election-ops-v17';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

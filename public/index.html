@@ -9345,8 +9345,12 @@
               ProfessionalDemandNote: parsedNotes.professional_demand_note || '',
               GenZTag: parsedNotes.genz_tag || '',
               SeniorMobilityTag: parsedNotes.senior_mobility_tag || '',
-              HasVoted: parsedNotes.has_voted !== undefined ? !!parsedNotes.has_voted : false,
-              VotedAt: parsedNotes.voted_at || '',
+              ImportBatchID: cloudVoter.import_batch_id || parsedNotes.import_batch_id || '',
+              VoterRollVersion: cloudVoter.voter_roll_version || parsedNotes.voter_roll_version || '',
+              RecordSource: cloudVoter.record_source || parsedNotes.record_source || '',
+              PollingLocation: parsedNotes.polling_location || '',
+              HasVoted: parsedNotes.has_voted !== undefined ? !!parsedNotes.has_voted : !!cloudVoter.voted_status,
+              VotedAt: parsedNotes.voted_at || cloudVoter.voted_time || '',
               Active: true
             };
 
@@ -9359,7 +9363,7 @@
               if (!mappedVoter.HouseholdID && state.voters[idx].HouseholdID) {
                 mappedVoter.HouseholdID = state.voters[idx].HouseholdID;
               }
-              if (parsedNotes.has_voted === undefined && state.voters[idx].HasVoted) {
+              if (parsedNotes.has_voted === undefined && !cloudVoter.voted_status && state.voters[idx].HasVoted) {
                 mappedVoter.HasVoted = state.voters[idx].HasVoted;
                 mappedVoter.VotedAt = state.voters[idx].VotedAt || '';
               }
@@ -9570,7 +9574,6 @@
             tole: userObj.Tole || '',
             active: userObj.Active !== false,
             access_token: userObj.AccessToken || null,
-            tenant_id: userObj.TenantID || 'TNT_HELAMBU',
             notes: JSON.stringify({
               tenant_id: userObj.TenantID || 'TNT_HELAMBU',
               access_token: userObj.AccessToken || null,
@@ -9594,6 +9597,7 @@
       }
 
       const activeTenantId = (v.TenantID && v.TenantID !== 'ALL') ? v.TenantID : ((currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') ? currentUser.TenantID : 'TNT_HELAMBU');
+      const numericAge = (v.Age !== undefined && v.Age !== '' && !isNaN(Number(v.Age))) ? Number(v.Age) : (v.DOB ? (Number(calculateAge(v.DOB)) || null) : null);
 
       const metadataNotes = JSON.stringify({
         tenant_id: activeTenantId,
@@ -9636,6 +9640,10 @@
         professional_demand_note: v.ProfessionalDemandNote || '',
         genz_tag: v.GenZTag || '',
         senior_mobility_tag: v.SeniorMobilityTag || '',
+        import_batch_id: v.ImportBatchID || '',
+        voter_roll_version: v.VoterRollVersion || '',
+        record_source: v.RecordSource || '',
+        polling_location: v.PollingLocation || '',
         has_voted: !!v.HasVoted,
         voted_at: v.VotedAt || ''
       });
@@ -9650,6 +9658,7 @@
         tole: v.Tole || '',
         booth_no: String(v.BoothNo || ''),
         serial_no: String(v.VoterSerial || ''),
+        age: numericAge,
         gender: v.Gender || 'Other',
         age_group: v.AgeGroup || '',
         dob: safeDob,
@@ -9660,6 +9669,8 @@
         facebook_url: v.FacebookUrl || '',
         tiktok_url: v.TiktokUrl || '',
         address: houseAddress,
+        voted_status: !!v.HasVoted,
+        voted_time: v.VotedAt || null,
         notes: metadataNotes
       };
     }
@@ -9700,6 +9711,9 @@
       }
       return false;
     }
+
+    // Alias for strike sheet & real-time updates
+    const syncVoterToCloud = pushVoterToSupabase;
 
     // Push array of voters to Supabase Cloud in chunks of 100 with resolution=merge-duplicates
     async function pushVotersBatchToSupabase(votersList, showProgressToast = true) {
@@ -9802,7 +9816,7 @@
     }
 
     // Rollback imported batch from Supabase Cloud
-    async function rollbackImportBatchCloud(batchId, tenantId) {
+    async function rollbackImportBatchCloud(batchId, tenantId, voterIds = []) {
       if (!batchId) return false;
       const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
       const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
@@ -9813,7 +9827,18 @@
           'apikey': key,
           'Authorization': `Bearer ${key}`
         };
-        const res = await cloudFetch(`${url}/rest/v1/voters?import_batch_id=eq.${encodeURIComponent(batchId)}`, {
+        if (Array.isArray(voterIds) && voterIds.length > 0) {
+          const chunkSize = 100;
+          for (let i = 0; i < voterIds.length; i += chunkSize) {
+            const idsChunk = voterIds.slice(i, i + chunkSize).map(id => `"${String(id).replace(/"/g, '')}"`).join(',');
+            await cloudFetch(`${url}/rest/v1/voters?voter_id=in.(${encodeURIComponent(idsChunk)})`, {
+              method: 'DELETE',
+              headers
+            });
+          }
+          return true;
+        }
+        const res = await cloudFetch(`${url}/rest/v1/voters?notes=like.*${encodeURIComponent(batchId)}*`, {
           method: 'DELETE',
           headers
         });
@@ -29113,22 +29138,8 @@
           ImportBatchID: batchId
         };
 
-        supabasePayloads.push({
-          voter_id: payload.VoterID,
-          tenant_id: payload.TenantID,
-          serial_no: payload.VoterSerial,
-          full_name: payload.Name,
-          age: payload.Age,
-          gender: payload.Gender,
-          spouse_name: payload.SpouseName,
-          father_name: payload.FatherName,
-          mother_name: payload.MotherName,
-          ward_no: payload.Ward,
-          booth_no: payload.BoothNo,
-          record_source: payload.RecordSource,
-          voter_roll_version: payload.VoterRollVersion,
-          import_batch_id: payload.ImportBatchID
-        });
+        const cloudRow = buildVoterCloudPayload(payload);
+        if (cloudRow) supabasePayloads.push(cloudRow);
 
         if (existingIdx >= 0) {
           if (skipDups) {
@@ -29147,6 +29158,7 @@
         state.voters = [...newVoters, ...state.voters];
       }
       _voterIndexDirty = true;
+      sanitizeCorruptedHouseholdsAndLinks(true);
 
       // Save Batch Record in Super Admin Batches
       const batchRecord = {
@@ -29205,7 +29217,9 @@
       const b = batches.find(x => x.batchId === batchId);
       if (!b) return showToast('ब्याच फेला परेन।', 'error');
 
-      const affectedCount = state.voters.filter(v => v.ImportBatchID === batchId).length;
+      const affectedVoters = state.voters.filter(v => v.ImportBatchID === batchId);
+      const affectedCount = affectedVoters.length;
+      const affectedIds = affectedVoters.map(v => v.VoterID).filter(Boolean);
 
       openConfirmModal(
         '⏪ ब्याच रोलब्याक (Undo Batch Import)',
@@ -29228,7 +29242,7 @@
           // 4. Supabase cloud rollback
           try {
             if (typeof rollbackImportBatchCloud === 'function') {
-              rollbackImportBatchCloud(batchId, tenantId);
+              rollbackImportBatchCloud(batchId, tenantId, affectedIds);
             }
           } catch (_) {}
 
