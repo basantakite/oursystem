@@ -9211,6 +9211,251 @@
     let _realtimeDebounceTimer = null;
     let _realtimeEngineInitialized = false;
 
+    // Self-Echo Guard: Track recently modified voters locally to skip redundant WebSocket roundtrips
+    const _recentlyEditedVoters = new Map(); // voterId -> Date.now()
+    function markVoterLocallyEdited(voterId) {
+      if (!voterId) return;
+      _recentlyEditedVoters.set(String(voterId), Date.now());
+      if (_recentlyEditedVoters.size > 2000) {
+        const cutoff = Date.now() - 60000;
+        for (const [id, time] of _recentlyEditedVoters) {
+          if (time < cutoff) _recentlyEditedVoters.delete(id);
+        }
+      }
+    }
+
+    // Map a single cloud voter record into local application voter format
+    function mapCloudVoterToLocal(cloudVoter) {
+      if (!cloudVoter || !cloudVoter.voter_id) return null;
+      let parsedNotes = {};
+      try {
+        if (cloudVoter.notes && typeof cloudVoter.notes === 'string' && cloudVoter.notes.startsWith('{')) {
+          parsedNotes = JSON.parse(cloudVoter.notes);
+        } else if (cloudVoter.notes && typeof cloudVoter.notes === 'object') {
+          parsedNotes = cloudVoter.notes;
+        }
+      } catch(e) {}
+
+      let sName = cloudVoter.spouse_name || parsedNotes.spouse_name || '';
+      if (sName === '-') sName = '';
+      let fName = cloudVoter.father_name || parsedNotes.father_name || '';
+      let mName = cloudVoter.mother_name || parsedNotes.mother_name || '';
+      if (!mName && fName.includes('/')) {
+        const parts = fName.split('/');
+        fName = parts[0].trim();
+        mName = (parts[1] || '').trim();
+      }
+      const bNo = cloudVoter.booth_no || parsedNotes.booth_name || '';
+
+      return {
+        TenantID: cloudVoter.tenant_id || parsedNotes.tenant_id || 'TNT_HELAMBU',
+        VoterID: cloudVoter.voter_id,
+        OfficialVoterID: parsedNotes.official_voter_id || cloudVoter.voter_id,
+        Name: cloudVoter.full_name,
+        Age: cloudVoter.age || parsedNotes.age || (cloudVoter.dob ? calculateAge(cloudVoter.dob) : ''),
+        Gender: cloudVoter.gender || parsedNotes.gender || 'Other',
+        SpouseName: sName,
+        FatherName: fName,
+        MotherName: mName,
+        DOB: cloudVoter.dob || parsedNotes.dob || '',
+        AgeGroup: cloudVoter.age_group || parsedNotes.age_group || '',
+        Phone: cloudVoter.phone || '',
+        Ward: Number(cloudVoter.ward_no || 1),
+        Tole: cloudVoter.tole || '',
+        BoothNo: bNo,
+        VoterSerial: String(cloudVoter.serial_no || parsedNotes.serial_no || ''),
+        PartyLeaning: cloudVoter.party_leaning || 'Undecided',
+        VerificationStatus: parsedNotes.verification_status || 'Pending',
+        ContactStatus: parsedNotes.contact_status || 'Not Contacted',
+        SelfReportedResponse: parsedNotes.self_reported_response || '',
+        SupportTier: parsedNotes.support_tier || cloudVoter.sentiment || 'swing',
+        IsInfluencer: !!parsedNotes.is_influencer,
+        InfluencerSphere: parsedNotes.influencer_sphere || '',
+        InfluencerReach: parsedNotes.influencer_reach || '',
+        InfluencerHandler: parsedNotes.influencer_handler || '',
+        InfluencerDemands: parsedNotes.influencer_demands || '',
+        InfluencerStance: parsedNotes.influencer_stance || '',
+        CurrentLocation: parsedNotes.current_location || 'गाउँमै उपस्थित (On-Ground)',
+        ElectionDayTurnout: parsedNotes.election_day_turnout || 'पक्का स्थानीय उपस्थित (Confirmed)',
+        CityAddress: parsedNotes.city_address || '',
+        HouseholdID: parsedNotes.household_id || '',
+        FamilyRelation: parsedNotes.family_relation || 'घरमुली',
+        FamilyVotesCount: Number(parsedNotes.family_votes_count) || 1,
+        HouseNo: cloudVoter.address ? cloudVoter.address.replace(/^घर नं:\s*/, '').trim() : (parsedNotes.house_no || ''),
+        FacebookUrl: cloudVoter.facebook_url || parsedNotes.facebook_url || '',
+        TiktokUrl: cloudVoter.tiktok_url || parsedNotes.tiktok_url || '',
+        ManualFamilyLinks: Array.isArray(parsedNotes.manual_family_links) ? parsedNotes.manual_family_links : [],
+        IgnoredFamilyIDs: Array.isArray(parsedNotes.ignored_family_ids) ? parsedNotes.ignored_family_ids : [],
+        CustomFamily: Array.isArray(parsedNotes.custom_family) ? parsedNotes.custom_family : [],
+        CommunityRoles: Array.isArray(parsedNotes.community_roles) ? parsedNotes.community_roles : [],
+        Profession: parsedNotes.profession || '',
+        WorkplaceName: parsedNotes.workplace_name || '',
+        ProfessionTitle: parsedNotes.profession_title || '',
+        ProfessionalUnion: parsedNotes.professional_union || '',
+        ProfessionalCampaignRole: parsedNotes.professional_campaign_role || '',
+        ProfessionalVoteReach: parsedNotes.professional_vote_reach ? Number(parsedNotes.professional_vote_reach) : '',
+        ProfessionalDemandNote: parsedNotes.professional_demand_note || '',
+        GenZTag: parsedNotes.genz_tag || '',
+        SeniorMobilityTag: parsedNotes.senior_mobility_tag || '',
+        ImportBatchID: cloudVoter.import_batch_id || parsedNotes.import_batch_id || '',
+        VoterRollVersion: cloudVoter.voter_roll_version || parsedNotes.voter_roll_version || '',
+        RecordSource: cloudVoter.record_source || parsedNotes.record_source || '',
+        PollingLocation: parsedNotes.polling_location || '',
+        HasVoted: parsedNotes.has_voted !== undefined ? !!parsedNotes.has_voted : !!cloudVoter.voted_status,
+        VotedAt: parsedNotes.voted_at || cloudVoter.voted_time || '',
+        Active: true
+      };
+    }
+
+    // Instant In-Place DOM Updater (Zero Page Rebuild, Zero Flicker)
+    function updateVoterInPlaceInDom(v) {
+      if (!v || !v.VoterID) return;
+      const vId = String(v.VoterID);
+      const isSure = (v.SupportTier === 'solid') || (v.SelfReportedResponse === 'Support');
+      const tier = (typeof SUPPORT_TIERS !== 'undefined' && SUPPORT_TIERS[v.SupportTier]) || { icon: '⚪', label: 'तटस्थ (Swing)', bg: '#f1f5f9', color: '#334155', border: '#cbd5e1', glow: 'rgba(0,0,0,0.1)' };
+      const isContacted = v.ContactStatus === 'Contacted';
+
+      // 1. Card View Elements
+      const card = document.getElementById('voterCard_' + vId);
+      if (card) {
+        // Dot indicator next to name
+        const dot = document.getElementById('voterCardSureDot_' + vId);
+        if (dot) dot.style.display = isSure ? 'inline-block' : 'none';
+
+        // Top-right Sure Vote Button
+        const sureWrap = document.getElementById('voterCardSureWrap_' + vId);
+        if (sureWrap) {
+          sureWrap.innerHTML = isSure ? `
+            <button type="button" onclick="toggleSureVote('${vId}')" style="background: #15803d; color: #ffffff; border: none; border-radius: 16px; padding: 4.5px 9px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 3.5px; cursor: pointer; box-shadow: 0 1px 4px rgba(21, 128, 61, 0.25); white-space: nowrap;" title="पक्का मत (क्लिक गरी परिवर्तन गर्नुहोस्)">
+              <span style="font-size: 11px;">🛡️</span> <span>पक्का मत</span> <span style="font-weight: 900;">✓</span>
+            </button>
+          ` : `
+            <button type="button" onclick="toggleSureVote('${vId}')" style="background: #ffffff; color: #64748b; border: 1px solid #cbd5e1; border-radius: 16px; padding: 4px 8px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 3.5px; cursor: pointer; white-space: nowrap;" title="क्लिक गरी पक्का मत बनाउनुहोस्">
+              <span style="font-size: 11px;">🛡️</span> <span>+ पक्का मत</span>
+            </button>
+          `;
+        }
+
+        // 4th Row: Support Stance Bar
+        const bar = document.getElementById('voterCardSupportBar_' + vId) || card.querySelector('div[onclick*="quickCycleSupportTier"]');
+        if (bar) {
+          bar.style.background = tier.bg;
+          bar.style.boxShadow = `0 1px 5px ${tier.glow || 'rgba(0,0,0,0.2)'}`;
+          bar.innerHTML = `<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${tier.icon} ${tier.label}</span><span style="font-size: 10px; opacity: 0.85; margin-left: 6px; flex-shrink: 0;">∨</span>`;
+        }
+
+        // 5th Row: Contact Status Button
+        const contactWrap = document.getElementById('voterCardContactWrap_' + vId);
+        if (contactWrap) {
+          contactWrap.innerHTML = isContacted ? `
+            <button type="button" onclick="toggleVoterContactStatus('${vId}')" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; border-radius: 8px; padding: 6.5px 4px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; width: 100%; white-space: nowrap; box-sizing: border-box;" title="सम्पर्क अवस्था">
+              <span>✓ Contacted</span> <span style="font-size: 9px;">🔄</span>
+            </button>
+          ` : `
+            <button type="button" onclick="toggleVoterContactStatus('${vId}')" style="background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; border-radius: 8px; padding: 6.5px 4px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; width: 100%; white-space: nowrap; box-sizing: border-box;" title="सम्पर्क अवस्था">
+              <span>👤 Uncontacted</span> <span style="font-size: 9px;">🔄</span>
+            </button>
+          `;
+        }
+      }
+
+      // 2. Table Row Elements
+      const row = document.getElementById('voterRow_' + vId);
+      if (row) {
+        const supportBadge = document.getElementById('voterRowSupportBadge_' + vId) || row.querySelector('.badge[onclick*="quickCycleSupportTier"]');
+        if (supportBadge) {
+          supportBadge.style.background = tier.bg;
+          supportBadge.style.color = tier.color;
+          supportBadge.style.border = `1.5px solid ${tier.border}`;
+          supportBadge.innerHTML = `${tier.icon} ${tier.label}`;
+        }
+        const contactBadge = document.getElementById('voterRowContactBadge_' + vId) || row.querySelector('.badge[onclick*="toggleVoterContactStatus"]');
+        if (contactBadge) {
+          if (isContacted) {
+            contactBadge.className = 'badge badge-contacted';
+            contactBadge.style.background = '#ecfdf5';
+            contactBadge.style.color = '#047857';
+            contactBadge.style.border = '1px solid #a7f3d0';
+            contactBadge.innerHTML = '<span>🟢</span> <span>भेटिएको</span> <span style="font-size: 9.5px; opacity: 0.6;">🔄</span>';
+          } else {
+            contactBadge.className = 'badge badge-notcontacted';
+            contactBadge.style.background = '#f8fafc';
+            contactBadge.style.color = '#64748b';
+            contactBadge.style.border = '1px solid #cbd5e1';
+            contactBadge.innerHTML = '<span>⚪</span> <span>भेट्न बाँकी</span> <span style="font-size: 9.5px; opacity: 0.6;">🔄</span>';
+          }
+        }
+      }
+    }
+
+    // Realtime WebSocket Single-Row Handler (<50ms Direct Delta Application)
+    function handleRealtimeVoterChange(payload) {
+      if (!payload) return;
+      const eventType = payload.eventType;
+
+      if (eventType === 'DELETE') {
+        const oldVoter = payload.old;
+        if (!oldVoter || !oldVoter.voter_id) return;
+        const vId = String(oldVoter.voter_id);
+        const idx = state.voters.findIndex(x => String(x.VoterID) === vId);
+        if (idx !== -1) {
+          state.voters.splice(idx, 1);
+          if (typeof _voterIdMap !== 'undefined' && _voterIdMap) _voterIdMap.delete(vId);
+          const card = document.getElementById('voterCard_' + vId);
+          if (card) card.remove();
+          const row = document.getElementById('voterRow_' + vId);
+          if (row) row.remove();
+          saveState();
+        }
+        return;
+      }
+
+      const cloudVoter = payload.new;
+      if (!cloudVoter || !cloudVoter.voter_id) return;
+      const vId = String(cloudVoter.voter_id);
+
+      // Self-Echo Guard: If this device initiated this change within 10s, skip redundant UI re-render
+      const lastLocalEdit = _recentlyEditedVoters.get(vId);
+      if (lastLocalEdit && (Date.now() - lastLocalEdit < 10000)) {
+        return;
+      }
+
+      const mapped = mapCloudVoterToLocal(cloudVoter);
+      if (!mapped) return;
+
+      const existing = (typeof getVoterById === 'function' ? getVoterById(vId) : null) || state.voters.find(x => String(x.VoterID) === vId);
+      if (existing) {
+        Object.assign(existing, mapped);
+      } else {
+        state.voters.push(mapped);
+        if (typeof _voterIdMap !== 'undefined' && _voterIdMap) _voterIdMap.set(vId, mapped);
+      }
+
+      updateVoterInPlaceInDom(mapped);
+      saveState();
+    }
+
+    // Lightweight Delta Cloud Fetch: Queries only voters modified within the last 3 minutes
+    async function fetchDeltaCloudVoters(url, key) {
+      const headers = {
+        'apikey': key,
+        'Authorization': `Bearer ${key}`
+      };
+      const sinceMs = _lastSuccessfulSyncTimestamp > 0 ? Math.max(0, _lastSuccessfulSyncTimestamp - 120000) : (Date.now() - 180000);
+      const sinceIso = new Date(sinceMs).toISOString();
+
+      try {
+        const deltaRes = await cloudFetch(`${url}/rest/v1/voters?select=*&updated_at=gt.${encodeURIComponent(sinceIso)}&limit=500`, { headers });
+        if (deltaRes && deltaRes.ok) {
+          const deltaData = await deltaRes.json().catch(() => []);
+          if (Array.isArray(deltaData)) return deltaData;
+        }
+      } catch(e) {
+        console.warn('Delta sync fetch warning:', e);
+      }
+      return [];
+    }
+
     // Helper: Fetches all voters in parallel chunks of 1000 to overcome Supabase PostgREST 1000-row limit
     async function fetchAllCloudVoters(url, key) {
       const headers = {
@@ -9251,7 +9496,7 @@
       return firstBatch;
     }
 
-    async function syncSupabaseData(interactive = false) {
+    async function syncSupabaseData(interactive = false, forceFull = false) {
       if (_isSyncingSupabase) {
         _hasPendingSync = true;
         return;
@@ -9280,11 +9525,14 @@
       try {
         const headers = { 'apikey': key, 'Authorization': `Bearer ${key}` };
 
-        // Parallel fetch for settings, users, and ALL chunked voters
+        // Delta sync by default when local cache has voters; Full download only if local is empty or forceFull requested
+        const shouldFullFetch = forceFull || !state.voters || state.voters.length === 0;
+        const voterFetchPromise = shouldFullFetch ? fetchAllCloudVoters(url, key).catch(() => []) : fetchDeltaCloudVoters(url, key).catch(() => []);
+
         const [setRes, uRes, vData] = await Promise.all([
           cloudFetch(`${url}/rest/v1/system_settings?select=*`, { headers }).catch(() => null),
           cloudFetch(`${url}/rest/v1/users?select=*`, { headers }).catch(() => null),
-          fetchAllCloudVoters(url, key).catch(() => [])
+          voterFetchPromise
         ]);
 
         // 1. Process system_settings & multi-tenant cloud registry
@@ -9393,83 +9641,8 @@
 
           vData.forEach(cloudVoter => {
             if (String(cloudVoter.voter_id).startsWith('VOT_00')) return;
-
-            let parsedNotes = {};
-            try {
-              if (cloudVoter.notes && cloudVoter.notes.startsWith('{')) {
-                parsedNotes = JSON.parse(cloudVoter.notes);
-              }
-            } catch(e) {}
-
-            let sName = cloudVoter.spouse_name || parsedNotes.spouse_name || '';
-            if (sName === '-') sName = '';
-            let fName = cloudVoter.father_name || parsedNotes.father_name || '';
-            let mName = cloudVoter.mother_name || parsedNotes.mother_name || '';
-            if (!mName && fName.includes('/')) {
-              const parts = fName.split('/');
-              fName = parts[0].trim();
-              mName = (parts[1] || '').trim();
-            }
-            const bNo = cloudVoter.booth_no || parsedNotes.booth_name || '';
-
-            const mappedVoter = {
-              TenantID: cloudVoter.tenant_id || parsedNotes.tenant_id || 'TNT_HELAMBU',
-              VoterID: cloudVoter.voter_id,
-              OfficialVoterID: parsedNotes.official_voter_id || cloudVoter.voter_id,
-              Name: cloudVoter.full_name,
-              Age: cloudVoter.age || parsedNotes.age || (cloudVoter.dob ? calculateAge(cloudVoter.dob) : ''),
-              Gender: cloudVoter.gender || parsedNotes.gender || 'Other',
-              SpouseName: sName,
-              FatherName: fName,
-              MotherName: mName,
-              DOB: cloudVoter.dob || parsedNotes.dob || '',
-              AgeGroup: cloudVoter.age_group || parsedNotes.age_group || '',
-              Phone: cloudVoter.phone || '',
-              Ward: Number(cloudVoter.ward_no || 1),
-              Tole: cloudVoter.tole || '',
-              BoothNo: bNo,
-              VoterSerial: String(cloudVoter.serial_no || parsedNotes.serial_no || ''),
-              PartyLeaning: cloudVoter.party_leaning || 'Undecided',
-              VerificationStatus: parsedNotes.verification_status || 'Pending',
-              ContactStatus: parsedNotes.contact_status || 'Not Contacted',
-              SelfReportedResponse: parsedNotes.self_reported_response || '',
-              SupportTier: parsedNotes.support_tier || cloudVoter.sentiment || 'swing',
-              IsInfluencer: !!parsedNotes.is_influencer,
-              InfluencerSphere: parsedNotes.influencer_sphere || '',
-              InfluencerReach: parsedNotes.influencer_reach || '',
-              InfluencerHandler: parsedNotes.influencer_handler || '',
-              InfluencerDemands: parsedNotes.influencer_demands || '',
-              InfluencerStance: parsedNotes.influencer_stance || '',
-              CurrentLocation: parsedNotes.current_location || 'गाउँमै उपस्थित (On-Ground)',
-              ElectionDayTurnout: parsedNotes.election_day_turnout || 'पक्का स्थानीय उपस्थित (Confirmed)',
-              CityAddress: parsedNotes.city_address || '',
-              HouseholdID: parsedNotes.household_id || '',
-              FamilyRelation: parsedNotes.family_relation || 'घरमुली',
-              FamilyVotesCount: Number(parsedNotes.family_votes_count) || 1,
-              HouseNo: cloudVoter.address ? cloudVoter.address.replace(/^घर नं:\s*/, '').trim() : (parsedNotes.house_no || ''),
-              FacebookUrl: cloudVoter.facebook_url || parsedNotes.facebook_url || '',
-              TiktokUrl: cloudVoter.tiktok_url || parsedNotes.tiktok_url || '',
-              ManualFamilyLinks: Array.isArray(parsedNotes.manual_family_links) ? parsedNotes.manual_family_links : [],
-              IgnoredFamilyIDs: Array.isArray(parsedNotes.ignored_family_ids) ? parsedNotes.ignored_family_ids : [],
-              CustomFamily: Array.isArray(parsedNotes.custom_family) ? parsedNotes.custom_family : [],
-              CommunityRoles: Array.isArray(parsedNotes.community_roles) ? parsedNotes.community_roles : [],
-              Profession: parsedNotes.profession || '',
-              WorkplaceName: parsedNotes.workplace_name || '',
-              ProfessionTitle: parsedNotes.profession_title || '',
-              ProfessionalUnion: parsedNotes.professional_union || '',
-              ProfessionalCampaignRole: parsedNotes.professional_campaign_role || '',
-              ProfessionalVoteReach: parsedNotes.professional_vote_reach ? Number(parsedNotes.professional_vote_reach) : '',
-              ProfessionalDemandNote: parsedNotes.professional_demand_note || '',
-              GenZTag: parsedNotes.genz_tag || '',
-              SeniorMobilityTag: parsedNotes.senior_mobility_tag || '',
-              ImportBatchID: cloudVoter.import_batch_id || parsedNotes.import_batch_id || '',
-              VoterRollVersion: cloudVoter.voter_roll_version || parsedNotes.voter_roll_version || '',
-              RecordSource: cloudVoter.record_source || parsedNotes.record_source || '',
-              PollingLocation: parsedNotes.polling_location || '',
-              HasVoted: parsedNotes.has_voted !== undefined ? !!parsedNotes.has_voted : !!cloudVoter.voted_status,
-              VotedAt: parsedNotes.voted_at || cloudVoter.voted_time || '',
-              Active: true
-            };
+            const mappedVoter = mapCloudVoterToLocal(cloudVoter);
+            if (!mappedVoter) return;
 
             const compKey = `${mappedVoter.TenantID}_${mappedVoter.VoterID}`;
             const idx = voterIdxMap.get(compKey);
@@ -9480,21 +9653,28 @@
               if (!mappedVoter.HouseholdID && state.voters[idx].HouseholdID) {
                 mappedVoter.HouseholdID = state.voters[idx].HouseholdID;
               }
-              if (parsedNotes.has_voted === undefined && !cloudVoter.voted_status && state.voters[idx].HasVoted) {
+              if (state.voters[idx].HasVoted && !mappedVoter.HasVoted) {
                 mappedVoter.HasVoted = state.voters[idx].HasVoted;
                 mappedVoter.VotedAt = state.voters[idx].VotedAt || '';
               }
               state.voters[idx] = { ...state.voters[idx], ...mappedVoter };
+              if (typeof _voterIdMap !== 'undefined' && _voterIdMap) _voterIdMap.set(String(mappedVoter.VoterID), state.voters[idx]);
             } else {
               voterIdxMap.set(compKey, state.voters.length);
               state.voters.push(mappedVoter);
+              if (typeof _voterIdMap !== 'undefined' && _voterIdMap) _voterIdMap.set(String(mappedVoter.VoterID), mappedVoter);
             }
-          });
-        }
 
-        _voterIndexDirty = true;
-        sanitizeCorruptedHouseholdsAndLinks(true);
-        saveState();
+            // In-place update if this voter is rendered on screen
+            updateVoterInPlaceInDom(mappedVoter);
+          });
+
+          _voterIndexDirty = true;
+          if (shouldFullFetch || vData.length > 50) {
+            sanitizeCorruptedHouseholdsAndLinks(true);
+          }
+          saveState();
+        }
         _lastSuccessfulSyncTimestamp = Date.now();
 
         // Update Live Status Badges
@@ -9532,7 +9712,7 @@
           const activeEl = document.activeElement;
           const isUserTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
 
-          if (!modalActive && !isUserTyping) {
+          if (shouldFullFetch && !modalActive && !isUserTyping) {
             const activeSec = document.querySelector('.view-section.active');
             const activeId = activeSec ? activeSec.id : '';
             if (activeId === 'viewVoters') renderVotersList();
@@ -9593,8 +9773,7 @@
         _realtimeClient = window.supabase.createClient(url, key);
         _realtimeChannel = _realtimeClient.channel('vrm_public_realtime')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'voters' }, (payload) => {
-            console.log('⚡ [Realtime WebSocket] Voters updated on cloud:', payload.eventType);
-            debouncedBackgroundSync(500);
+            handleRealtimeVoterChange(payload);
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
             console.log('⚡ [Realtime WebSocket] Users updated on cloud:', payload.eventType);
@@ -9618,15 +9797,14 @@
 
     function startHeartbeatSync() {
       if (_heartbeatInterval) clearInterval(_heartbeatInterval);
-      // Active background heartbeat every 10 seconds while tab is active
+      // Active background heartbeat every 30 seconds while tab is active (Lightweight Delta Check)
       _heartbeatInterval = setInterval(() => {
         if (document.visibilityState === 'visible') {
-          // If 8+ seconds have passed since last sync, run background sync
-          if (Date.now() - _lastSuccessfulSyncTimestamp >= 8000) {
+          if (Date.now() - _lastSuccessfulSyncTimestamp >= 25000) {
             syncSupabaseData(false);
           }
         }
-      }, 10000);
+      }, 30000);
     }
 
     function initSupabaseRealtimeEngine() {
@@ -9636,17 +9814,17 @@
       setupSupabaseWebsocket();
       startHeartbeatSync();
 
-      // Instantly sync when switching back to tab or unlocking mobile phone
+      // Lightweight Delta Sync when switching back to tab or unlocking mobile phone
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-          if (Date.now() - _lastSuccessfulSyncTimestamp >= 2500) {
+          if (Date.now() - _lastSuccessfulSyncTimestamp >= 15000) {
             syncSupabaseData(false);
           }
         }
       });
 
       window.addEventListener('focus', () => {
-        if (Date.now() - _lastSuccessfulSyncTimestamp >= 2500) {
+        if (Date.now() - _lastSuccessfulSyncTimestamp >= 15000) {
           syncSupabaseData(false);
         }
       });
@@ -9818,6 +9996,7 @@
         address: houseAddress,
         voted_status: !!v.HasVoted,
         voted_time: v.VotedAt || null,
+        updated_at: new Date().toISOString(),
         notes: metadataNotes
       };
     }
@@ -9825,6 +10004,7 @@
     // Push new or updated single voter to Supabase Cloud
     async function pushVoterToSupabase(v) {
       if (!v || !v.VoterID) return false;
+      if (typeof markVoterLocallyEdited === 'function') markVoterLocallyEdited(v.VoterID);
       const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
       const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
       if (!url || !key) return false;
@@ -14871,7 +15051,7 @@
                   <span onclick="viewVoterProfile('${v.VoterID}')" style="font-weight: 800; font-size: 14px; color: #0f172a; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block;">
                     ${esc(v.Name)}
                   </span>
-                  ${isSureVote ? '<span style="width: 6.5px; height: 6.5px; border-radius: 50%; background: #22c55e; display: inline-block; flex-shrink: 0;"></span>' : ''}
+                  ${isSureVote ? `<span id="voterCardSureDot_${v.VoterID}" style="width: 6.5px; height: 6.5px; border-radius: 50%; background: #22c55e; display: inline-block; flex-shrink: 0;"></span>` : `<span id="voterCardSureDot_${v.VoterID}" style="width: 6.5px; height: 6.5px; border-radius: 50%; background: #22c55e; display: none; flex-shrink: 0;"></span>`}
                   ${v.IsInfluencer ? '<span title="VIP Influencer" style="font-size: 11px; flex-shrink: 0;">🌟</span>' : ''}
                   ${(v.CommunityRoles && v.CommunityRoles.length) ? `
                     <span class="badge" style="background: #eff6ff; color: #1e3a8a; border: 1px solid #bfdbfe; font-size: 9.5px; font-weight: 800; padding: 1px 5px; border-radius: 4px; flex-shrink: 0;" title="${esc(v.CommunityRoles.map(r => r.role + ': ' + r.groupName).join(', '))}">
@@ -14895,7 +15075,7 @@
             </div>
 
             <!-- Top-Right Sure Vote Button / Badge -->
-            <div style="flex-shrink: 0;">
+            <div id="voterCardSureWrap_${v.VoterID}" style="flex-shrink: 0;">
               ${isSureVote ? `
                 <button type="button" onclick="toggleSureVote('${v.VoterID}')" style="background: #15803d; color: #ffffff; border: none; border-radius: 16px; padding: 4.5px 9px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 3.5px; cursor: pointer; box-shadow: 0 1px 4px rgba(21, 128, 61, 0.25); white-space: nowrap;" title="पक्का मत (क्लिक गरी परिवर्तन गर्नुहोस्)">
                   <span style="font-size: 11px;">🛡️</span> <span>पक्का मत</span> <span style="font-weight: 900;">✓</span>
@@ -15013,7 +15193,7 @@
 
           <!-- FOURTH ROW: Full-Width Support Stance Bar -->
           <div style="margin-bottom: 9px;">
-            <div onclick="quickCycleSupportTier('${v.VoterID}')" style="background: ${stanceBg}; color: #ffffff; border-radius: 10px; padding: 7px 11px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 800; cursor: pointer; box-shadow: 0 1px 5px ${stanceGlow};" title="समर्थन अवस्था परिवर्तन">
+            <div id="voterCardSupportBar_${v.VoterID}" onclick="quickCycleSupportTier('${v.VoterID}')" style="background: ${stanceBg}; color: #ffffff; border-radius: 10px; padding: 7px 11px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 800; cursor: pointer; box-shadow: 0 1px 5px ${stanceGlow};" title="समर्थन अवस्था परिवर्तन">
               <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${stanceLabel}</span>
               <span style="font-size: 10px; opacity: 0.85; margin-left: 6px; flex-shrink: 0;">∨</span>
             </div>
@@ -15022,15 +15202,17 @@
           <!-- FIFTH ROW: Three Bottom Action Buttons -->
           <div style="display: grid; grid-template-columns: 1.25fr 0.9fr 1fr; gap: 5px; align-items: center;">
             <!-- Left: Contact Status Toggle -->
-            ${v.ContactStatus === 'Contacted' ? `
-              <button type="button" onclick="toggleVoterContactStatus('${v.VoterID}')" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; border-radius: 8px; padding: 6.5px 4px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; width: 100%; white-space: nowrap; box-sizing: border-box;" title="सम्पर्क अवस्था">
-                <span>✓ Contacted</span> <span style="font-size: 9px;">🔄</span>
-              </button>
-            ` : `
-              <button type="button" onclick="toggleVoterContactStatus('${v.VoterID}')" style="background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; border-radius: 8px; padding: 6.5px 4px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; width: 100%; white-space: nowrap; box-sizing: border-box;" title="सम्पर्क अवस्था">
-                <span>👤 Uncontacted</span> <span style="font-size: 9px;">🔄</span>
-              </button>
-            `}
+            <div id="voterCardContactWrap_${v.VoterID}" style="min-width: 0;">
+              ${v.ContactStatus === 'Contacted' ? `
+                <button type="button" onclick="toggleVoterContactStatus('${v.VoterID}')" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; border-radius: 8px; padding: 6.5px 4px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; width: 100%; white-space: nowrap; box-sizing: border-box;" title="सम्पर्क अवस्था">
+                  <span>✓ Contacted</span> <span style="font-size: 9px;">🔄</span>
+                </button>
+              ` : `
+                <button type="button" onclick="toggleVoterContactStatus('${v.VoterID}')" style="background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; border-radius: 8px; padding: 6.5px 4px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; width: 100%; white-space: nowrap; box-sizing: border-box;" title="सम्पर्क अवस्था">
+                  <span>👤 Uncontacted</span> <span style="font-size: 9px;">🔄</span>
+                </button>
+              `}
+            </div>
 
             <!-- Middle: View Profile -->
             <button type="button" onclick="viewVoterProfile('${v.VoterID}')" style="background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; border-radius: 8px; padding: 6.5px 5px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; width: 100%; white-space: nowrap; box-sizing: border-box;" title="विवरण">
@@ -15050,6 +15232,8 @@
     async function toggleSureVote(voterId) {
       const v = (typeof getVoterById === 'function' ? getVoterById(voterId) : null) || state.voters.find(x => x.VoterID === voterId);
       if (!v) return;
+      if (typeof markVoterLocallyEdited === 'function') markVoterLocallyEdited(voterId);
+
       const wasSure = (v.SupportTier === 'solid') || (v.SelfReportedResponse === 'Support');
       const isNowSure = !wasSure;
       if (wasSure) {
@@ -15062,42 +15246,8 @@
         showToast(`🛡️ ${v.Name} लाई 'पक्का मत (Sure Vote)' मा दर्ता गरियो!`, 'success');
       }
 
-      // Optimistic In-Place Card Update
-      const card = document.getElementById('voterCard_' + voterId) || document.querySelector('[data-voter-id="' + voterId + '"]');
-      if (card) {
-        const sureWrap = card.querySelector('div[style*="flex-shrink: 0"]') || card.querySelector('button[onclick*="toggleSureVote"]')?.parentElement;
-        if (sureWrap) {
-          sureWrap.innerHTML = isNowSure ? `
-            <button type="button" onclick="toggleSureVote('${v.VoterID}')" style="background: #15803d; color: #ffffff; border: none; border-radius: 16px; padding: 4.5px 9px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 3.5px; cursor: pointer; box-shadow: 0 1px 4px rgba(21, 128, 61, 0.25); white-space: nowrap;" title="पक्का मत (क्लिक गरी परिवर्तन गर्नुहोस्)">
-              <span style="font-size: 11px;">🛡️</span> <span>पक्का मत</span> <span style="font-weight: 900;">✓</span>
-            </button>
-          ` : `
-            <button type="button" onclick="toggleSureVote('${v.VoterID}')" style="background: #ffffff; color: #64748b; border: 1px solid #cbd5e1; border-radius: 16px; padding: 4px 8px; font-weight: 700; font-size: 11px; display: inline-flex; align-items: center; gap: 3.5px; cursor: pointer; white-space: nowrap;" title="क्लिक गरी पक्का मत बनाउनुहोस्">
-              <span style="font-size: 11px;">🛡️</span> <span>+ पक्का मत</span>
-            </button>
-          `;
-        }
-        const bar = card.querySelector('div[onclick*="quickCycleSupportTier"]');
-        const tier = typeof SUPPORT_TIERS !== 'undefined' ? SUPPORT_TIERS[v.SupportTier] : null;
-        if (bar && tier) {
-          bar.style.background = tier.bg;
-          bar.style.boxShadow = `0 1px 5px ${tier.glow || 'rgba(0,0,0,0.2)'}`;
-          bar.innerHTML = `<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${tier.icon} ${tier.label}</span><span style="font-size: 10px; opacity: 0.85; margin-left: 6px; flex-shrink: 0;">∨</span>`;
-        }
-      }
-
-      // Optimistic In-Place Table Row Update
-      const row = document.getElementById('voterRow_' + voterId) || document.querySelector('tr[data-voter-id="' + voterId + '"]');
-      if (row) {
-        const tier = typeof SUPPORT_TIERS !== 'undefined' ? SUPPORT_TIERS[v.SupportTier] : null;
-        const badgeEl = row.querySelector('.badge[onclick*="quickCycleSupportTier"]');
-        if (badgeEl && tier) {
-          badgeEl.style.background = tier.bg;
-          badgeEl.style.color = tier.color;
-          badgeEl.style.border = `1.5px solid ${tier.border}`;
-          badgeEl.innerHTML = `${tier.icon} ${tier.label}`;
-        }
-      }
+      // Instant In-Place Card and Table updates
+      updateVoterInPlaceInDom(v);
 
       // Optimistic Math updates for top Pill Badges
       const pSolid = document.getElementById('pillCountSolid');
@@ -18279,44 +18429,15 @@
     async function toggleVoterContactStatus(id, activeTab = '') {
       const v = (typeof getVoterById === 'function' ? getVoterById(id) : null) || state.voters.find(x => x.VoterID === id);
       if (!v) return;
+      if (typeof markVoterLocallyEdited === 'function') markVoterLocallyEdited(id);
+
       const isNowContacted = v.ContactStatus !== 'Contacted';
       v.ContactStatus = isNowContacted ? 'Contacted' : 'Not Contacted';
 
-      // 1. Optimistic In-Place Card Update
-      const card = document.getElementById('voterCard_' + id) || document.querySelector('[data-voter-id="' + id + '"]');
-      if (card) {
-        const contactBtn = card.querySelector('button[onclick*="toggleVoterContactStatus"]');
-        if (contactBtn) {
-          if (isNowContacted) {
-            contactBtn.style.background = '#ecfdf5';
-            contactBtn.style.border = '1px solid #a7f3d0';
-            contactBtn.style.color = '#047857';
-            contactBtn.innerHTML = '<span>✓ Contacted</span> <span style="font-size: 9px;">🔄</span>';
-          } else {
-            contactBtn.style.background = '#f8fafc';
-            contactBtn.style.border = '1px solid #e2e8f0';
-            contactBtn.style.color = '#475569';
-            contactBtn.innerHTML = '<span>👤 Uncontacted</span> <span style="font-size: 9px;">🔄</span>';
-          }
-        }
-      }
+      // Instant In-Place Card and Table updates
+      updateVoterInPlaceInDom(v);
 
-      // 2. Optimistic In-Place Table Row Update
-      const row = document.getElementById('voterRow_' + id) || document.querySelector('tr[data-voter-id="' + id + '"]');
-      if (row) {
-        const contactBadge = row.querySelector('.badge[onclick*="toggleVoterContactStatus"]');
-        if (contactBadge) {
-          if (isNowContacted) {
-            contactBadge.className = 'badge badge-contacted';
-            contactBadge.innerHTML = '<span>🟢</span> <span>भेटिएको</span> <span style="font-size: 9.5px; opacity: 0.6;">🔄</span>';
-          } else {
-            contactBadge.className = 'badge badge-notcontacted';
-            contactBadge.innerHTML = '<span>⚪</span> <span>भेट्न बाँकी</span> <span style="font-size: 9.5px; opacity: 0.6;">🔄</span>';
-          }
-        }
-      }
-
-      // 3. Update Unvisited pill count with quick math
+      // Update Unvisited pill count with quick math
       const pUnvisited = document.getElementById('pillCountUnvisited');
       if (pUnvisited) {
         let cur = parseInt(pUnvisited.textContent, 10) || 0;
@@ -25740,6 +25861,8 @@
     async function quickCycleSupportTier(voterId, activeTab = '') {
       const v = (typeof getVoterById === 'function' ? getVoterById(voterId) : null) || state.voters.find(x => x.VoterID === voterId);
       if (!v) return;
+      if (typeof markVoterLocallyEdited === 'function') markVoterLocallyEdited(voterId);
+
       const curTier = getSupportTier(v).key;
       const order = ['solid', 'lean', 'swing', 'opponent_lean', 'hard_opponent'];
       const nextIdx = (order.indexOf(curTier) + 1) % order.length;
@@ -25747,28 +25870,8 @@
 
       const tier = SUPPORT_TIERS[v.SupportTier] || { icon: '⚪', label: 'तटस्थ', bg: '#f1f5f9', color: '#334155', border: '#cbd5e1' };
 
-      // 1. In-place card bar update
-      const card = document.getElementById('voterCard_' + voterId) || document.querySelector('[data-voter-id="' + voterId + '"]');
-      if (card) {
-        const bar = card.querySelector('div[onclick*="quickCycleSupportTier"]');
-        if (bar) {
-          bar.style.background = tier.bg;
-          bar.style.boxShadow = `0 1px 5px ${tier.glow || 'rgba(0,0,0,0.2)'}`;
-          bar.innerHTML = `<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${tier.icon} ${tier.label}</span><span style="font-size: 10px; opacity: 0.85; margin-left: 6px; flex-shrink: 0;">∨</span>`;
-        }
-      }
-
-      // 2. In-place table row update
-      const row = document.getElementById('voterRow_' + voterId) || document.querySelector('tr[data-voter-id="' + voterId + '"]');
-      if (row) {
-        const badgeEl = row.querySelector('.badge[onclick*="quickCycleSupportTier"]');
-        if (badgeEl) {
-          badgeEl.style.background = tier.bg;
-          badgeEl.style.color = tier.color;
-          badgeEl.style.border = `1px solid ${tier.border}`;
-          badgeEl.innerHTML = `${tier.icon} ${tier.label}`;
-        }
-      }
+      // Instant In-Place Card and Table updates
+      updateVoterInPlaceInDom(v);
 
       // 3. Update top Pill Badges with instant math
       const pSolid = document.getElementById('pillCountSolid');
