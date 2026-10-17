@@ -4573,16 +4573,37 @@
                     </select>
                   </div>
                   <div class="voter-bs-field">
+                    <label class="voter-bs-label">💼 पेशा / व्यवसाय (Profession)</label>
+                    <select id="voterProfessionFilterMobile" onchange="syncVoterFiltersFromMobile()" style="font-weight: 700; color: #0f766e;">
+                      <option value="">सबै पेशा (All Professions)</option>
+                      <option value="कृषक">🌾 कृषक / पशुपालन</option>
+                      <option value="शिक्षक">🎓 शिक्षक / प्राध्यापक</option>
+                      <option value="व्यापारी">🏪 व्यापारी / व्यवसायी</option>
+                      <option value="पर्यटन">🏔️ पर्यटन / होटल / होमस्टे</option>
+                      <option value="चालक">🚌 यातायात / चालक</option>
+                      <option value="सरकारी">🏛️ सरकारी / निजामती सेवा</option>
+                      <option value="स्वास्थ्यकर्मी">⚕️ स्वास्थ्यकर्मी / नर्स</option>
+                      <option value="पूर्व सैनिक">🎖️ पूर्व सैनिक / प्रहरी</option>
+                      <option value="निर्माण">👷 निर्माण / मिस्त्री / श्रमिक</option>
+                      <option value="विद्यार्थी">📚 विद्यार्थी / युवा</option>
+                      <option value="गृहिणी">🏡 गृहिणी</option>
+                      <option value="वैदेशिक रोजगारी">✈️ वैदेशिक रोजगारी</option>
+                    </select>
+                  </div>
+                  <div class="voter-bs-field">
                     <label class="voter-bs-label">🏛️ सामुदायिक संस्था (Community Role)</label>
                     <select id="voterCommunityFilterMobile" onchange="syncVoterFiltersFromMobile()" style="font-weight: 700; color: #1e3a8a;">
                       <option value="">सबै (All)</option>
                       <option value="any">👑 पद भएका पदाधिकारी मात्र</option>
+                      <option value="president">⭐ अध्यक्ष / प्रमुख मात्र</option>
                       <option value="tole_committee">🏘️ टोल सुधार समिति</option>
                       <option value="aama_samuha">🌸 महिला / आमा समूह</option>
                       <option value="youth_club">⚽ युवा क्लब</option>
                       <option value="forest_ug">🌲 वन उपभोक्ता समिति</option>
                       <option value="water_wusc">💧 खानेपानी समिति</option>
                       <option value="coop">💰 सहकारी संस्था</option>
+                      <option value="smc_pta">🏫 विद्यालय व्यवस्थापन समिति</option>
+                      <option value="gumba_guthi">☸️ गुम्बा / मन्दिर / गुठी</option>
                     </select>
                   </div>
                   <div class="voter-bs-field">
@@ -5998,7 +6019,7 @@
 
             <!-- SUB-TAB 1: COMPOSE & TARGET MASS SMS -->
             <div id="smsPaneCompose" style="display: block;">
-              <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 20px;">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 20px;">
                 
                 <!-- Left Column: Target Audience Filters -->
                 <div style="background: var(--slate-50); border: 1px solid var(--slate-200); padding: 18px; border-radius: var(--radius-md);">
@@ -7222,24 +7243,6 @@
           CreatedAt: '2026-10-01'
         },
         {
-          TenantID: 'TNT_GOKARNESHWOR',
-          TenantName: 'नेपाली कांग्रेस गोकर्णेश्वर नगर कार्यसमिति',
-          PalikaName: 'गोकर्णेश्वर नगरपालिका',
-          Party: 'NC',
-          Slug: 'gokarneshwor',
-          AdminUsername: 'gokarneshwor_admin',
-          AdminPassword: 'admin123',
-          ContactPerson: 'Gokarneshwor Election Coordinator',
-          Phone: '9841000001',
-          Status: 'Active',
-          PlanType: 'Unlimited Palika Pro',
-          FeeMonthly: 'Rs. 25,000',
-          SmsCredits: 5000,
-          SmsUsed: 0,
-          ExpiresAt: '2027-01-01',
-          CreatedAt: '2026-10-01'
-        },
-        {
           TenantID: 'TNT_MELAMCHI',
           TenantName: 'नेपाली कांग्रेस मेलम्ची नगर कार्यसमिति',
           PalikaName: 'मेलम्ची नगरपालिका',
@@ -8106,19 +8109,146 @@
       setupSuperAdminScreen();
     }
 
-    // STRICT TENANT DATA ISOLATION ENGINE
+    // STRICT TENANT & WARD DATA ISOLATION ENGINE
+    function getActiveTenantId() {
+      if (!currentUser) return (state.settings && state.settings.CURRENT_TENANT_ID) || 'TNT_HELAMBU';
+      if (currentUser.Role === 'Super Admin') return currentUser.TenantID || 'ALL';
+      return currentUser.TenantID || (state.settings && state.settings.CURRENT_TENANT_ID) || 'TNT_HELAMBU';
+    }
+
+    function isWardRestrictedUser() {
+      return !!(currentUser &&
+        currentUser.Role !== 'Super Admin' &&
+        currentUser.Role !== 'Palika Admin' &&
+        currentUser.Role !== 'Municipality Coordinator' &&
+        currentUser.Ward &&
+        currentUser.Ward !== 'All');
+    }
+
     function getScopedVoters() {
       if (!state.voters || !Array.isArray(state.voters)) return [];
       if (!currentUser) return [];
-      // Super Admin inspecting all or specific tenant
+      let list = state.voters;
       if (currentUser.Role === 'Super Admin') {
-        if (currentUser.TenantID === 'ALL' || !currentUser.TenantID) return state.voters;
-        return state.voters.filter(v => (v.TenantID || 'TNT_HELAMBU') === currentUser.TenantID);
+        if (currentUser.TenantID && currentUser.TenantID !== 'ALL') {
+          list = list.filter(v => (v.TenantID || 'TNT_HELAMBU') === currentUser.TenantID);
+        }
+        return list;
       }
-      // Client Tenant Admin or worker strictly isolated to their own tenant
       const activeTenantId = currentUser.TenantID;
       if (!activeTenantId) return [];
-      return state.voters.filter(v => (v.TenantID || 'TNT_HELAMBU') === activeTenantId);
+      list = list.filter(v => (v.TenantID || 'TNT_HELAMBU') === activeTenantId);
+      if (isWardRestrictedUser()) {
+        list = list.filter(v => String(v.Ward || v.WardNo || '') === String(currentUser.Ward));
+      }
+      return list;
+    }
+
+    function getScopedHouseholds() {
+      if (!state.households || !Array.isArray(state.households)) return [];
+      if (!currentUser) return [];
+      const activeTenantId = getActiveTenantId();
+      const wardRestricted = isWardRestrictedUser();
+      return state.households.filter(h => {
+        if (activeTenantId !== 'ALL' && (h.TenantID || 'TNT_HELAMBU') !== activeTenantId) return false;
+        if (wardRestricted && String(h.WardNo || h.Ward || '') !== String(currentUser.Ward)) return false;
+        return true;
+      });
+    }
+
+    function getScopedUsers() {
+      if (!state.users || !Array.isArray(state.users)) return [];
+      if (!currentUser) return [];
+      const activeTenantId = getActiveTenantId();
+      return state.users.filter(u => {
+        if (u.Role === 'Super Admin') return currentUser.Role === 'Super Admin';
+        if (activeTenantId !== 'ALL' && (u.TenantID || 'TNT_HELAMBU') !== activeTenantId) return false;
+        return true;
+      });
+    }
+
+    function getScopedVisits() {
+      if (!state.visits || !Array.isArray(state.visits)) return [];
+      if (!currentUser) return [];
+      const activeTenantId = getActiveTenantId();
+      const wardRestricted = isWardRestrictedUser();
+      return state.visits.filter(vis => {
+        if (vis.TenantID && activeTenantId !== 'ALL' && vis.TenantID !== activeTenantId) return false;
+        const v = getVoterByIdFast(vis.VoterID);
+        if (v) {
+          if (activeTenantId !== 'ALL' && (v.TenantID || 'TNT_HELAMBU') !== activeTenantId) return false;
+          if (wardRestricted && String(v.Ward || v.WardNo || '') !== String(currentUser.Ward)) return false;
+        } else if (activeTenantId !== 'ALL' && activeTenantId !== 'TNT_HELAMBU' && !vis.TenantID) {
+          return false;
+        }
+        return true;
+      });
+    }
+
+    function getScopedFollowups() {
+      if (!state.followups || !Array.isArray(state.followups)) return [];
+      if (!currentUser) return [];
+      const activeTenantId = getActiveTenantId();
+      const wardRestricted = isWardRestrictedUser();
+      return state.followups.filter(f => {
+        if (f.TenantID && activeTenantId !== 'ALL' && f.TenantID !== activeTenantId) return false;
+        const v = getVoterByIdFast(f.VoterID);
+        if (v) {
+          if (activeTenantId !== 'ALL' && (v.TenantID || 'TNT_HELAMBU') !== activeTenantId) return false;
+          if (wardRestricted && String(v.Ward || v.WardNo || '') !== String(currentUser.Ward)) return false;
+        } else if (activeTenantId !== 'ALL' && activeTenantId !== 'TNT_HELAMBU' && !f.TenantID) {
+          return false;
+        }
+        return true;
+      });
+    }
+
+    function getScopedIssues() {
+      if (!state.issues || !Array.isArray(state.issues)) return [];
+      if (!currentUser) return [];
+      const activeTenantId = getActiveTenantId();
+      const wardRestricted = isWardRestrictedUser();
+      return state.issues.filter(i => {
+        if (activeTenantId !== 'ALL' && (i.TenantID || 'TNT_HELAMBU') !== activeTenantId) return false;
+        if (wardRestricted && String(i.WardNo || i.Ward || '') !== String(currentUser.Ward)) return false;
+        return true;
+      });
+    }
+
+    function getScopedBooths() {
+      if (!state.booths || !Array.isArray(state.booths)) return [];
+      if (!currentUser) return [];
+      const activeTenantId = getActiveTenantId();
+      const wardRestricted = isWardRestrictedUser();
+      return state.booths.filter(b => {
+        if (b.TenantID && activeTenantId !== 'ALL' && b.TenantID !== activeTenantId) return false;
+        if (wardRestricted && String(b.WardNo || b.Ward || '') !== String(currentUser.Ward)) return false;
+        return true;
+      });
+    }
+
+    function getScopedPublicSubs() {
+      if (!state.publicSubs || !Array.isArray(state.publicSubs)) return [];
+      if (!currentUser) return [];
+      const activeTenantId = getActiveTenantId();
+      const wardRestricted = isWardRestrictedUser();
+      return state.publicSubs.filter(p => {
+        if (activeTenantId !== 'ALL' && (p.TenantID || 'TNT_HELAMBU') !== activeTenantId) return false;
+        if (wardRestricted && String(p.Ward || p.WardNo || '') !== String(currentUser.Ward)) return false;
+        return true;
+      });
+    }
+
+    function getScopedCommunityGroups() {
+      if (!state.communityGroups || !Array.isArray(state.communityGroups)) return [];
+      if (!currentUser) return [];
+      const activeTenantId = getActiveTenantId();
+      const wardRestricted = isWardRestrictedUser();
+      return state.communityGroups.filter(g => {
+        if (activeTenantId !== 'ALL' && (g.TenantID || 'TNT_HELAMBU') !== activeTenantId) return false;
+        if (wardRestricted && String(g.Ward || g.WardNo || '') !== String(currentUser.Ward)) return false;
+        return true;
+      });
     }
 
     // ==========================================
@@ -8581,7 +8711,7 @@
       );
     }
 
-    function handleChangePasswordSubmit(e) {
+    async function handleChangePasswordSubmit(e) {
       e.preventDefault();
       const form = e.target;
       const formData = new FormData(form);
@@ -8597,7 +8727,7 @@
 
       if (currentUser && currentUser.Role === 'Super Admin') {
         const expected = (state.settings && state.settings.SUPER_ADMIN_PASSWORD) || 'admin123';
-        if (!verifySecret(curPass, expected)) {
+        if (!(await verifySecret(curPass, expected))) {
           showToast('हालको Super Admin पासवर्ड मिलेन।', 'error');
           return;
         }
@@ -8611,11 +8741,13 @@
       // Client Tenant Admin Password Change
       const tenant = (state.tenants || []).find(t => t.TenantID === (currentUser && currentUser.TenantID));
       if (tenant) {
-        if (!verifySecret(curPass, tenant.AdminPassword)) {
+        if (!(await verifySecret(curPass, tenant.AdminPassword))) {
           showToast('हालको पासवर्ड मिलेन।', 'error');
           return;
         }
         tenant.AdminPassword = newPass;
+        const matchingUser = (state.users || []).find(u => u.TenantID === tenant.TenantID && u.Role === 'Palika Admin');
+        if (matchingUser) matchingUser.Password = newPass;
         saveState();
         saveTenantsToCloud();
         closeModal();
@@ -8667,9 +8799,14 @@
       // Offer WhatsApp Confirmation Invite
       const phone = (t.Phone || '').replace(/[^0-9]/g, '');
       if (phone) {
+        const slug = t.Slug || (t.PalikaName ? t.PalikaName.toLowerCase().replace(/[^a-z0-9]/g, '') : 'helambu');
+        const baseUrl = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
+          ? (window.location.origin + window.location.pathname)
+          : 'https://helambu1.vercel.app/';
+        const portalLink = `${baseUrl}?palika=${encodeURIComponent(slug)}`;
         const text = `नमस्ते ${t.ContactPerson || t.PalikaName} ज्यू!\n\n` +
           `बधाई छ, तपाईंको निर्वाचन कमान्ड खाता (${t.PalikaName}) Super Admin द्वारा स्वीकृत (Approved) भएको छ।\n\n` +
-          `🌐 लगइन पोर्टल: https://helambu1.vercel.app\n` +
+          `🌐 लगइन पोर्टल: ${portalLink}\n` +
           `📱 User ID: ${t.Phone}\n` +
           `🔑 Password: ${t.AdminPassword}\n\n` +
           `अब तपाईंले लगइन गरी आफ्ना मतदाता र चुनावी व्यवस्थापन सुरु गर्न सक्नुहुनेछ।`;
@@ -8732,7 +8869,10 @@
       const t = (state.tenants || []).find(x => x.TenantID === tenantId);
       if (t) {
         t.AdminPassword = newPass;
+        const matchingUser = (state.users || []).find(u => u.TenantID === t.TenantID && u.Role === 'Palika Admin');
+        if (matchingUser) matchingUser.Password = newPass;
         saveState();
+        saveTenantsToCloud();
         logActivity('user_manage', `👑 Super Admin ले ${t.PalikaName} (${t.Phone}) को पासवर्ड रिसेट गर्नुभयो।`, {
           Scope: 'SUPER_ADMIN',
           TenantID: 'SUPER_ADMIN_HQ',
@@ -8745,11 +8885,16 @@
         // Optional WhatsApp Notice
         const phone = (t.Phone || '').replace(/[^0-9]/g, '');
         if (phone) {
+          const slug = t.Slug || (t.PalikaName ? t.PalikaName.toLowerCase().replace(/[^a-z0-9]/g, '') : 'helambu');
+          const baseUrl = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
+            ? (window.location.origin + window.location.pathname)
+            : 'https://helambu1.vercel.app/';
+          const portalLink = `${baseUrl}?palika=${encodeURIComponent(slug)}`;
           openConfirmModal(
             '📲 WhatsApp मा पासवर्ड पठाउने?',
             `के प्रयोगकर्ता (${t.Phone}) लाई WhatsApp मा नयाँ पासवर्ड पठाइदिने?`,
             () => {
-              const text = `नमस्ते ${t.ContactPerson || t.PalikaName} ज्यू, तपाईंको निर्वाचन पोर्टलको पासवर्ड रिसेट गरिएको छ:\n\n📱 User ID: ${t.Phone}\n🔑 नयाँ पासवर्ड: ${newPass}\n\nलगइन गर्नुहोस्: https://helambu1.vercel.app`;
+              const text = `नमस्ते ${t.ContactPerson || t.PalikaName} ज्यू, तपाईंको निर्वाचन पोर्टलको पासवर्ड रिसेट गरिएको छ:\n\n📱 User ID: ${t.Phone}\n🔑 नयाँ पासवर्ड: ${newPass}\n\nलगइन गर्नुहोस्: ${portalLink}`;
               const waUrl = `https://wa.me/${phone.length === 10 ? '977' + phone : phone}?text=${encodeURIComponent(text)}`;
               window.open(waUrl, '_blank');
             },
@@ -8922,12 +9067,13 @@
           }
         }
 
-        // 3. Process Voters with O(1) Map lookup & reconciliation
+        // 3. Process Voters with O(1) Map lookup & tenant-partitioned reconciliation
         if (Array.isArray(vData) && vData.length > 0) {
           const voterIdxMap = new Map();
           state.voters.forEach((v, idx) => {
-            voterIdxMap.set(String(v.VoterID), idx);
-            if (v.OfficialVoterID) voterIdxMap.set(String(v.OfficialVoterID), idx);
+            const tId = v.TenantID || 'TNT_HELAMBU';
+            voterIdxMap.set(`${tId}_${v.VoterID}`, idx);
+            if (v.OfficialVoterID) voterIdxMap.set(`${tId}_${v.OfficialVoterID}`, idx);
           });
 
           vData.forEach(cloudVoter => {
@@ -9004,7 +9150,8 @@
               Active: true
             };
 
-            const idx = voterIdxMap.get(String(mappedVoter.VoterID));
+            const compKey = `${mappedVoter.TenantID}_${mappedVoter.VoterID}`;
+            const idx = voterIdxMap.get(compKey);
             if (idx !== undefined) {
               if ((!mappedVoter.CommunityRoles || !mappedVoter.CommunityRoles.length) && state.voters[idx].CommunityRoles) {
                 mappedVoter.CommunityRoles = state.voters[idx].CommunityRoles;
@@ -9014,7 +9161,7 @@
               }
               state.voters[idx] = { ...state.voters[idx], ...mappedVoter };
             } else {
-              voterIdxMap.set(String(mappedVoter.VoterID), state.voters.length);
+              voterIdxMap.set(compKey, state.voters.length);
               state.voters.push(mappedVoter);
             }
           });
@@ -9406,6 +9553,68 @@
         }
       }
       return totalSynced;
+    }
+
+    // Bulk Upsert pre-built Supabase payloads (used by Super Admin 3-Tier Importer)
+    async function bulkUpsertVoters(supabasePayloads, opts = {}) {
+      if (!Array.isArray(supabasePayloads) || supabasePayloads.length === 0) return { synced: 0 };
+      const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+      const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+      if (!url || !key) return { synced: 0 };
+
+      const chunkSize = opts.batchSize || 200;
+      let totalSynced = 0;
+      const total = supabasePayloads.length;
+      const headers = {
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      };
+
+      for (let i = 0; i < total; i += chunkSize) {
+        const chunk = supabasePayloads.slice(i, i + chunkSize);
+        try {
+          const res = await cloudFetch(`${url}/rest/v1/voters`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(chunk)
+          });
+          if (res.ok) {
+            totalSynced += chunk.length;
+          }
+        } catch (err) {
+          console.warn('bulkUpsertVoters chunk error:', err);
+        }
+        if (typeof opts.onProgress === 'function') {
+          const pct = Math.min(100, Math.round(((i + chunk.length) / total) * 100));
+          opts.onProgress(pct, Math.min(i + chunk.length, total), total);
+        }
+      }
+      return { synced: totalSynced };
+    }
+
+    // Rollback imported batch from Supabase Cloud
+    async function rollbackImportBatchCloud(batchId, tenantId) {
+      if (!batchId) return false;
+      const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+      const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+      if (!url || !key) return false;
+
+      try {
+        const headers = {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`
+        };
+        const res = await cloudFetch(`${url}/rest/v1/voters?import_batch_id=eq.${encodeURIComponent(batchId)}`, {
+          method: 'DELETE',
+          headers
+        });
+        return res.ok;
+      } catch (err) {
+        console.warn('rollbackImportBatchCloud error:', err);
+        return false;
+      }
     }
 
     // Push ALL local voters to Supabase Cloud
@@ -10101,6 +10310,8 @@
         'voters': '👥 मतदाता सूची तथा सम्पर्क विवरण',
         'households': '🏠 घरधुरी तह तथा पारिवारिक नक्सांकन',
         'community': '🏛️ सामुदायिक संघ-संस्था तथा नेतृत्व',
+        'genZ': '🔥 Gen-Z तथा युवा मतदाता कमान्ड (१८–२७ वर्ष)',
+        'seniors': '🧓 ज्येष्ठ नागरिक विशेष कमान्ड (६०+ वर्ष)',
         'visits': '🚶 स्थलगत घरदैलो भेटघाट',
         'followups': '📅 फलो-अप तथा रिमाइन्डर',
         'areas': '🗺️ क्षेत्र, टोल तथा मतदान केन्द्र',
@@ -10339,28 +10550,38 @@
       if (typeof updateGenZNavBadge === 'function') updateGenZNavBadge();
       if (typeof updateSeniorsNavBadge === 'function') updateSeniorsNavBadge();
       const v = getScopedVoters();
+      const scopedHh = getScopedHouseholds();
+      const scopedVis = getScopedVisits();
+      const scopedFol = getScopedFollowups();
+      const scopedIss = getScopedIssues();
+      const scopedBth = getScopedBooths();
+      const scopedPub = getScopedPublicSubs();
+
       const total = v.length;
       const contacted = v.filter(x => x.ContactStatus === 'Contacted').length;
       const notContacted = total - contacted;
       const verified = v.filter(x => x.VerificationStatus === 'Verified').length;
       const pendingVerify = total - verified;
-      const pendingFollow = state.followups.filter(x => x.Status === 'Pending').length;
-      const openIssues = state.issues.filter(x => x.Status !== 'Resolved').length;
-      const publicPending = state.publicSubs.filter(x => x.Status === 'Pending Review').length;
+      const pendingFollow = scopedFol.filter(x => x.Status === 'Pending').length;
+      const openIssues = scopedIss.filter(x => x.Status !== 'Resolved').length;
+      const publicPending = scopedPub.filter(x => x.Status === 'Pending Review').length;
 
       document.getElementById('voterCountBadge').textContent = total;
       document.getElementById('pendingFollowBadge').textContent = pendingFollow;
       document.getElementById('issuesBadge').textContent = openIssues;
       document.getElementById('publicBadge').textContent = publicPending;
 
+      const wardNums = getActivePalikaWardNumbers();
+      const wardLabel = isWardRestrictedUser() ? `Ward ${currentUser.Ward}` : `Across ${wardNums.length || 7} Wards`;
+
       const kpis = [
         { label: 'Total Contacts', val: total, sub: `${contacted} Contacted` },
-        { label: 'Households', val: state.households.length, sub: 'Family Units' },
+        { label: 'Households', val: scopedHh.length, sub: 'Family Units' },
         { label: 'Contacted Rate', val: total ? Math.round((contacted/total)*100) + '%' : '0%', sub: `${notContacted} Pending` },
         { label: 'Verified Contacts', val: verified, sub: `${pendingVerify} Unverified` },
-        { label: 'Field Visits Logged', val: state.visits.length, sub: 'Total Records' },
+        { label: 'Field Visits Logged', val: scopedVis.length, sub: 'Total Records' },
         { label: 'Pending Follow-ups', val: pendingFollow, sub: 'Needs Attention' },
-        { label: 'Active Booths', val: (state.booths || []).length, sub: `Across ${(state.wards || []).length || 7} Wards` },
+        { label: 'Active Booths', val: scopedBth.length, sub: wardLabel },
         { label: 'Open Issues', val: openIssues, sub: 'Operational' }
       ];
 
@@ -10376,20 +10597,32 @@
       renderWardProgressTable();
     }
 
+    // Alias for legacy calls
+    const updateDashboardStats = refreshDashboardMetrics;
+
     function renderWardProgressTable() {
       const tbody = document.getElementById('wardProgressRows');
       if (!tbody) return;
-      const wardNums = getActivePalikaWardNumbers();
+      const allWardNums = getActivePalikaWardNumbers();
+      const wardNums = isWardRestrictedUser()
+        ? allWardNums.filter(w => String(w) === String(currentUser.Ward))
+        : allWardNums;
       const wBadge = document.getElementById('dashboardWardCountBadge');
-      if (wBadge) wBadge.textContent = `${wardNums.length} वडा लाइभ`;
+      if (wBadge) wBadge.textContent = isWardRestrictedUser() ? `वडा ${currentUser.Ward} लाइभ` : `${wardNums.length} वडा लाइभ`;
+
+      const scopedVoters = getScopedVoters();
+      const scopedBooths = getScopedBooths();
+      const scopedIssues = getScopedIssues();
+      const scopedFollowups = getScopedFollowups();
+
       let html = '';
-      for (const w of getActivePalikaWardNumbers()) {
-        const wv = (state.voters || []).filter(v => Number(v.Ward || v.WardNo || 0) === w);
+      for (const w of wardNums) {
+        const wv = scopedVoters.filter(v => Number(v.Ward || v.WardNo || 0) === w);
         const contacted = wv.filter(v => v.ContactStatus === 'Contacted').length;
         const verified = wv.filter(v => v.VerificationStatus === 'Verified').length;
-        const booths = (state.booths || []).filter(b => Number(b.WardNo || b.Ward || 0) === w).length;
-        const issues = (state.issues || []).filter(i => Number(i.WardNo || i.Ward || 0) === w && i.Status !== 'Resolved').length;
-        const followups = (state.followups || []).filter(f => {
+        const booths = scopedBooths.filter(b => Number(b.WardNo || b.Ward || 0) === w).length;
+        const issues = scopedIssues.filter(i => Number(i.WardNo || i.Ward || 0) === w && i.Status !== 'Resolved').length;
+        const followups = scopedFollowups.filter(f => {
           const voter = getVoterByIdFast(f.VoterID);
           return voter && Number(voter.Ward || voter.WardNo || 0) === w && f.Status === 'Pending';
         }).length;
@@ -10646,7 +10879,8 @@
         'areaHierarchyWardSelect',
         'areaMasterWardFilter',
         'toleReportWardFilter',
-        'locTurnoutWardFilter'
+        'locTurnoutWardFilter',
+        'smsFilterWard'
       ];
       selects.forEach(id => {
         const el = document.getElementById(id);
@@ -10661,6 +10895,19 @@
             wardNums.map(wNo => `<option value="${wNo}" ${String(prevVal) === String(wNo) ? 'selected' : ''}>वडा नं. ${wNo}</option>`).join('');
         }
       });
+
+      const teamWardEl = document.getElementById('teamWardFilter');
+      if (teamWardEl) {
+        const prevTeamVal = teamWardEl.value || 'ALL';
+        teamWardEl.innerHTML = '<option value="ALL">सबै वडा</option><option value="All">पालिका तह</option>' +
+          wardNums.map(wNo => `<option value="${wNo}" ${String(prevTeamVal) === String(wNo) ? 'selected' : ''}>वडा ${wNo}</option>`).join('');
+      }
+
+      const csvWardEl = document.getElementById('csvDefaultWard');
+      if (csvWardEl) {
+        const prevCsvVal = csvWardEl.value || '1';
+        csvWardEl.innerHTML = wardNums.map(wNo => `<option value="${wNo}" ${String(prevCsvVal) === String(wNo) ? 'selected' : ''}>Ward ${wNo} (वडा ${wNo})</option>`).join('');
+      }
     }
 
     let currentVoterQuickPill = 'all';
@@ -10752,6 +10999,7 @@
         ['voterVerifyFilter', 'voterVerifyFilterMobile'],
         ['voterSupportFilter', 'voterSupportFilterMobile'],
         ['voterInfluencerFilter', 'voterInfluencerFilterMobile'],
+        ['voterProfessionFilter', 'voterProfessionFilterMobile'],
         ['voterCommunityFilter', 'voterCommunityFilterMobile'],
         ['voterPartyFilter', 'voterPartyFilterMobile']
       ];
@@ -10769,6 +11017,7 @@
         ['voterVerifyFilter', 'voterVerifyFilterMobile'],
         ['voterSupportFilter', 'voterSupportFilterMobile'],
         ['voterInfluencerFilter', 'voterInfluencerFilterMobile'],
+        ['voterProfessionFilter', 'voterProfessionFilterMobile'],
         ['voterCommunityFilter', 'voterCommunityFilterMobile'],
         ['voterPartyFilter', 'voterPartyFilterMobile']
       ];
@@ -10800,6 +11049,7 @@
       if (getVal('voterVerifyFilter', 'voterVerifyFilterMobile')) count++;
       if (getVal('voterSupportFilter', 'voterSupportFilterMobile')) count++;
       if (getVal('voterInfluencerFilter', 'voterInfluencerFilterMobile')) count++;
+      if (getVal('voterProfessionFilter', 'voterProfessionFilterMobile')) count++;
       if (getVal('voterCommunityFilter', 'voterCommunityFilterMobile')) count++;
       if (getVal('voterPartyFilter', 'voterPartyFilterMobile')) count++;
 
@@ -10918,17 +11168,17 @@
 
     function getAllKnownTolesForWard(wardNo) {
       const toleSet = new Set();
-      (state.areas || []).forEach(a => {
+      getScopedAreas().forEach(a => {
         if (!wardNo || String(a.WardNo) === String(wardNo)) {
           if (a.ToleName && !a.ToleName.startsWith('वडा ')) toleSet.add(a.ToleName.trim());
         }
       });
-      (state.households || []).forEach(h => {
+      getScopedHouseholds().forEach(h => {
         if (!wardNo || String(h.WardNo) === String(wardNo)) {
           if (h.Tole && !h.Tole.startsWith('वडा ')) toleSet.add(h.Tole.trim());
         }
       });
-      (state.voters || []).forEach(v => {
+      getScopedVoters().forEach(v => {
         if (!wardNo || String(v.Ward) === String(wardNo)) {
           if (v.Tole && !v.Tole.startsWith('वडा ')) toleSet.add(v.Tole.trim());
         }
@@ -10972,12 +11222,14 @@
       const cleanTole = normalizeToleName(toleName);
       if (!cleanTole || cleanTole.startsWith('वडा ')) return;
       if (!state.areas) state.areas = [];
-      const exists = state.areas.find(a =>
+      const activeTenantId = (currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') ? currentUser.TenantID : 'TNT_HELAMBU';
+      const exists = getScopedAreas().find(a =>
         String(a.WardNo) === String(wardNo) &&
         String(a.ToleName || '').trim().toLowerCase() === cleanTole.toLowerCase()
       );
       if (!exists) {
         state.areas.push({
+          TenantID: activeTenantId,
           AreaID: 'AREA_W' + wardNo + '_' + Date.now().toString(36).toUpperCase().slice(-4),
           WardNo: Number(wardNo) || 1,
           BoothNo: boothNo || 'A',
@@ -10997,7 +11249,7 @@
     function quickAssignHouseholdTole(hhId, newToleRaw) {
       const cleanTole = normalizeToleName(newToleRaw);
       if (!cleanTole) return;
-      const hh = (state.households || []).find(h => h.HouseholdID === hhId);
+      const hh = getScopedHouseholds().find(h => h.HouseholdID === hhId);
       if (!hh) return;
 
       hh.Tole = cleanTole;
@@ -11005,16 +11257,21 @@
       hh.Address = `${cleanTole}${hh.HouseNo ? ' घर नं. ' + hh.HouseNo : ''}`;
 
       let updatedVotersCount = 0;
-      (state.voters || []).forEach(v => {
+      const modifiedVoters = [];
+      getScopedVoters().forEach(v => {
         if (v.HouseholdID === hhId) {
           v.Tole = cleanTole;
           updatedVotersCount++;
+          modifiedVoters.push(v);
         }
       });
 
       ensureToleAreaRecordExists(hh.WardNo, cleanTole, hh.BoothNo || 'A');
       invalidateVoterFastIndex();
       saveState();
+      if (modifiedVoters.length > 0 && typeof pushVotersBatchToSupabase === 'function') {
+        pushVotersBatchToSupabase(modifiedVoters);
+      }
       renderHouseholdsList();
       showToast(`✅ घरधुरी "${hh.PrimaryContactName}" र परिवारका ${updatedVotersCount} जना मतदाता "${cleanTole}" टोलमा आबद्ध भए!`, 'success');
     }
@@ -11035,8 +11292,9 @@
       let hhUpdated = 0;
       let votersUpdated = 0;
       const targetIds = new Set(window.selectedHouseholdIds);
+      const modifiedVoters = [];
 
-      (state.households || []).forEach(hh => {
+      getScopedHouseholds().forEach(hh => {
         if (targetIds.has(hh.HouseholdID)) {
           hh.Tole = cleanTole;
           hh.BlockCluster = cleanTole;
@@ -11046,10 +11304,11 @@
         }
       });
 
-      (state.voters || []).forEach(v => {
+      getScopedVoters().forEach(v => {
         if (v.HouseholdID && targetIds.has(v.HouseholdID)) {
           v.Tole = cleanTole;
           votersUpdated++;
+          modifiedVoters.push(v);
         }
       });
 
@@ -11060,6 +11319,9 @@
 
       invalidateVoterFastIndex();
       saveState();
+      if (modifiedVoters.length > 0 && typeof pushVotersBatchToSupabase === 'function') {
+        pushVotersBatchToSupabase(modifiedVoters);
+      }
       renderHouseholdsList();
       showToast(`🏘️ ${hhUpdated} घरधुरी र ${votersUpdated} जना मतदाता "${cleanTole}" टोलमा सफलतापूर्वक आबद्ध गरियो!`, 'success');
     }
@@ -11113,7 +11375,7 @@
       if (!toleName) return;
 
       ensureToleAreaRecordExists(wardNo, toleName, boothNo);
-      const areaRec = (state.areas || []).find(a => String(a.WardNo) === String(wardNo) && String(a.ToleName || '').toLowerCase() === toleName.toLowerCase());
+      const areaRec = getScopedAreas().find(a => String(a.WardNo) === String(wardNo) && String(a.ToleName || '').toLowerCase() === toleName.toLowerCase());
       if (areaRec) {
         if (lead) areaRec.AssignedLead = lead;
         if (phone) areaRec.LeadPhone = phone;
@@ -11169,7 +11431,7 @@
       // 3. Populate Existing Households dropdown for this Ward
       const hhSelect = document.getElementById('addVoterHouseholdSelect');
       if (hhSelect) {
-        const wardHhs = (state.households || []).filter(h => Number(h.WardNo) === wardNo).slice(0, 250);
+        const wardHhs = getScopedHouseholds().filter(h => Number(h.WardNo) === wardNo).slice(0, 250);
         hhSelect.innerHTML = `<option value="">-- नयाँ घरधुरी वा बुबा/आमाको नामबाट स्वतः म्याच (${wardHhs.length} परिवार उपलब्ध) --</option>` +
           wardHhs.map(h => `<option value="${esc(h.HouseholdID)}" ${h.HouseholdID === prefillHhId ? 'selected' : ''}>🏠 ${esc(h.PrimaryContactName)} (${esc(h.Tole || 'वडा ' + wardNo)}${h.HouseNo ? ' • घर ' + esc(h.HouseNo) : ''} • ${esc(h.HouseholdID)})</option>`).join('');
         if (prefillHhId) {
@@ -11184,7 +11446,7 @@
         if (banner) banner.style.display = 'none';
         return;
       }
-      const hh = (state.households || []).find(h => h.HouseholdID === hhId);
+      const hh = getScopedHouseholds().find(h => h.HouseholdID === hhId);
       if (!hh) return;
 
       const toleInput = document.getElementById('addVoterToleInput');
@@ -11204,7 +11466,7 @@
       const clean = normalizeToleName(toleVal);
       if (!clean) return;
       const wardNo = Number(document.getElementById('addVoterWardSelect')?.value) || 1;
-      const areaMatch = (state.areas || []).find(a => Number(a.WardNo) === wardNo && String(a.ToleName || '').toLowerCase() === clean.toLowerCase());
+      const areaMatch = getScopedAreas().find(a => Number(a.WardNo) === wardNo && String(a.ToleName || '').toLowerCase() === clean.toLowerCase());
       if (areaMatch && areaMatch.BoothNo) {
         const boothSelect = document.getElementById('addVoterBoothSelect');
         if (boothSelect) boothSelect.value = areaMatch.BoothNo;
@@ -11212,28 +11474,30 @@
     }
 
     function findMatchingHouseholdForNewVoter(wardNo, fullName, fatherName, motherName, spouseName, houseNo, toleName) {
-      const wardVoters = (state.voters || []).filter(v => Number(v.Ward) === Number(wardNo) && v.HouseholdID);
-      const normFather = normalizePersonNameForMatch(fatherName);
-      const normMother = normalizePersonNameForMatch(motherName);
-      const normSpouse = normalizePersonNameForMatch(spouseName);
+      const wardVoters = getScopedVoters().filter(v => Number(v.Ward) === Number(wardNo) && v.HouseholdID);
+      const scopedHhs = getScopedHouseholds();
+      const vSur = extractSurname(fullName);
 
       // 1. Check if Father + Mother matches any sibling in this Ward
       if (isValidPersonNameForMatch(fatherName) && isValidPersonNameForMatch(motherName)) {
+        const fGiv = extractGivenNameForMatch(fatherName, vSur);
+        const mGiv = extractGivenNameForMatch(motherName, vSur);
         const sibling = wardVoters.find(v =>
-          normalizePersonNameForMatch(v.FatherName) === normFather &&
-          normalizePersonNameForMatch(v.MotherName) === normMother
+          doesSurnameMatch(vSur, extractSurname(v.Name)) &&
+          extractGivenNameForMatch(v.FatherName, extractSurname(v.Name)) === fGiv &&
+          extractGivenNameForMatch(v.MotherName, extractSurname(v.Name)) === mGiv
         );
-        if (sibling) return (state.households || []).find(h => h.HouseholdID === sibling.HouseholdID) || null;
+        if (sibling) return scopedHhs.find(h => h.HouseholdID === sibling.HouseholdID) || null;
       }
       // 2. Check if FatherName is a voter in this Ward
       if (isValidPersonNameForMatch(fatherName)) {
-        const fatherVoter = wardVoters.find(v => normalizePersonNameForMatch(v.Name) === normFather);
-        if (fatherVoter) return (state.households || []).find(h => h.HouseholdID === fatherVoter.HouseholdID) || null;
+        const fatherVoter = wardVoters.find(v => doesVoterNameMatch(v, fatherName, vSur));
+        if (fatherVoter) return scopedHhs.find(h => h.HouseholdID === fatherVoter.HouseholdID) || null;
       }
       // 3. Check if SpouseName is a voter in this Ward
       if (isValidPersonNameForMatch(spouseName)) {
-        const spouseVoter = wardVoters.find(v => normalizePersonNameForMatch(v.Name) === normSpouse);
-        if (spouseVoter) return (state.households || []).find(h => h.HouseholdID === spouseVoter.HouseholdID) || null;
+        const spouseVoter = wardVoters.find(v => doesVoterNameMatch(v, spouseName, vSur));
+        if (spouseVoter) return scopedHhs.find(h => h.HouseholdID === spouseVoter.HouseholdID) || null;
       }
       return null;
     }
@@ -11271,9 +11535,10 @@
       const fullName = (document.getElementById('addVoterNameInput')?.value || '').trim();
       const fatherName = (document.getElementById('addVoterFatherInput')?.value || '').trim();
       const wardNo = Number(document.getElementById('addVoterWardSelect')?.value) || 1;
+      const scopedVoters = getScopedVoters();
 
       if (officialId) {
-        const dup = (state.voters || []).find(v => String(v.OfficialVoterID || v.VoterID).trim() === officialId);
+        const dup = scopedVoters.find(v => String(v.OfficialVoterID || v.VoterID).trim() === officialId);
         if (dup) {
           warnEl.style.display = 'block';
           warnEl.innerHTML = `⚠️ <b>सावधान (Duplicate Voter ID):</b> मतदाता नं. <b>${esc(officialId)}</b> पहिले नै <b>${esc(dup.Name)}</b> (वडा ${dup.Ward}, ${esc(dup.Tole || '')}) को नाममा दर्ता छ!`;
@@ -11283,7 +11548,7 @@
       if (fullName && fatherName && isValidPersonNameForMatch(fatherName)) {
         const normN = normalizePersonNameForMatch(fullName);
         const normF = normalizePersonNameForMatch(fatherName);
-        const dupP = (state.voters || []).find(v =>
+        const dupP = scopedVoters.find(v =>
           Number(v.Ward) === wardNo &&
           normalizePersonNameForMatch(v.Name) === normN &&
           normalizePersonNameForMatch(v.FatherName) === normF
@@ -11343,10 +11608,12 @@
     function getVoterEffectiveCommunityRoles(v) {
       if (!v) return [];
       const roles = Array.isArray(v.CommunityRoles) ? [...v.CommunityRoles] : [];
-      // Also cross-check state.communityGroups LeadName so any group leader is automatically reflected on the voter!
+      const vTenant = v.TenantID || 'TNT_HELAMBU';
+      // Cross-check state.communityGroups LeadName within the same tenant
       if (state.communityGroups && v.Name) {
         const normV = normalizePersonNameForMatch(v.Name);
         state.communityGroups.forEach(g => {
+          if ((g.TenantID || 'TNT_HELAMBU') !== vTenant) return;
           if (g.LeadName && normalizePersonNameForMatch(g.LeadName) === normV) {
             const already = roles.some(r => r.groupName === g.Name);
             if (!already) {
@@ -11397,9 +11664,14 @@
     function syncVoterRoleToCommunityGroupsTable(voterName, phone, wardNo, toleName, cat, groupName, role, partyLeaning) {
       if (!groupName) return;
       if (!state.communityGroups) state.communityGroups = [];
-      let grp = state.communityGroups.find(g => String(g.Name || '').trim().toLowerCase() === groupName.trim().toLowerCase());
+      const activeTenantId = (currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') ? currentUser.TenantID : 'TNT_HELAMBU';
+      let grp = state.communityGroups.find(g =>
+        (g.TenantID || 'TNT_HELAMBU') === activeTenantId &&
+        String(g.Name || '').trim().toLowerCase() === groupName.trim().toLowerCase()
+      );
       if (!grp) {
         grp = {
+          TenantID: activeTenantId,
           GroupID: 'CBO_' + Date.now().toString(36).toUpperCase().slice(-5),
           Name: groupName,
           Category: cat || 'tole_committee',
@@ -14212,6 +14484,7 @@
         ['voterPartyFilter', 'voterPartyFilterMobile'],
         ['voterSupportFilter', 'voterSupportFilterMobile'],
         ['voterInfluencerFilter', 'voterInfluencerFilterMobile'],
+        ['voterProfessionFilter', 'voterProfessionFilterMobile'],
         ['voterCommunityFilter', 'voterCommunityFilterMobile']
       ];
       pairs.forEach(([dId, mId]) => {
@@ -14280,9 +14553,14 @@
       let bg = '#f1f5f9';
       let color = '#334155';
       if (rel.includes('घरमुली')) { icon = '👑'; bg = '#fef3c7'; color = '#92400e'; }
+      else if (rel.includes('हजुरबुबा') || rel.includes('बाजे')) { icon = '👴'; bg = '#fef3c7'; color = '#78350f'; }
+      else if (rel.includes('हजुरआमा') || rel.includes('बज्यै')) { icon = '👵'; bg = '#fce7f3'; color = '#831843'; }
+      else if (rel.includes('ससुरा')) { icon = '👨'; bg = '#e0e7ff'; color = '#312e81'; }
+      else if (rel.includes('सासू')) { icon = '👩'; bg = '#fce7f3'; color = '#831843'; }
       else if (rel.includes('बुबा')) { icon = '👨'; bg = '#e0e7ff'; color = '#3730a3'; }
       else if (rel.includes('आमा')) { icon = '👩'; bg = '#fce7f3'; color = '#9d174d'; }
-      else if (rel.includes('पति') || rel.includes('पत्नी')) { icon = '💍'; bg = '#fdf2f8'; color = '#be185d'; }
+      else if (rel.includes('पति') || rel.includes('श्रीमान') || rel.includes('पत्नी') || rel.includes('श्रीमती')) { icon = '💍'; bg = '#fdf2f8'; color = '#be185d'; }
+      else if (rel.includes('बुहारी') || rel.includes('भाउजू')) { icon = '👰'; bg = '#fdf2f8'; color = '#9d174d'; }
       else if (rel.includes('छोरा')) { icon = '👦'; bg = '#e0f2fe'; color = '#0369a1'; }
       else if (rel.includes('छोरी')) { icon = '👧'; bg = '#fce7f3'; color = '#be185d'; }
       else if (rel.includes('दाजु') || rel.includes('भाइ')) { icon = '👬'; bg = '#f0fdf4'; color = '#15803d'; }
@@ -14306,12 +14584,23 @@
       const rawKey = String(nameStr);
       const cached = _normNameMemo.get(rawKey);
       if (cached !== undefined) return cached;
-      let s = rawKey.trim();
+      let s = rawKey
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        .trim();
       if (!s) { _normNameMemo.set(rawKey, ''); return ''; }
       s = s.replace(/^(श्री|श्रीमती|सुश्री|स्व\.?|स्वर्गीय|डा\.?|प्रा\.?|mr\.?|mrs\.?|ms\.?|late)\s+/i, '').trim();
-      s = s.replace(/\s+/g, ' ').trim().toLowerCase();
+      s = s.replace(/वहादुर/g, 'बहादुर')
+           .replace(/देबि|देवि/g, 'देवी')
+           .replace(/ङग/g, 'ङ्ग')
+           .replace(/ँ/g, 'ं')
+           .replace(/ी/g, 'ि')
+           .replace(/ू/g, 'ु')
+           .replace(/[शष]/g, 'स')
+           .replace(/\s+/g, ' ')
+           .trim()
+           .toLowerCase();
       const res = INVALID_NAME_PLACEHOLDERS.has(s) ? '' : s;
-      if (_normNameMemo.size > 15000) _normNameMemo.clear();
+      if (_normNameMemo.size > 20000) _normNameMemo.clear();
       _normNameMemo.set(rawKey, res);
       return res;
     }
@@ -14322,12 +14611,12 @@
       const cached = _validNameMemo.get(rawKey);
       if (cached !== undefined) return cached;
       const norm = normalizePersonNameForMatch(rawKey);
-      if (!norm || norm.length < 5) { _validNameMemo.set(rawKey, false); return false; }
+      if (!norm || norm.length < 2) { _validNameMemo.set(rawKey, false); return false; }
       const core = norm.split('(')[0].trim();
-      if (!core || core.length < 5 || INVALID_NAME_PLACEHOLDERS.has(core)) { _validNameMemo.set(rawKey, false); return false; }
+      if (!core || core.length < 2 || INVALID_NAME_PLACEHOLDERS.has(core)) { _validNameMemo.set(rawKey, false); return false; }
       const words = core.split(/\s+/).filter(w => w.length >= 2 && !INVALID_NAME_PLACEHOLDERS.has(w));
-      const ok = words.length >= 2;
-      if (_validNameMemo.size > 15000) _validNameMemo.clear();
+      const ok = words.length >= 1;
+      if (_validNameMemo.size > 20000) _validNameMemo.clear();
       _validNameMemo.set(rawKey, ok);
       return ok;
     }
@@ -14340,6 +14629,13 @@
       return s.length >= 2;
     }
 
+    const SURNAME_ALIASES_MAP = {
+      'तामाङ्ग': 'तामाङ', 'tamaang': 'tamang',
+      'स्रेस्ठ': 'स्रेस्ठ', 'shresth': 'shrestha',
+      'केसि': 'के.सि.', 'kc': 'k.c.',
+      'छेत्रि': 'क्षेत्रि', 'paudel': 'poudel'
+    };
+
     function extractSurname(nameStr) {
       if (!nameStr) return '';
       const rawKey = String(nameStr);
@@ -14349,45 +14645,75 @@
       if (!norm) { _surnameMemo.set(rawKey, ''); return ''; }
       const core = norm.split('(')[0].trim();
       const parts = core.split(/\s+/).filter(Boolean);
-      if (parts.length < 2) return '';
-      let last = parts[parts.length - 1].replace(/[^a-z\u0900-\u097F]/gi, '');
-      // Normalize common Nepali/English surname spelling variants
-      const surnameAliases = {
-        'तामाङ्ग': 'तामाङ', 'tamaang': 'tamang',
-        'श्रेष्ठ': 'श्रेष्ठ', 'shresth': 'shrestha',
-        'घिमिरे': 'घिमिरे', 'अधिकारी': 'अधिकारी',
-        'खनाल': 'खनाल', 'चालिसे': 'चालिसे',
-        'लामा': 'लामा', 'शेर्पा': 'शेर्पा',
-        'पौडेल': 'पौडेल', 'paudel': 'poudel',
-        'कार्की': 'कार्की', 'थापा': 'थापा',
-        'भण्डारी': 'भण्डारी', 'केसी': 'के.सी.', 'kc': 'k.c.'
-      };
-      const res = surnameAliases[last] || last;
-      if (_surnameMemo.size > 15000) _surnameMemo.clear();
+      if (parts.length < 2) { _surnameMemo.set(rawKey, ''); return ''; }
+      let last = parts[parts.length - 1].replace(/[^a-z\u0900-\u097F.]/gi, '');
+      const res = SURNAME_ALIASES_MAP[last] || last;
+      if (_surnameMemo.size > 20000) _surnameMemo.clear();
       _surnameMemo.set(rawKey, res);
       return res;
+    }
+
+    function extractGivenNameForMatch(nameStr, contextSurname = '') {
+      const norm = normalizePersonNameForMatch(nameStr);
+      if (!norm) return '';
+      const core = norm.split('(')[0].trim();
+      const parts = core.split(/\s+/).filter(Boolean);
+      if (parts.length === 0) return '';
+      if (parts.length === 1) return parts[0];
+      const lastRaw = parts[parts.length - 1].replace(/[^a-z\u0900-\u097F.]/gi, '');
+      const last = SURNAME_ALIASES_MAP[lastRaw] || lastRaw;
+      if (contextSurname) {
+        if (last === contextSurname) {
+          return parts.slice(0, -1).join(' ');
+        }
+        return core;
+      }
+      return parts.slice(0, -1).join(' ');
+    }
+
+    function stripMiddleHonorificsForMatch(givenStr) {
+      if (!givenStr) return '';
+      const parts = givenStr.split(/\s+/).filter(Boolean);
+      if (parts.length <= 1) return givenStr;
+      const honorifics = new Set(['देवि', 'कुमारि', 'माया', 'प्रसाद', 'बहादुर', 'कुमार', 'राज', 'लाल', 'नाथ', 'संकर']);
+      const filtered = parts.filter((w, idx) => idx === 0 || !honorifics.has(w));
+      return filtered.join(' ');
     }
 
     function doesSurnameMatch(nameA, nameB) {
       const sa = extractSurname(nameA);
       const sb = extractSurname(nameB);
       if (!sa || !sb || sa.length < 2 || sb.length < 2) return false;
-      return sa === sb;
+      if (sa === sb) return true;
+      // Support married woman double surname e.g. "दिपा पौडेल क्षेत्री" matching "पौडेल" or "क्षेत्री"
+      const partsA = getCoreNormalizedName(nameA).split(/\s+/).filter(Boolean);
+      const partsB = getCoreNormalizedName(nameB).split(/\s+/).filter(Boolean);
+      if (partsA.length >= 3 && partsA.slice(1).includes(sb)) return true;
+      if (partsB.length >= 3 && partsB.slice(1).includes(sa)) return true;
+      return false;
     }
 
-    function doesVoterNameMatch(nameA, nameB) {
+    function doesVoterNameMatch(nameA, nameB, contextSurname = '') {
       if (!isValidPersonNameForMatch(nameA) || !isValidPersonNameForMatch(nameB)) return false;
-      const a = normalizePersonNameForMatch(nameA);
-      const b = normalizePersonNameForMatch(nameB);
-      if (a === b) return true;
-      const aCore = a.split('(')[0].trim();
-      const bCore = b.split('(')[0].trim();
-      if (aCore && bCore && aCore.length >= 5 && aCore === bCore) return true;
-      const aParen = (a.match(/\(([^)]+)\)/)?.[1] || '').trim();
-      const bParen = (b.match(/\(([^)]+)\)/)?.[1] || '').trim();
-      if (aParen && bParen && aParen.length >= 5 && aParen === bParen) return true;
-      if (aParen && aParen.length >= 5 && aParen === bCore) return true;
-      if (bParen && bParen.length >= 5 && bParen === aCore) return true;
+      const aCore = getCoreNormalizedName(nameA);
+      const bCore = getCoreNormalizedName(nameB);
+      if (!aCore || !bCore) return false;
+      if (aCore === bCore) return true;
+
+      // Handle Election Commission parent/spouse name without surname vs full voter name with surname
+      const surA = extractSurname(nameA) || contextSurname;
+      const surB = extractSurname(nameB) || contextSurname;
+      if (surA && aCore === `${bCore} ${surA}`) return true;
+      if (surB && bCore === `${aCore} ${surB}`) return true;
+
+      const givA = extractGivenNameForMatch(nameA, surA);
+      const givB = extractGivenNameForMatch(nameB, surB);
+      if (givA && givB && givA === givB && (!surA || !surB || surA === surB)) return true;
+
+      const shortA = stripMiddleHonorificsForMatch(givA);
+      const shortB = stripMiddleHonorificsForMatch(givB);
+      if (shortA && shortB && shortA.length >= 3 && shortA === shortB && surA && surB && surA === surB) return true;
+
       return false;
     }
 
@@ -14413,6 +14739,7 @@
       const byHh = new Map();
       const byWardHouse = new Map();
       const byWardName = new Map();
+      const byWardGivenSurname = new Map();
       const byWardFather = new Map();
       const byWardMother = new Map();
       const byWardSpouse = new Map();
@@ -14424,40 +14751,86 @@
           arr = [];
           map.set(key, arr);
         }
-        arr.push(val);
+        if (!arr.includes(val)) arr.push(val);
       };
 
       for (let i = 0; i < voters.length; i++) {
         const v = voters[i];
         if (!v) continue;
         const vid = String(v.VoterID || '');
-        if (vid) byId.set(vid, v);
+        const tId = v.TenantID || 'TNT_HELAMBU';
+        if (vid) {
+          byId.set(vid, v);
+          byId.set(`${tId}_${vid}`, v);
+        }
 
-        const w = String(v.Ward || 1);
+        const w = `${tId}_${v.Ward || 1}`;
         v._coreName = getCoreNormalizedName(v.Name);
         v._surname = extractSurname(v.Name);
-        v._validFather = isValidPersonNameForMatch(v.FatherName) ? getCoreNormalizedName(v.FatherName) : '';
-        v._validMother = isValidPersonNameForMatch(v.MotherName) ? getCoreNormalizedName(v.MotherName) : '';
+        v._givenName = extractGivenNameForMatch(v.Name, v._surname);
+        v._shortGiven = stripMiddleHonorificsForMatch(v._givenName);
+        v._validFatherRaw = isValidPersonNameForMatch(v.FatherName) ? getCoreNormalizedName(v.FatherName) : '';
+        v._validMotherRaw = isValidPersonNameForMatch(v.MotherName) ? getCoreNormalizedName(v.MotherName) : '';
+        v._validFather = v._validFatherRaw ? extractGivenNameForMatch(v.FatherName, v._surname) : '';
+        v._validMother = v._validMotherRaw ? extractGivenNameForMatch(v.MotherName, v._surname) : '';
         v._validSpouse = isValidPersonNameForMatch(v.SpouseName) ? getCoreNormalizedName(v.SpouseName) : '';
+        v._spouseGiven = v._validSpouse ? extractGivenNameForMatch(v.SpouseName, v._surname) : '';
         v._numAge = Number(v.Age || (v.DOB ? calculateAge(v.DOB) : 0)) || 0;
 
         if (v.HouseholdID) {
           pushMap(byHh, v.HouseholdID, v);
+          pushMap(byHh, `${tId}_${v.HouseholdID}`, v);
         }
         if (isValidHouseNoForMatch(v.HouseNo, v.Ward)) {
           pushMap(byWardHouse, `${w}|${String(v.HouseNo).trim().toLowerCase()}`, v);
         }
-        if (v._coreName && v._coreName.length >= 5) {
+        if (v._coreName && v._coreName.length >= 2) {
           pushMap(byWardName, `${w}|${v._coreName}`, v);
+        }
+        if (v._givenName && v._surname) {
+          pushMap(byWardGivenSurname, `${w}|${v._givenName}|${v._surname}`, v);
+          if (v._shortGiven && v._shortGiven !== v._givenName) {
+            pushMap(byWardGivenSurname, `${w}|${v._shortGiven}|${v._surname}`, v);
+          }
+          // If married woman has 3+ words (e.g., "दुर्गा देवी पराजुली घिमिरे"), also index first given words + last surname
+          const gParts = v._givenName.split(/\s+/).filter(Boolean);
+          if (gParts.length >= 2) {
+            pushMap(byWardGivenSurname, `${w}|${gParts[0]}|${v._surname}`, v);
+            pushMap(byWardGivenSurname, `${w}|${gParts.slice(0, 2).join(' ')}|${v._surname}`, v);
+          }
         }
         if (v._validFather) {
           pushMap(byWardFather, `${w}|${v._validFather}`, v);
+          if (v._surname) {
+            pushMap(byWardFather, `${w}|${v._validFather}|${v._surname}`, v);
+            const fShort = stripMiddleHonorificsForMatch(v._validFather);
+            if (fShort && fShort !== v._validFather) {
+              pushMap(byWardFather, `${w}|${fShort}|${v._surname}`, v);
+            }
+          }
+          if (v._validFatherRaw && v._validFatherRaw !== v._validFather) {
+            pushMap(byWardFather, `${w}|${v._validFatherRaw}`, v);
+          }
         }
         if (v._validMother) {
           pushMap(byWardMother, `${w}|${v._validMother}`, v);
+          if (v._surname) {
+            pushMap(byWardMother, `${w}|${v._validMother}|${v._surname}`, v);
+            const mShort = stripMiddleHonorificsForMatch(v._validMother);
+            if (mShort && mShort !== v._validMother) {
+              pushMap(byWardMother, `${w}|${mShort}|${v._surname}`, v);
+            }
+          }
+          if (v._validMotherRaw && v._validMotherRaw !== v._validMother) {
+            pushMap(byWardMother, `${w}|${v._validMotherRaw}`, v);
+          }
         }
         if (v._validSpouse) {
           pushMap(byWardSpouse, `${w}|${v._validSpouse}`, v);
+          if (v._spouseGiven && v._surname) {
+            pushMap(byWardSpouse, `${w}|${v._spouseGiven}|${v._surname}`, v);
+            pushMap(byWardSpouse, `${w}|${v._spouseGiven} ${v._surname}`, v);
+          }
         }
         if (v._validFather && v._validMother && v._surname) {
           pushMap(byWardParentsSurname, `${w}|${v._validFather}|${v._validMother}|${v._surname}`, v);
@@ -14469,6 +14842,7 @@
         byHh,
         byWardHouse,
         byWardName,
+        byWardGivenSurname,
         byWardFather,
         byWardMother,
         byWardSpouse,
@@ -14482,11 +14856,16 @@
     function getVoterByIdFast(voterId) {
       if (!voterId) return null;
       const idx = ensureVoterFastIndex();
+      const activeT = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : '';
+      if (activeT && activeT !== 'ALL') {
+        const scopedHit = idx.byId.get(`${activeT}_${voterId}`);
+        if (scopedHit) return scopedHit;
+      }
       return idx.byId.get(String(voterId)) || null;
     }
 
     // =========================================================================
-    // AUTO-SANITIZER FOR CORRUPTED HOUSEHOLD IDs (Fixes 727-Voter Collision Bug)
+    // AUTO-SANITIZER FOR CORRUPTED HOUSEHOLD IDs (Fixes Collision Bug)
     // =========================================================================
     function sanitizeCorruptedHouseholdsAndLinks(silent = true) {
       if (!state.voters || !Array.isArray(state.voters)) return { cleanedVoters: 0, builtHouseholds: 0 };
@@ -14505,55 +14884,71 @@
             }
           }
         });
+        if (!v.MotherName && v.FatherName && String(v.FatherName).includes('/')) {
+          const parts = String(v.FatherName).split('/');
+          v.FatherName = parts[0].trim();
+          v.MotherName = (parts[1] || '').trim();
+        }
         if (v.HouseNo && !isValidHouseNoForMatch(v.HouseNo, v.Ward)) {
           v.HouseNo = '';
         }
         if (v.HouseholdID) {
-          if (!hhGroups[v.HouseholdID]) hhGroups[v.HouseholdID] = [];
-          hhGroups[v.HouseholdID].push(v);
+          const gKey = `${v.TenantID || 'TNT_HELAMBU'}_${v.HouseholdID}`;
+          if (!hhGroups[gKey]) hhGroups[gKey] = [];
+          hhGroups[gKey].push(v);
         }
       }
 
-      // 2. Detect corrupted HouseholdIDs (> 12 members OR >= 3 distinct unrelated surnames)
-      const corruptedHhIds = new Set();
-      Object.entries(hhGroups).forEach(([hhId, members]) => {
-        if (members.length > 12) {
-          corruptedHhIds.add(hhId);
+      // 2. Detect corrupted HouseholdIDs (> 14 members OR >= 3 distinct unrelated surnames)
+      const corruptedHhKeys = new Set();
+      Object.entries(hhGroups).forEach(([gKey, members]) => {
+        if (members.length > 14) {
+          corruptedHhKeys.add(gKey);
           return;
         }
-        if (members.length >= 3 && String(hhId).startsWith('HHD_FAM_')) {
+        if (members.length >= 3 && String(members[0].HouseholdID).startsWith('HHD_FAM_')) {
           const surnames = new Set(members.map(m => extractSurname(m.Name)).filter(Boolean));
           if (surnames.size >= 3) {
-            corruptedHhIds.add(hhId);
+            corruptedHhKeys.add(gKey);
           }
         }
       });
 
-      if (corruptedHhIds.size > 0) {
+      if (corruptedHhKeys.size > 0) {
         state.voters.forEach(v => {
-          if (v.HouseholdID && corruptedHhIds.has(v.HouseholdID)) {
+          const gKey = `${v.TenantID || 'TNT_HELAMBU'}_${v.HouseholdID}`;
+          if (v.HouseholdID && corruptedHhKeys.has(gKey)) {
             v.HouseholdID = '';
             cleanedVoters++;
           }
         });
         if (Array.isArray(state.households)) {
-          state.households = state.households.filter(h => !corruptedHhIds.has(h.HouseholdID));
+          state.households = state.households.filter(h => !corruptedHhKeys.has(`${h.TenantID || 'TNT_HELAMBU'}_${h.HouseholdID}`));
         }
         _voterIndexDirty = true;
       }
 
-      // 3. Only rebuild households if corrupted links were cleaned, or if households list is empty, or if user clicked button (!silent)
+      // 3. Rebuild households if corrupted links were cleaned, or if any tenant with voters has 0 households, or if engine version upgraded, or if user clicked button (!silent)
+      const tenantsWithVoters = new Set((state.voters || []).map(v => v.TenantID || 'TNT_HELAMBU'));
+      const tenantsWithHh = new Set((state.households || []).map(h => h.TenantID || 'TNT_HELAMBU'));
+      let missingTenantHh = false;
+      tenantsWithVoters.forEach(t => { if (!tenantsWithHh.has(t)) missingTenantHh = true; });
+      if (!state.settings) state.settings = {};
+      const needsEngineUpgrade = state.settings._familyEngineVersion !== 'v2_8tier';
+
       let buildRes = { builtCount: (state.households || []).length };
-      if (!silent || corruptedHhIds.size > 0 || !state.households || state.households.length === 0) {
+      if (!silent || corruptedHhKeys.size > 0 || !state.households || state.households.length === 0 || missingTenantHh || needsEngineUpgrade) {
         buildRes = autoBuildStrictHouseholds(true);
+        state.settings._familyEngineVersion = 'v2_8tier';
       }
 
-      if (cleanedVoters > 0 || buildRes.builtCount > 0) {
+      if (cleanedVoters > 0 || buildRes.builtCount > 0 || needsEngineUpgrade) {
         saveState();
       }
 
       if (!silent) {
-        showToast(`🧹 सफाई सम्पन्न: ${cleanedVoters} गलत Household लिंक हटाइयो र ${state.households.length} वास्तविक घरधुरी अद्यावधिक गरियो!`, 'success');
+        const scopedHhLen = (typeof getScopedHouseholds === 'function') ? getScopedHouseholds().length : (state.households || []).length;
+        showToast(`🧹 प्रोफेसनल परिवार मिलान सम्पन्न: ${scopedHhLen} वास्तविक घरधुरी र नातागोता अद्यावधिक गरियो!`, 'success');
         renderHouseholdsList();
         renderVotersList();
         refreshDashboardMetrics();
@@ -14563,8 +14958,175 @@
     }
 
     // =========================================================================
-    // 5-RULE ZERO-ERROR FAMILY ENGINE (O(1) Hash-Indexed getFamilyMembers)
+    // 8-TIER NEPALI JOINT FAMILY & RELATIONSHIP ENGINE (O(1) Hash-Indexed)
     // =========================================================================
+    function findFatherCandidateFast(voter, idx, seenSet = new Set(), ignoredSet = new Set()) {
+      if (!voter || !isValidPersonNameForMatch(voter.FatherName)) return null;
+      const tId = voter.TenantID || 'TNT_HELAMBU';
+      const w = `${tId}_${voter.Ward || 1}`;
+      const vSur = voter._surname || extractSurname(voter.Name);
+      const fGiv = voter._validFather || extractGivenNameForMatch(voter.FatherName, vSur);
+      const fShort = stripMiddleHonorificsForMatch(fGiv);
+      const fRaw = voter._validFatherRaw || getCoreNormalizedName(voter.FatherName);
+      const voterAge = voter._numAge !== undefined ? voter._numAge : (Number(voter.Age) || 0);
+
+      const pool = [
+        ...(vSur && fGiv ? (idx.byWardGivenSurname.get(`${w}|${fGiv}|${vSur}`) || []) : []),
+        ...(vSur && fShort && fShort !== fGiv ? (idx.byWardGivenSurname.get(`${w}|${fShort}|${vSur}`) || []) : []),
+        ...(fRaw ? (idx.byWardName.get(`${w}|${fRaw}`) || []) : [])
+      ];
+
+      const candidates = [];
+      const seenCand = new Set();
+      for (let i = 0; i < pool.length; i++) {
+        const x = pool[i];
+        if (!x || x.VoterID === voter.VoterID || seenCand.has(x.VoterID) || seenSet.has(x.VoterID) || ignoredSet.has(x.VoterID)) continue;
+        if (x.Gender && (x.Gender === 'Female' || x.Gender === 'महिला')) continue;
+        const xAge = x._numAge || 0;
+        if (voterAge > 0 && xAge > 0 && ((xAge - voterAge) < 15 || (xAge - voterAge) > 68)) continue;
+        seenCand.add(x.VoterID);
+        candidates.push(x);
+      }
+
+      if (!candidates.length) return null;
+      if (candidates.length > 1 && isValidPersonNameForMatch(voter.MotherName)) {
+        const withMotherSpouse = candidates.find(c => isValidPersonNameForMatch(c.SpouseName) && doesVoterNameMatch(c.SpouseName, voter.MotherName, vSur));
+        if (withMotherSpouse) return withMotherSpouse;
+      }
+      return candidates[0];
+    }
+
+    function findMotherCandidateFast(voter, idx, matchedFather = null, seenSet = new Set(), ignoredSet = new Set()) {
+      if (!voter || !isValidPersonNameForMatch(voter.MotherName)) return null;
+      const tId = voter.TenantID || 'TNT_HELAMBU';
+      const w = `${tId}_${voter.Ward || 1}`;
+      const vSur = (matchedFather && matchedFather._surname) || voter._surname || extractSurname(voter.Name);
+      const mGiv = voter._validMother || extractGivenNameForMatch(voter.MotherName, vSur);
+      const mShort = stripMiddleHonorificsForMatch(mGiv);
+      const mRaw = voter._validMotherRaw || getCoreNormalizedName(voter.MotherName);
+      const voterAge = voter._numAge !== undefined ? voter._numAge : (Number(voter.Age) || 0);
+
+      const pool = [
+        ...(vSur && mGiv ? (idx.byWardGivenSurname.get(`${w}|${mGiv}|${vSur}`) || []) : []),
+        ...(vSur && mShort && mShort !== mGiv ? (idx.byWardGivenSurname.get(`${w}|${mShort}|${vSur}`) || []) : []),
+        ...(mRaw ? (idx.byWardName.get(`${w}|${mRaw}`) || []) : [])
+      ];
+
+      // Also check if matchedFather has a SpouseName in the same ward
+      if (matchedFather && isValidPersonNameForMatch(matchedFather.SpouseName)) {
+        const fsRaw = getCoreNormalizedName(matchedFather.SpouseName);
+        const fsGiv = extractGivenNameForMatch(matchedFather.SpouseName, vSur);
+        if (fsRaw) pool.push(...(idx.byWardName.get(`${w}|${fsRaw}`) || []));
+        if (fsGiv && vSur) pool.push(...(idx.byWardGivenSurname.get(`${w}|${fsGiv}|${vSur}`) || []));
+      }
+
+      const candidates = [];
+      const seenCand = new Set();
+      for (let i = 0; i < pool.length; i++) {
+        const x = pool[i];
+        if (!x || x.VoterID === voter.VoterID || seenCand.has(x.VoterID) || seenSet.has(x.VoterID) || ignoredSet.has(x.VoterID)) continue;
+        if (x.Gender && (x.Gender === 'Male' || x.Gender === 'पुरुष')) continue;
+        const xAge = x._numAge || 0;
+        if (voterAge > 0 && xAge > 0 && ((xAge - voterAge) < 14 || (xAge - voterAge) > 64)) continue;
+        if (isValidPersonNameForMatch(voter.FatherName) && isValidPersonNameForMatch(x.SpouseName)) {
+          if (!doesVoterNameMatch(x.SpouseName, voter.FatherName, vSur)) continue;
+        }
+        seenCand.add(x.VoterID);
+        candidates.push(x);
+      }
+
+      if (!candidates.length) return null;
+      if (candidates.length > 1 && isValidPersonNameForMatch(voter.FatherName)) {
+        const withFatherSpouse = candidates.find(c => isValidPersonNameForMatch(c.SpouseName) && doesVoterNameMatch(c.SpouseName, voter.FatherName, vSur));
+        if (withFatherSpouse) return withFatherSpouse;
+      }
+      return candidates[0];
+    }
+
+    function findSpouseCandidateFast(voter, idx, seenSet = new Set(), ignoredSet = new Set()) {
+      if (!voter) return null;
+      const tId = voter.TenantID || 'TNT_HELAMBU';
+      const w = `${tId}_${voter.Ward || 1}`;
+      const vSur = voter._surname || extractSurname(voter.Name);
+      const voterAge = voter._numAge !== undefined ? voter._numAge : (Number(voter.Age) || 0);
+
+      const pool = [];
+      if (isValidPersonNameForMatch(voter.SpouseName)) {
+        const sRaw = voter._validSpouse || getCoreNormalizedName(voter.SpouseName);
+        const sGiv = voter._spouseGiven || extractGivenNameForMatch(voter.SpouseName, vSur);
+        const sShort = stripMiddleHonorificsForMatch(sGiv);
+        if (sRaw) pool.push(...(idx.byWardName.get(`${w}|${sRaw}`) || []));
+        if (sGiv && vSur) pool.push(...(idx.byWardGivenSurname.get(`${w}|${sGiv}|${vSur}`) || []));
+        if (sShort && vSur && sShort !== sGiv) pool.push(...(idx.byWardGivenSurname.get(`${w}|${sShort}|${vSur}`) || []));
+      }
+
+      // Reverse lookup: someone else in same ward lists voter as their SpouseName
+      if (voter._coreName || voter.Name) {
+        const cName = voter._coreName || getCoreNormalizedName(voter.Name);
+        const gName = voter._givenName || extractGivenNameForMatch(voter.Name, vSur);
+        if (cName) pool.push(...(idx.byWardSpouse.get(`${w}|${cName}`) || []));
+        if (gName && vSur) pool.push(...(idx.byWardSpouse.get(`${w}|${gName}|${vSur}`) || []));
+      }
+
+      const candidates = [];
+      const seenCand = new Set();
+      for (let i = 0; i < pool.length; i++) {
+        const x = pool[i];
+        if (!x || x.VoterID === voter.VoterID || seenCand.has(x.VoterID) || seenSet.has(x.VoterID) || ignoredSet.has(x.VoterID)) continue;
+        // Opposite gender check if both have explicit Male/Female
+        if ((voter.Gender === 'Male' && x.Gender === 'Male') || (voter.Gender === 'Female' && x.Gender === 'Female')) continue;
+        const xAge = x._numAge || 0;
+        if (voterAge > 0 && xAge > 0 && Math.abs(xAge - voterAge) > 25) continue;
+        if (isValidPersonNameForMatch(x.SpouseName) && !doesVoterNameMatch(x.SpouseName, voter.Name, vSur)) continue;
+        if (isValidPersonNameForMatch(voter.SpouseName) && !doesVoterNameMatch(x.Name, voter.SpouseName, vSur)) continue;
+        seenCand.add(x.VoterID);
+        candidates.push(x);
+      }
+
+      if (!candidates.length) return null;
+      return candidates.find(c => isValidPersonNameForMatch(c.SpouseName) && doesVoterNameMatch(c.SpouseName, voter.Name, vSur)) || candidates[0];
+    }
+
+    function findChildrenCandidatesFast(voter, idx, matchedSpouse = null, seenSet = new Set(), ignoredSet = new Set()) {
+      if (!voter || !isValidPersonNameForMatch(voter.Name)) return [];
+      const tId = voter.TenantID || 'TNT_HELAMBU';
+      const w = `${tId}_${voter.Ward || 1}`;
+      const vSur = (matchedSpouse && matchedSpouse._surname) || voter._surname || extractSurname(voter.Name);
+      const vGiv = voter._givenName || extractGivenNameForMatch(voter.Name, vSur);
+      const vShort = stripMiddleHonorificsForMatch(vGiv);
+      const vCore = voter._coreName || getCoreNormalizedName(voter.Name);
+      const voterAge = voter._numAge !== undefined ? voter._numAge : (Number(voter.Age) || 0);
+      const isFemale = voter.Gender === 'Female' || voter.Gender === 'महिला';
+
+      const targetMap = isFemale ? idx.byWardMother : idx.byWardFather;
+      const pool = [
+        ...(vGiv && vSur ? (targetMap.get(`${w}|${vGiv}|${vSur}`) || []) : []),
+        ...(vShort && vSur && vShort !== vGiv ? (targetMap.get(`${w}|${vShort}|${vSur}`) || []) : []),
+        ...(vGiv ? (targetMap.get(`${w}|${vGiv}`) || []) : []),
+        ...(vCore ? (targetMap.get(`${w}|${vCore}`) || []) : [])
+      ];
+
+      const results = [];
+      const seenChild = new Set();
+      for (let i = 0; i < pool.length; i++) {
+        const x = pool[i];
+        if (!x || x.VoterID === voter.VoterID || seenChild.has(x.VoterID) || seenSet.has(x.VoterID) || ignoredSet.has(x.VoterID)) continue;
+        const xAge = x._numAge || 0;
+        if (voterAge > 0 && xAge > 0 && ((voterAge - xAge) < 14 || (voterAge - xAge) > 65)) continue;
+        if (!doesSurnameMatch(x.Name, voter.Name) && (!matchedSpouse || !doesSurnameMatch(x.Name, matchedSpouse.Name))) continue;
+
+        if (!isFemale && isValidPersonNameForMatch(voter.SpouseName) && isValidPersonNameForMatch(x.MotherName)) {
+          if (!doesVoterNameMatch(voter.SpouseName, x.MotherName, vSur)) continue;
+        }
+        if (isFemale && isValidPersonNameForMatch(voter.SpouseName) && isValidPersonNameForMatch(x.FatherName)) {
+          if (!doesVoterNameMatch(voter.SpouseName, x.FatherName, vSur)) continue;
+        }
+        seenChild.add(x.VoterID);
+        results.push(x);
+      }
+      return results;
+    }
+
     function getFamilyMembers(voter) {
       if (!voter) return [];
       const idx = ensureVoterFastIndex();
@@ -14572,9 +15134,10 @@
       const seenVoterIds = new Set();
       const ignoredIds = new Set(Array.isArray(voter.IgnoredFamilyIDs) ? voter.IgnoredFamilyIDs : []);
       const manualLinks = Array.isArray(voter.ManualFamilyLinks) ? voter.ManualFamilyLinks : [];
-      const hh = voter.HouseholdID ? (state.households || []).find(h => h.HouseholdID === voter.HouseholdID) : null;
+      const hh = voter.HouseholdID ? (state.households || []).find(h => h.HouseholdID === voter.HouseholdID && (h.TenantID || 'TNT_HELAMBU') === (voter.TenantID || 'TNT_HELAMBU')) : null;
       const headName = hh ? hh.PrimaryContactName : '';
-      const w = String(voter.Ward || 1);
+      const tId = voter.TenantID || 'TNT_HELAMBU';
+      const w = `${tId}_${voter.Ward || 1}`;
       const voterAge = voter._numAge !== undefined ? voter._numAge : (Number(voter.Age || (voter.DOB ? calculateAge(voter.DOB) : 0)) || 0);
 
       // 1. Current voter (Self)
@@ -14590,7 +15153,7 @@
       // 2. Manual Explicit Links (Highest Priority - User verified/linked)
       manualLinks.forEach(ml => {
         if (!ml || !ml.voterId || seenVoterIds.has(ml.voterId) || ignoredIds.has(ml.voterId)) return;
-        const target = idx.byId.get(String(ml.voterId));
+        const target = idx.byId.get(`${tId}_${ml.voterId}`) || idx.byId.get(String(ml.voterId));
         if (target) {
           list.push({
             ...target,
@@ -14603,20 +15166,198 @@
         }
       });
 
-      // 3. Safe HouseholdID or HouseNo linked members (O(1) bucket lookup, guarded against >12 collision)
+      // 3A. Auto-match Father (बुबा)
+      const fatherVoter = findFatherCandidateFast(voter, idx, seenVoterIds, ignoredIds);
+      if (fatherVoter) {
+        list.push({
+          ...fatherVoter,
+          isCurrent: false,
+          isRegisteredVoter: true,
+          matchType: 'auto',
+          relation: 'बुबा (Father)'
+        });
+        seenVoterIds.add(fatherVoter.VoterID);
+      } else if (isValidPersonNameForMatch(voter.FatherName) && !ignoredIds.has('TEXT_FATHER')) {
+        list.push({
+          VoterID: 'TEXT_FATHER',
+          Name: voter.FatherName,
+          Gender: 'Male',
+          Age: '',
+          PartyLeaning: voter.PartyLeaning || 'Undecided',
+          relation: 'बुबा (Father)',
+          isCurrent: false,
+          isRegisteredVoter: false,
+          matchType: 'unlinked_text',
+          roleKey: 'FatherName'
+        });
+      }
+
+      // 3B. Auto-match Mother (आमा)
+      const motherVoter = findMotherCandidateFast(voter, idx, fatherVoter, seenVoterIds, ignoredIds);
+      if (motherVoter) {
+        list.push({
+          ...motherVoter,
+          isCurrent: false,
+          isRegisteredVoter: true,
+          matchType: 'auto',
+          relation: 'आमा (Mother)'
+        });
+        seenVoterIds.add(motherVoter.VoterID);
+      } else if (isValidPersonNameForMatch(voter.MotherName) && !ignoredIds.has('TEXT_MOTHER')) {
+        list.push({
+          VoterID: 'TEXT_MOTHER',
+          Name: voter.MotherName,
+          Gender: 'Female',
+          Age: '',
+          PartyLeaning: voter.PartyLeaning || 'Undecided',
+          relation: 'आमा (Mother)',
+          isCurrent: false,
+          isRegisteredVoter: false,
+          matchType: 'unlinked_text',
+          roleKey: 'MotherName'
+        });
+      }
+
+      // 3C. Auto-match Spouse (पति / पत्नी)
+      const spouseVoter = findSpouseCandidateFast(voter, idx, seenVoterIds, ignoredIds);
+      if (spouseVoter) {
+        const spRel = (spouseVoter.Gender === 'Female' || spouseVoter.Gender === 'महिला')
+          ? 'पत्नी / श्रीमती (Wife)'
+          : ((spouseVoter.Gender === 'Male' || spouseVoter.Gender === 'पुरुष') ? 'पति / श्रीमान् (Husband)' : 'पति / पत्नी (Spouse)');
+        list.push({
+          ...spouseVoter,
+          isCurrent: false,
+          isRegisteredVoter: true,
+          matchType: 'auto',
+          relation: spRel
+        });
+        seenVoterIds.add(spouseVoter.VoterID);
+
+        // 3D. For Married Woman: Auto-match Father-in-Law (ससुरा) & Mother-in-Law (सासू) via Husband!
+        if (voter.Gender === 'Female' || voter.Gender === 'महिला') {
+          const sasura = findFatherCandidateFast(spouseVoter, idx, seenVoterIds, ignoredIds);
+          if (sasura) {
+            list.push({
+              ...sasura,
+              isCurrent: false,
+              isRegisteredVoter: true,
+              matchType: 'auto',
+              relation: 'ससुरा (Father-in-Law)'
+            });
+            seenVoterIds.add(sasura.VoterID);
+          }
+          const sasu = findMotherCandidateFast(spouseVoter, idx, sasura, seenVoterIds, ignoredIds);
+          if (sasu) {
+            list.push({
+              ...sasu,
+              isCurrent: false,
+              isRegisteredVoter: true,
+              matchType: 'auto',
+              relation: 'सासू (Mother-in-Law)'
+            });
+            seenVoterIds.add(sasu.VoterID);
+          }
+        }
+      } else if (isValidPersonNameForMatch(voter.SpouseName) && !ignoredIds.has('TEXT_SPOUSE')) {
+        list.push({
+          VoterID: 'TEXT_SPOUSE',
+          Name: voter.SpouseName,
+          Gender: voter.Gender === 'Male' ? 'Female' : (voter.Gender === 'Female' ? 'Male' : ''),
+          Age: '',
+          PartyLeaning: voter.PartyLeaning || 'Undecided',
+          relation: (voter.Gender === 'Male') ? 'पत्नी / श्रीमती (Wife)' : 'पति / श्रीमान् (Husband)',
+          isCurrent: false,
+          isRegisteredVoter: false,
+          matchType: 'unlinked_text',
+          roleKey: 'SpouseName'
+        });
+      }
+
+      // 3E. Reverse Child Lookup (छोरा / छोरी) + Daughter-in-Law (बुहारी) + Grandchildren (नाति / नातिनी)
+      const children = findChildrenCandidatesFast(voter, idx, spouseVoter, seenVoterIds, ignoredIds);
+      children.forEach(child => {
+        if (seenVoterIds.has(child.VoterID) || list.length >= 16) return;
+        const isDaughter = child.Gender === 'Female' || child.Gender === 'महिला';
+        list.push({
+          ...child,
+          isCurrent: false,
+          isRegisteredVoter: true,
+          matchType: 'auto',
+          relation: isDaughter ? 'छोरी (Daughter)' : 'छोरा (Son)'
+        });
+        seenVoterIds.add(child.VoterID);
+
+        // If Son has a registered Wife -> बुहारी (Daughter-in-Law) & Grandchildren (नाति / नातिनी)
+        if (!isDaughter) {
+          const buhari = findSpouseCandidateFast(child, idx, seenVoterIds, ignoredIds);
+          if (buhari && list.length < 16) {
+            list.push({
+              ...buhari,
+              isCurrent: false,
+              isRegisteredVoter: true,
+              matchType: 'auto',
+              relation: 'बुहारी (Daughter-in-Law)'
+            });
+            seenVoterIds.add(buhari.VoterID);
+          }
+          const grandKids = findChildrenCandidatesFast(child, idx, buhari, seenVoterIds, ignoredIds);
+          grandKids.forEach(gk => {
+            if (!seenVoterIds.has(gk.VoterID) && list.length < 16) {
+              const isGrandDaughter = gk.Gender === 'Female' || gk.Gender === 'महिला';
+              list.push({
+                ...gk,
+                isCurrent: false,
+                isRegisteredVoter: true,
+                matchType: 'auto',
+                relation: isGrandDaughter ? 'नातिनी (Granddaughter)' : 'नाति (Grandson)'
+              });
+              seenVoterIds.add(gk.VoterID);
+            }
+          });
+        }
+      });
+
+      // 3F. Strict Dual-Parent + Surname Sibling Match (दाजु / भाइ / दिदी / बहिनी)
+      if (voter._validFather && voter._validMother && voter._surname) {
+        const sibKey = `${w}|${voter._validFather}|${voter._validMother}|${voter._surname}`;
+        const sibCandidates = idx.byWardParentsSurname.get(sibKey) || [];
+        sibCandidates.forEach(x => {
+          if (seenVoterIds.has(x.VoterID) || ignoredIds.has(x.VoterID) || list.length >= 16) return;
+          const xAge = x._numAge || 0;
+          if (voterAge > 0 && xAge > 0 && Math.abs(xAge - voterAge) > 25) return;
+          const isSis = x.Gender === 'Female' || x.Gender === 'महिला';
+          let sibRel = '';
+          if (isSis) {
+            sibRel = (voterAge > 0 && xAge > voterAge) ? 'दिदी (Elder Sister)' : 'बहिनी (Younger Sister)';
+          } else {
+            sibRel = (voterAge > 0 && xAge > voterAge) ? 'दाजु (Elder Brother)' : 'भाइ (Younger Brother)';
+          }
+          list.push({
+            ...x,
+            isCurrent: false,
+            isRegisteredVoter: true,
+            matchType: 'auto',
+            relation: sibRel
+          });
+          seenVoterIds.add(x.VoterID);
+        });
+      }
+
+      // 4. Safe HouseholdID or HouseNo linked members (for any remaining joint family members)
       if (voter.HouseholdID) {
-        const hhPeers = idx.byHh.get(voter.HouseholdID) || [];
-        if (hhPeers.length >= 2 && hhPeers.length <= 12) {
+        const hhPeers = idx.byHh.get(`${tId}_${voter.HouseholdID}`) || idx.byHh.get(voter.HouseholdID) || [];
+        if (hhPeers.length >= 2 && hhPeers.length <= 14) {
           hhPeers.forEach(x => {
             if (seenVoterIds.has(x.VoterID) || ignoredIds.has(x.VoterID)) return;
+            if ((x.TenantID || 'TNT_HELAMBU') !== tId) return;
             const surnameOk = doesSurnameMatch(voter.Name, x.Name);
-            const directRelOk = doesVoterNameMatch(x.Name, voter.FatherName) ||
-                                doesVoterNameMatch(x.Name, voter.MotherName) ||
-                                doesVoterNameMatch(x.Name, voter.SpouseName) ||
-                                doesVoterNameMatch(voter.Name, x.FatherName) ||
-                                doesVoterNameMatch(voter.Name, x.MotherName) ||
-                                doesVoterNameMatch(voter.Name, x.SpouseName) ||
-                                (voter._validFather && voter._validFather === x._validFather);
+            const directRelOk = doesVoterNameMatch(x.Name, voter.FatherName, voter._surname) ||
+                                doesVoterNameMatch(x.Name, voter.MotherName, voter._surname) ||
+                                doesVoterNameMatch(x.Name, voter.SpouseName, voter._surname) ||
+                                doesVoterNameMatch(voter.Name, x.FatherName, x._surname) ||
+                                doesVoterNameMatch(voter.Name, x.MotherName, x._surname) ||
+                                doesVoterNameMatch(voter.Name, x.SpouseName, x._surname) ||
+                                (voter._validFather && voter._validFather === x._validFather && surnameOk);
             if (surnameOk || directRelOk) {
               list.push({
                 ...x,
@@ -14644,230 +15385,6 @@
               isRegisteredVoter: true,
               matchType: 'manual',
               relation: x.FamilyRelation || 'परिवार सदस्य (एउटै घर नं.)'
-            });
-            seenVoterIds.add(x.VoterID);
-          });
-        }
-      }
-
-      // 4A. Auto-match Father (बुबा) — O(1) lookup via byWardName
-      const alreadyHasFather = list.find(m => !m.isCurrent && (doesVoterNameMatch(m.Name, voter.FatherName) || (m.relation && m.relation.includes('बुबा'))));
-      if (alreadyHasFather && (!alreadyHasFather.relation || alreadyHasFather.relation === 'परिवार सदस्य')) {
-        alreadyHasFather.relation = 'बुबा (Father)';
-      }
-      if (isValidPersonNameForMatch(voter.FatherName) && !alreadyHasFather) {
-        const fKey = `${w}|${getCoreNormalizedName(voter.FatherName)}`;
-        const rawCandidates = idx.byWardName.get(fKey) || [];
-        const candidates = rawCandidates.filter(x => {
-          if (seenVoterIds.has(x.VoterID) || ignoredIds.has(x.VoterID)) return false;
-          if (!doesSurnameMatch(x.Name, voter.FatherName)) return false;
-          if (x.Gender && (x.Gender === 'Female' || x.Gender === 'महिला')) return false;
-          const xAge = x._numAge || 0;
-          if (voterAge > 0 && xAge > 0 && ((xAge - voterAge) < 16 || (xAge - voterAge) > 60)) return false;
-          return true;
-        });
-
-        let fatherMatchedVoter = null;
-        if (candidates.length > 1 && isValidPersonNameForMatch(voter.MotherName)) {
-          fatherMatchedVoter = candidates.find(c => isValidPersonNameForMatch(c.SpouseName) && doesVoterNameMatch(c.SpouseName, voter.MotherName)) || candidates[0];
-        } else {
-          fatherMatchedVoter = candidates[0] || null;
-        }
-
-        if (fatherMatchedVoter) {
-          list.push({
-            ...fatherMatchedVoter,
-            isCurrent: false,
-            isRegisteredVoter: true,
-            matchType: 'auto',
-            relation: 'बुबा (Father)'
-          });
-          seenVoterIds.add(fatherMatchedVoter.VoterID);
-        } else if (!ignoredIds.has('TEXT_FATHER')) {
-          list.push({
-            VoterID: 'TEXT_FATHER',
-            Name: voter.FatherName,
-            Gender: 'Male',
-            Age: '',
-            PartyLeaning: voter.PartyLeaning || 'Undecided',
-            relation: 'बुबा (Father)',
-            isCurrent: false,
-            isRegisteredVoter: false,
-            matchType: 'unlinked_text',
-            roleKey: 'FatherName'
-          });
-        }
-      }
-
-      // 4B. Auto-match Mother (आमा) — O(1) lookup via byWardName
-      const alreadyHasMother = list.find(m => !m.isCurrent && (doesVoterNameMatch(m.Name, voter.MotherName) || (m.relation && m.relation.includes('आमा'))));
-      if (alreadyHasMother && (!alreadyHasMother.relation || alreadyHasMother.relation === 'परिवार सदस्य')) {
-        alreadyHasMother.relation = 'आमा (Mother)';
-      }
-      if (isValidPersonNameForMatch(voter.MotherName) && !alreadyHasMother) {
-        const mKey = `${w}|${getCoreNormalizedName(voter.MotherName)}`;
-        const rawCandidates = idx.byWardName.get(mKey) || [];
-        const candidates = rawCandidates.filter(x => {
-          if (seenVoterIds.has(x.VoterID) || ignoredIds.has(x.VoterID)) return false;
-          if (x.Gender && (x.Gender === 'Male' || x.Gender === 'पुरुष')) return false;
-          const xAge = x._numAge || 0;
-          if (voterAge > 0 && xAge > 0 && ((xAge - voterAge) < 16 || (xAge - voterAge) > 58)) return false;
-          if (isValidPersonNameForMatch(voter.FatherName) && isValidPersonNameForMatch(x.SpouseName)) {
-            if (!doesVoterNameMatch(x.SpouseName, voter.FatherName)) return false;
-          }
-          return true;
-        });
-
-        let motherMatchedVoter = null;
-        if (candidates.length > 1 && isValidPersonNameForMatch(voter.FatherName)) {
-          motherMatchedVoter = candidates.find(c => isValidPersonNameForMatch(c.SpouseName) && doesVoterNameMatch(c.SpouseName, voter.FatherName)) || candidates[0];
-        } else {
-          motherMatchedVoter = candidates[0] || null;
-        }
-
-        if (motherMatchedVoter) {
-          list.push({
-            ...motherMatchedVoter,
-            isCurrent: false,
-            isRegisteredVoter: true,
-            matchType: 'auto',
-            relation: 'आमा (Mother)'
-          });
-          seenVoterIds.add(motherMatchedVoter.VoterID);
-        } else if (!ignoredIds.has('TEXT_MOTHER')) {
-          list.push({
-            VoterID: 'TEXT_MOTHER',
-            Name: voter.MotherName,
-            Gender: 'Female',
-            Age: '',
-            PartyLeaning: voter.PartyLeaning || 'Undecided',
-            relation: 'आमा (Mother)',
-            isCurrent: false,
-            isRegisteredVoter: false,
-            matchType: 'unlinked_text',
-            roleKey: 'MotherName'
-          });
-        }
-      }
-
-      // 4C. Auto-match Spouse (पति / पत्नी) — O(1) lookup via byWardName & byWardSpouse
-      const alreadyHasSpouse = list.find(m => !m.isCurrent && (doesVoterNameMatch(m.Name, voter.SpouseName) || (m.relation && (m.relation.includes('पति') || m.relation.includes('पत्नी')))));
-      if (alreadyHasSpouse && (!alreadyHasSpouse.relation || alreadyHasSpouse.relation === 'परिवार सदस्य')) {
-        alreadyHasSpouse.relation = 'पति / पत्नी (Spouse)';
-      }
-      if (isValidPersonNameForMatch(voter.SpouseName) && !alreadyHasSpouse) {
-        const sKey = `${w}|${getCoreNormalizedName(voter.SpouseName)}`;
-        const rawCandidates = idx.byWardName.get(sKey) || [];
-        const candidates = rawCandidates.filter(x => {
-          if (seenVoterIds.has(x.VoterID) || ignoredIds.has(x.VoterID)) return false;
-          const xAge = x._numAge || 0;
-          if (voterAge > 0 && xAge > 0 && Math.abs(xAge - voterAge) > 25) return false;
-          if (isValidPersonNameForMatch(x.SpouseName) && !doesVoterNameMatch(x.SpouseName, voter.Name)) return false;
-          return doesSurnameMatch(x.Name, voter.SpouseName);
-        });
-        const spouseMatchedVoter = candidates.find(c => isValidPersonNameForMatch(c.SpouseName) && doesVoterNameMatch(c.SpouseName, voter.Name)) || candidates[0] || null;
-
-        if (spouseMatchedVoter) {
-          list.push({
-            ...spouseMatchedVoter,
-            isCurrent: false,
-            isRegisteredVoter: true,
-            matchType: 'auto',
-            relation: 'पति / पत्नी (Spouse)'
-          });
-          seenVoterIds.add(spouseMatchedVoter.VoterID);
-        } else if (!ignoredIds.has('TEXT_SPOUSE')) {
-          list.push({
-            VoterID: 'TEXT_SPOUSE',
-            Name: voter.SpouseName,
-            Gender: voter.Gender === 'Male' ? 'Female' : (voter.Gender === 'Female' ? 'Male' : ''),
-            Age: '',
-            PartyLeaning: voter.PartyLeaning || 'Undecided',
-            relation: 'पति / पत्नी (Spouse)',
-            isCurrent: false,
-            isRegisteredVoter: false,
-            matchType: 'unlinked_text',
-            roleKey: 'SpouseName'
-          });
-        }
-      } else if (!alreadyHasSpouse && isValidPersonNameForMatch(voter.Name)) {
-        const revKey = `${w}|${getCoreNormalizedName(voter.Name)}`;
-        const revCandidates = idx.byWardSpouse.get(revKey) || [];
-        const reverseSpouse = revCandidates.find(x => {
-          if (seenVoterIds.has(x.VoterID) || ignoredIds.has(x.VoterID)) return false;
-          if (!doesSurnameMatch(x.Name, voter.Name)) return false;
-          const xAge = x._numAge || 0;
-          if (voterAge > 0 && xAge > 0 && Math.abs(xAge - voterAge) > 22) return false;
-          return true;
-        });
-        if (reverseSpouse) {
-          list.push({
-            ...reverseSpouse,
-            isCurrent: false,
-            isRegisteredVoter: true,
-            matchType: 'auto',
-            relation: 'पति / पत्नी (Spouse)'
-          });
-          seenVoterIds.add(reverseSpouse.VoterID);
-        }
-      }
-
-      // 4D. Reverse Child Lookup (छोरा / छोरी) — O(1) lookup via byWardFather & byWardMother
-      if (isValidPersonNameForMatch(voter.Name)) {
-        const selfKey = `${w}|${getCoreNormalizedName(voter.Name)}`;
-        const childCandidates = [
-          ...(idx.byWardFather.get(selfKey) || []),
-          ...(idx.byWardMother.get(selfKey) || [])
-        ];
-        childCandidates.forEach(x => {
-          if (seenVoterIds.has(x.VoterID) || ignoredIds.has(x.VoterID) || list.length >= 14) return;
-          const xAge = x._numAge || 0;
-          if (voterAge > 0 && xAge > 0 && ((voterAge - xAge) < 16 || (voterAge - xAge) > 60)) return;
-          if (!doesSurnameMatch(x.Name, voter.Name)) return;
-
-          const isFatherOfX = isValidPersonNameForMatch(x.FatherName) && doesVoterNameMatch(x.FatherName, voter.Name);
-          const isMotherOfX = isValidPersonNameForMatch(x.MotherName) && doesVoterNameMatch(x.MotherName, voter.Name);
-
-          if (isFatherOfX && isValidPersonNameForMatch(voter.SpouseName) && isValidPersonNameForMatch(x.MotherName)) {
-            if (!doesVoterNameMatch(voter.SpouseName, x.MotherName)) return;
-          }
-          if (isMotherOfX && isValidPersonNameForMatch(voter.SpouseName) && isValidPersonNameForMatch(x.FatherName)) {
-            if (!doesVoterNameMatch(voter.SpouseName, x.FatherName)) return;
-          }
-
-          if (isFatherOfX || isMotherOfX) {
-            const childRel = (x.Gender === 'Female' || x.Gender === 'महिला') ? 'छोरी (Daughter)' : 'छोरा (Son)';
-            list.push({
-              ...x,
-              isCurrent: false,
-              isRegisteredVoter: true,
-              matchType: 'auto',
-              relation: childRel
-            });
-            seenVoterIds.add(x.VoterID);
-          }
-        });
-      }
-
-      // 4E. Strict Dual-Parent + Surname Sibling Match (दाजु-भाइ / दिदी-बहिनी) — O(1) lookup via byWardParentsSurname
-      if (isValidPersonNameForMatch(voter.FatherName) && isValidPersonNameForMatch(voter.MotherName)) {
-        const fCore = getCoreNormalizedName(voter.FatherName);
-        const mCore = getCoreNormalizedName(voter.MotherName);
-        const sName = extractSurname(voter.Name);
-        if (fCore && mCore && sName) {
-          const sibKey = `${w}|${fCore}|${mCore}|${sName}`;
-          const sibCandidates = idx.byWardParentsSurname.get(sibKey) || [];
-          sibCandidates.forEach(x => {
-            if (seenVoterIds.has(x.VoterID) || ignoredIds.has(x.VoterID) || list.length >= 14) return;
-            const xAge = x._numAge || 0;
-            if (voterAge > 0 && xAge > 0 && Math.abs(xAge - voterAge) > 25) return;
-            const sibRel = (x.Gender === 'Female' || x.Gender === 'महिला') ? 'दिदी / बहिनी (Sister)' : 'दाजु / भाइ (Brother)';
-            list.push({
-              ...x,
-              isCurrent: false,
-              isRegisteredVoter: true,
-              matchType: 'auto',
-              relation: sibRel
             });
             seenVoterIds.add(x.VoterID);
           });
@@ -16562,10 +17079,12 @@
       const boothNo = (formData.get('BoothNo') || 'A').trim();
       let houseNo = (formData.get('HouseNo') || '').trim();
       let selectedHhId = (formData.get('ExistingHouseholdID') || '').trim();
+      const activeTenantId = (currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') ? currentUser.TenantID : 'TNT_HELAMBU';
+      const scopedVoters = getScopedVoters();
 
-      // 1. STRICT DUPLICATE GUARD (Prevent duplicate Voter ID or exact Name + Father + Ward)
+      // 1. STRICT DUPLICATE GUARD (Prevent duplicate Voter ID or exact Name + Father + Ward within tenant)
       if (rawVoterId) {
-        const dupId = (state.voters || []).find(v => String(v.OfficialVoterID || v.VoterID).trim() === rawVoterId);
+        const dupId = scopedVoters.find(v => String(v.OfficialVoterID || v.VoterID).trim() === rawVoterId);
         if (dupId) {
           showToast(`⚠️ डुप्लिकेट मतदाता नं (${rawVoterId}): "${dupId.Name}" (वडा ${dupId.Ward}) पहिले नै दर्ता छ!`, 'error');
           return;
@@ -16574,7 +17093,7 @@
       if (fullName && fatherName && isValidPersonNameForMatch(fatherName)) {
         const normN = normalizePersonNameForMatch(fullName);
         const normF = normalizePersonNameForMatch(fatherName);
-        const dupPerson = (state.voters || []).find(v =>
+        const dupPerson = scopedVoters.find(v =>
           Number(v.Ward) === wardNo &&
           normalizePersonNameForMatch(v.Name) === normN &&
           normalizePersonNameForMatch(v.FatherName) === normF
@@ -16587,7 +17106,7 @@
 
       // 2. SMART HOUSEHOLD RESOLUTION & AUTO-LINKING
       let householdId = selectedHhId;
-      let matchedHh = householdId ? (state.households || []).find(h => h.HouseholdID === householdId) : null;
+      let matchedHh = householdId ? getScopedHouseholds().find(h => h.HouseholdID === householdId) : null;
 
       if (!matchedHh) {
         // Try matching by FatherName / MotherName / SpouseName in the same Ward
@@ -16607,8 +17126,10 @@
         matchedHh.MemberCount = (matchedHh.MemberCount || 1) + 1;
       } else {
         // Create a clean new Household in this Ward & Tole
-        householdId = 'HHD_W' + wardNo + '_' + Date.now().toString(36).toUpperCase().slice(-4);
+        const shortT = String(activeTenantId).replace(/^TNT_/, '').slice(0, 3).toUpperCase();
+        householdId = `HHD_${shortT}_W${wardNo}_${Date.now().toString(36).toUpperCase().slice(-4)}`;
         const newHh = {
+          TenantID: activeTenantId,
           HouseholdID: householdId,
           WardNo: wardNo,
           BoothNo: boothNo,
@@ -16643,7 +17164,6 @@
         syncVoterRoleToCommunityGroupsTable(fullName, (formData.get('Phone') || '').trim(), wardNo, toleName, commCat || 'tole_committee', finalGroupName, commRole, formData.get('PartyLeaning') || 'Undecided');
       }
 
-      const activeTenantId = (currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') ? currentUser.TenantID : 'TNT_HELAMBU';
       const rawAge = (formData.get('Age') || '').trim();
       const computedGroup = formData.get('AgeGroup') || computeAgeGroupFromNumeric(rawAge);
       const professionVal = (formData.get('Profession') || 'कृषक').trim();
@@ -17218,13 +17738,16 @@
       const nextDate = formData.get('NextVisitDate');
       const outcome = formData.get('VisitOutcome');
 
+      const v = getVoterByIdFast(voterId) || state.voters.find(x => x.VoterID === voterId);
+      const activeTenant = (v && v.TenantID) || (getActiveTenantId() !== 'ALL' ? getActiveTenantId() : 'TNT_HELAMBU');
+
       const visit = {
         VisitID: 'VIS_' + Date.now().toString(36).toUpperCase(),
+        TenantID: activeTenant,
         VoterID: voterId,
         Date: formData.get('Date'),
         RecordedBy: (currentUser && currentUser.UserID) ? currentUser.UserID : 'USR_ADMIN',
         RecordedByName: (currentUser && currentUser.Name) ? currentUser.Name : 'प्रशासक',
-        
         VisitOutcome: outcome,
         ContactStatus: 'Contacted',
         SelfReportedResponse: response,
@@ -17236,7 +17759,6 @@
 
       // Workflow Automation 1: Update Voter record status and Auto-Verify if 'Support' & 'Met'
       let autoVerified = false;
-      const v = state.voters.find(x => x.VoterID === voterId);
       if (v) {
         v.ContactStatus = 'Contacted';
         if (response) v.SelfReportedResponse = response;
@@ -17259,6 +17781,7 @@
         const autoReason = isUndecided ? 'दोधार मतदाता पुन: परामर्श (Undecided Follow-up)' : 'Field Visit Follow-up';
         state.followups.unshift({
           FollowUpID: 'FUP_' + Date.now().toString(36).toUpperCase(),
+          TenantID: activeTenant,
           VoterID: voterId,
           DueDate: scheduledDate,
           Reason: autoReason,
@@ -17287,12 +17810,14 @@
 
     function renderVisitsList() {
       const tbody = document.getElementById('visitsTableRows');
-      if (!state.visits.length) {
+      if (!tbody) return;
+      const scopedVisits = getScopedVisits();
+      if (!scopedVisits.length) {
         tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 32px; color: var(--slate-600);">No visits logged yet.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = state.visits.map((vt, idx) => {
+      tbody.innerHTML = scopedVisits.map((vt, idx) => {
         const voter = getVoterByIdFast(vt.VoterID);
         return `
           <tr>
@@ -17402,16 +17927,17 @@
     function getGroupMembers(groupId) {
       const g = (state.communityGroups || []).find(x => x.GroupID === groupId);
       const normGroupName = g && g.Name ? String(g.Name).trim().toLowerCase() : '';
+      const gTenant = g ? (g.TenantID || 'TNT_HELAMBU') : null;
       const members = [];
       const seenVoterIds = new Set();
 
-      (state.voters || []).forEach(v => {
+      getScopedVoters().forEach(v => {
+        if (gTenant && (v.TenantID || 'TNT_HELAMBU') !== gTenant) return;
         if (v.CommunityRoles && Array.isArray(v.CommunityRoles)) {
           v.CommunityRoles.forEach(r => {
             const rGroupName = String(r.groupName || '').trim().toLowerCase();
             const isMatch = (r.groupId === groupId) || (normGroupName && rGroupName === normGroupName);
             if (isMatch && !seenVoterIds.has(v.VoterID)) {
-              // Auto-heal groupId and roleId if linked by name from Voter Modal / CSV
               if (!r.groupId && g) r.groupId = g.GroupID;
               if (!r.id) r.id = 'ROLE_' + v.VoterID + '_' + groupId;
               seenVoterIds.add(v.VoterID);
@@ -17455,11 +17981,11 @@
         else swing++;
       });
 
-      // Compute Real Connected Family Vote Block across all members' households
+      // Compute Real Connected Family Vote Block across all members' households within active tenant
       let familyVotes = 0;
       let familySolidVotes = 0;
       const countedFamVoters = new Set();
-      (state.voters || []).forEach(v => {
+      getScopedVoters().forEach(v => {
         if ((v.HouseholdID && hhIdSet.has(v.HouseholdID)) || directVoterIds.has(v.VoterID)) {
           if (!countedFamVoters.has(v.VoterID)) {
             countedFamVoters.add(v.VoterID);
@@ -17485,12 +18011,14 @@
 
     function autoSyncCommunityGroupsWithVoters(silent = false) {
       if (!state.communityGroups) state.communityGroups = [];
-      const voters = state.voters || [];
+      const voters = getScopedVoters();
       if (!voters.length) return;
+      const activeTenantId = (getActiveTenantId() && getActiveTenantId() !== 'ALL') ? getActiveTenantId() : (voters[0].TenantID || 'TNT_HELAMBU');
+      const shortTenant = activeTenantId.replace(/^TNT_/, '').slice(0, 3).toUpperCase();
 
-      // Step 0: If state.communityGroups is empty, automatically seed foundational Community Organizations
-      // (Tole Sudhar Samiti, Aama Samuha, Youth Club) from the real Wards & Toles present in state.voters
-      if (state.communityGroups.length === 0) {
+      // Step 0: If active tenant has 0 community groups, seed foundational Community Organizations per real Ward
+      const existingScopedGroups = getScopedCommunityGroups();
+      if (existingScopedGroups.length === 0) {
         const wardsSeen = [...new Set(voters.map(v => Number(v.Ward) || 1))].sort((a, b) => a - b);
         wardsSeen.forEach(w => {
           const wVoters = voters.filter(v => (Number(v.Ward) || 1) === w);
@@ -17502,7 +18030,8 @@
           ];
           templates.forEach((tpl, idx) => {
             state.communityGroups.push({
-              GroupID: `GRP_W${w}_${idx + 1}`,
+              GroupID: `GRP_${shortTenant}_W${w}_${idx + 1}`,
+              TenantID: activeTenantId,
               Name: `${primaryTole} ${tpl.suffix}`,
               Category: tpl.cat,
               CategoryName: getCategoryLabel(tpl.cat),
@@ -17511,22 +18040,25 @@
               EstHouseholds: Math.max(10, Math.round(wVoters.length / 4)),
               EstVotes: wVoters.length,
               KeyDemands: tpl.demand,
-              Notes: "मतदाता नामावलीको वडा र टोलबाट स्वतः निर्मित संस्था"
+              Notes: "मतदाता नामावलीको वडा र टोलबाट निर्मित संस्था"
             });
           });
         });
       }
 
-      // Step 1: Ensure any organization named on a voter's CommunityRoles exists in state.communityGroups
+      // Step 1: Ensure any organization genuinely named on a voter's CommunityRoles exists in state.communityGroups
+      let syncedRolesCount = 0;
       voters.forEach(v => {
+        const vTenant = v.TenantID || activeTenantId;
         if (Array.isArray(v.CommunityRoles)) {
           v.CommunityRoles.forEach(r => {
             const gName = String(r.groupName || '').trim();
             if (!gName) return;
-            let grp = state.communityGroups.find(g => g.GroupID === r.groupId || String(g.Name || '').trim().toLowerCase() === gName.toLowerCase());
+            let grp = state.communityGroups.find(g => (g.TenantID || 'TNT_HELAMBU') === vTenant && (g.GroupID === r.groupId || String(g.Name || '').trim().toLowerCase() === gName.toLowerCase()));
             if (!grp) {
               grp = {
                 GroupID: r.groupId || ('GRP_' + Date.now().toString(36).toUpperCase() + '_' + Math.floor(Math.random() * 999)),
+                TenantID: vTenant,
                 Name: gName,
                 Category: r.category || 'tole_committee',
                 CategoryName: getCategoryLabel(r.category || 'tole_committee'),
@@ -17541,83 +18073,28 @@
             }
             r.groupId = grp.GroupID;
             if (!r.id) r.id = 'ROLE_' + v.VoterID + '_' + grp.GroupID;
+            syncedRolesCount++;
           });
         }
       });
 
-      // Step 2: For any Community Group that currently has 0 linked committee members in state.voters,
-      // automatically link matching real voters from the same Ward & Tole (e.g. Women for Aama Samuha, Youth for Youth Club)
-      let newlyLinkedCount = 0;
-      const roleTitles = ['अध्यक्ष', 'उपाध्यक्ष', 'सचिव', 'कोषाध्यक्ष', 'सदस्य', 'सदस्य', 'सल्लाहकार'];
-
-      state.communityGroups.forEach(g => {
-        const existing = getGroupMembers(g.GroupID);
-        if (existing.length > 0) return;
-
-        const wardVoters = voters.filter(v => Number(v.Ward) === Number(g.Ward));
-        const pool = wardVoters.length > 0 ? wardVoters : voters;
-        let candidates = pool.filter(v => {
-          if (g.Tole && v.Tole && String(v.Tole).toLowerCase().includes(String(g.Tole).toLowerCase())) return true;
-          return true;
-        });
-
-        // Sort candidates by category relevance:
-        // - aama_samuha -> Female voters first
-        // - youth_club -> 18-32 age voters first
-        // - others -> Influencers & Household Heads first
-        candidates.sort((a, b) => {
-          const score = (x) => {
-            let s = 0;
-            if (g.Tole && x.Tole && String(x.Tole).toLowerCase() === String(g.Tole).toLowerCase()) s += 50;
-            if (g.Category === 'aama_samuha' && x.Gender === 'Female') s += 40;
-            if (g.Category === 'youth_club') {
-              const age = Number(x.Age) || 35;
-              if (age >= 18 && age <= 32) s += 40;
-            }
-            if (x.IsInfluencer) s += 20;
-            if (x.FamilyRelation === 'घरमुली') s += 10;
-            return s;
-          };
-          return score(b) - score(a);
-        });
-
-        const picked = candidates.slice(0, Math.min(5, candidates.length));
-        picked.forEach((v, idx) => {
-          if (!Array.isArray(v.CommunityRoles)) v.CommunityRoles = [];
-          const roleName = roleTitles[idx] || 'सदस्य';
-          v.CommunityRoles.push({
-            id: 'ROLE_' + v.VoterID + '_' + g.GroupID,
-            groupId: g.GroupID,
-            groupName: g.Name,
-            category: g.Category || 'tole_committee',
-            categoryName: getCategoryLabel(g.Category || 'tole_committee'),
-            role: roleName,
-            status: 'बहालवाला'
-          });
-          if (idx === 0) v.IsInfluencer = true;
-          newlyLinkedCount++;
-        });
-      });
-
-      if (newlyLinkedCount > 0) {
-        saveState();
-      }
+      saveState();
       if (!silent) {
         renderCommunityGroupsView();
-        showToast(`✅ मतदाता नामावली र सामुदायिक संघ-संस्थाबीच ${newlyLinkedCount} जना पदाधिकारी स्वतः सिङ्क गरियो!`, 'success');
+        showToast(`✅ सामुदायिक संघ-संस्था र ${syncedRolesCount} जना वास्तविक पदाधिकारी सिङ्क गरियो!`, 'success');
       }
     }
 
     function renderCommunityGroupsView() {
       if (!state.communityGroups) state.communityGroups = [];
 
-      // Automatically link real voters if groups are empty or have 0 linked members
-      const anyLinked = (state.voters || []).some(v => v.CommunityRoles && v.CommunityRoles.length > 0);
-      if ((state.communityGroups.length === 0 || !anyLinked) && state.voters && state.voters.length > 0) {
+      const scopedVoters = getScopedVoters();
+      if (getScopedCommunityGroups().length === 0 && scopedVoters.length > 0) {
         autoSyncCommunityGroupsWithVoters(true);
       }
 
-      const totalGroups = state.communityGroups.length;
+      const scopedGroups = getScopedCommunityGroups();
+      const totalGroups = scopedGroups.length;
       const badge = document.getElementById('communityCountBadge');
       if (badge) badge.textContent = totalGroups;
 
@@ -17628,7 +18105,7 @@
       const countedVoterIds = new Set();
       const connectedHhIds = new Set();
 
-      state.communityGroups.forEach(g => {
+      scopedGroups.forEach(g => {
         const mems = getGroupMembers(g.GroupID);
         mems.forEach(m => {
           const v = m.voter;
@@ -17644,7 +18121,7 @@
       });
 
       // Total family votes across all connected households of community leaders
-      const totalConnectedFamilyVotes = (state.voters || []).filter(v =>
+      const totalConnectedFamilyVotes = scopedVoters.filter(v =>
         (v.HouseholdID && connectedHhIds.has(v.HouseholdID)) || countedVoterIds.has(v.VoterID)
       ).length;
 
@@ -17667,7 +18144,7 @@
       const wardFilter = document.getElementById('commWardFilter') ? document.getElementById('commWardFilter').value : '';
       const catFilter = document.getElementById('commCategoryFilter') ? document.getElementById('commCategoryFilter').value : '';
 
-      const filtered = state.communityGroups.filter(g => {
+      const filtered = scopedGroups.filter(g => {
         if (wardFilter && String(g.Ward) !== String(wardFilter)) return false;
         if (catFilter && g.Category !== catFilter) return false;
         if (q) {
@@ -17689,7 +18166,7 @@
       if (cntDemands) cntDemands.textContent = demandsCount;
 
       const cntProf = document.getElementById('commTabCountProfessions');
-      if (cntProf) cntProf.textContent = getScopedVoters().length;
+      if (cntProf) cntProf.textContent = scopedVoters.length;
 
       renderCommunityGroupsCards(filtered);
       renderCommunityLeadersTable(filtered);
@@ -17713,12 +18190,13 @@
         return;
       }
 
+      const scopedVoters = getScopedVoters();
       grid.innerHTML = filtered.map(g => {
         const members = getGroupMembers(g.GroupID);
         const stats = getGroupHoldStats(members);
         const catInfo = COMMUNITY_CATEGORIES[g.Category] || COMMUNITY_CATEGORIES['other'];
         const presMember = members.find(m => m.role.includes('अध्यक्ष')) || members[0];
-        const toleRealVoters = (state.voters || []).filter(v => Number(v.Ward) === Number(g.Ward) && (!g.Tole || (v.Tole && String(v.Tole).toLowerCase() === String(g.Tole).toLowerCase()))).length;
+        const toleRealVoters = scopedVoters.filter(v => Number(v.Ward) === Number(g.Ward) && (!g.Tole || (v.Tole && String(v.Tole).toLowerCase() === String(g.Tole).toLowerCase()))).length;
 
         return `
           <div class="card" style="padding: 18px; border: 1.5px solid #e2e8f0; border-radius: 12px; transition: transform 0.15s, box-shadow 0.15s; background: white; display: flex; flex-direction: column; justify-content: space-between;">
@@ -17814,14 +18292,14 @@
       }).join('');
     }
 
-function renderCommunityLeadersTable(filteredGroups) {
+    function renderCommunityLeadersTable(filteredGroups) {
       const tbody = document.getElementById('commLeadersTableRows');
       if (!tbody) return;
 
       const groupIds = new Set(filteredGroups.map(g => g.GroupID));
       const leaderEntries = [];
 
-      (state.voters || []).forEach(v => {
+      getScopedVoters().forEach(v => {
         if (v.CommunityRoles && Array.isArray(v.CommunityRoles)) {
           v.CommunityRoles.forEach(r => {
             if (groupIds.has(r.groupId)) {
@@ -17928,7 +18406,6 @@ function renderCommunityLeadersTable(filteredGroups) {
 
       grid.innerHTML = demandingGroups.map(g => {
         const catInfo = COMMUNITY_CATEGORIES[g.Category] || COMMUNITY_CATEGORIES['other'];
-        const members = getGroupMembers(g.GroupID);
 
         return `
           <div class="card" style="padding: 16px; border: 1.5px solid #fde68a; border-radius: 12px; background: #fffbeb;">
@@ -17956,6 +18433,7 @@ function renderCommunityLeadersTable(filteredGroups) {
     function openCreateCommunityGroupModal(groupId = null) {
       const g = groupId ? state.communityGroups.find(x => x.GroupID === groupId) : null;
       const isEdit = !!g;
+      const activeWardList = (typeof getActivePalikaWardNumbers === 'function') ? getActivePalikaWardNumbers() : state.wards.map(w => w.WardNo);
 
       openModal(
         isEdit ? `संस्था सम्पादन: ${g.Name}` : `➕ नयाँ सामुदायिक संघ-संस्था दर्ता`,
@@ -17983,7 +18461,7 @@ function renderCommunityLeadersTable(filteredGroups) {
             <div class="form-group">
               <label class="form-label">वडा नं. *</label>
               <select name="Ward" required class="form-control">
-                ${state.wards.map(w => `<option value="${w.WardNo}" ${g && Number(g.Ward) === Number(w.WardNo) ? 'selected' : ''}>वडा नं ${w.WardNo}</option>`).join('')}
+                ${activeWardList.map(wNo => `<option value="${wNo}" ${g && Number(g.Ward) === Number(wNo) ? 'selected' : ''}>वडा नं ${wNo}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
@@ -18035,6 +18513,7 @@ function renderCommunityLeadersTable(filteredGroups) {
       }
 
       const catKey = formData.get('Category') || 'other';
+      const activeTenant = (getActiveTenantId() && getActiveTenantId() !== 'ALL') ? getActiveTenantId() : 'TNT_HELAMBU';
 
       if (groupId) {
         const idx = state.communityGroups.findIndex(x => x.GroupID === groupId);
@@ -18056,6 +18535,7 @@ function renderCommunityLeadersTable(filteredGroups) {
       } else {
         const newGroup = {
           GroupID: 'GRP_' + Date.now().toString(36).toUpperCase(),
+          TenantID: activeTenant,
           Name: name,
           Category: catKey,
           CategoryName: getCategoryLabel(catKey),
@@ -18619,66 +19099,99 @@ function renderCommunityLeadersTable(filteredGroups) {
     function autoBuildStrictHouseholds(silent = false) {
       if (!state.voters || !state.voters.length) return { builtCount: 0, linkedVoters: 0 };
 
-      const assignedVoterIds = new Set();
+      const assignedVoterKeys = new Set();
       const newHouseholds = [];
       let seqCounter = 1;
 
-      const idx = ensureVoterFastIndex();
-
-      // Preserve manually created households that have valid <= 12 members
-      (state.households || []).forEach(existingH => {
-        if (!existingH || !existingH.HouseholdID || String(existingH.HouseholdID).startsWith('HHD_FAM_')) return;
-        const mems = idx.byHh.get(existingH.HouseholdID) || [];
-        if (mems.length >= 1 && mems.length <= 12) {
-          const surnames = new Set(mems.map(m => extractSurname(m.Name)).filter(Boolean));
-          if (surnames.size <= 2) {
-            mems.forEach(m => assignedVoterIds.add(m.VoterID));
-            newHouseholds.push({
-              ...existingH,
-              MemberCount: mems.length
-            });
-            seqCounter++;
-          }
-        }
-      });
-
-      // Clear any remaining auto-generated HouseholdIDs on unassigned voters before clean rebuild
+      // Clear auto-generated HouseholdIDs so we build clean, age-anchored multi-generation households
       state.voters.forEach(v => {
-        if (!assignedVoterIds.has(v.VoterID)) {
+        if (v.HouseholdID && (String(v.HouseholdID).startsWith('HHD_W') || String(v.HouseholdID).startsWith('HHD_FAM_') || String(v.HouseholdID).startsWith('HHD_TNT_'))) {
           v.HouseholdID = '';
         }
       });
+
       _voterIndexDirty = true;
       const freshIdx = ensureVoterFastIndex();
 
-      // Iterate through voters using O(1) index to form strict, verified family clusters (2 to 12 registered voters)
-      for (let i = 0; i < state.voters.length; i++) {
-        const v = state.voters[i];
-        if (assignedVoterIds.has(v.VoterID)) continue;
+      // Preserve manually created custom households that have valid <= 14 members
+      (state.households || []).forEach(existingH => {
+        if (!existingH || !existingH.HouseholdID) return;
+        const hIdStr = String(existingH.HouseholdID);
+        if (hIdStr.startsWith('HHD_FAM_') || hIdStr.startsWith('HHD_W') || hIdStr.startsWith('HHD_TNT_')) return;
+        const tId = existingH.TenantID || 'TNT_HELAMBU';
+        const mems = freshIdx.byHh.get(`${tId}_${existingH.HouseholdID}`) || freshIdx.byHh.get(existingH.HouseholdID) || [];
+        if (mems.length >= 1 && mems.length <= 14) {
+          mems.forEach(m => assignedVoterKeys.add(`${m.TenantID || 'TNT_HELAMBU'}_${m.VoterID}`));
+          newHouseholds.push({
+            ...existingH,
+            TenantID: tId,
+            MemberCount: mems.length
+          });
+          seqCounter++;
+        }
+      });
 
-        const fam = getFamilyMembers(v).filter(m => m.isRegisteredVoter && !assignedVoterIds.has(m.VoterID));
-        if (fam.length >= 2 && fam.length <= 12) {
-          const hhId = `HHD_W${v.Ward || 1}_${String(seqCounter++).padStart(4, '0')}`;
-          const sortedByAge = [...fam].sort((a, b) => (Number(b.Age) || 0) - (Number(a.Age) || 0));
-          const head = fam.find(m => m.relation.includes('बुबा') || m.relation.includes('घरमुली')) || sortedByAge[0] || v;
+      // Sort voters by Age Descending (Male first on tie) so the eldest Patriarch/Matriarch anchors the joint family first!
+      const sortedVoters = [...state.voters].sort((a, b) => {
+        const ageA = Number(a.Age) || 0;
+        const ageB = Number(b.Age) || 0;
+        if (ageB !== ageA) return ageB - ageA;
+        const maleA = (a.Gender === 'Male' || a.Gender === 'पुरुष') ? 1 : 0;
+        const maleB = (b.Gender === 'Male' || b.Gender === 'पुरुष') ? 1 : 0;
+        return maleB - maleA;
+      });
 
-          fam.forEach(m => {
-            const target = freshIdx.byId.get(String(m.VoterID));
+      for (let i = 0; i < sortedVoters.length; i++) {
+        const v = sortedVoters[i];
+        const tId = v.TenantID || 'TNT_HELAMBU';
+        const vKey = `${tId}_${v.VoterID}`;
+        if (assignedVoterKeys.has(vKey)) continue;
+
+        // If v is a married woman whose husband is registered in the same ward and unassigned, let her husband anchor or include him
+        const rawFam = getFamilyMembers(v).filter(m => {
+          if (!m.isRegisteredVoter) return false;
+          const mKey = `${m.TenantID || tId}_${m.VoterID}`;
+          if (assignedVoterKeys.has(mKey)) return false;
+          // Do not pull a married daughter/sister away from her registered husband's family
+          if (!m.isCurrent && (m.relation.includes('छोरी') || m.relation.includes('दिदी') || m.relation.includes('बहिनी'))) {
+            if (isValidPersonNameForMatch(m.SpouseName)) {
+              const hasRegHusband = findSpouseCandidateFast(m, freshIdx);
+              if (hasRegHusband) return false;
+            }
+          }
+          return true;
+        });
+
+        if (rawFam.length >= 2 && rawFam.length <= 14) {
+          const shortTenant = tId.replace(/^TNT_/, '').slice(0, 3).toUpperCase();
+          const hhId = `HHD_${shortTenant}_W${v.Ward || 1}_${String(seqCounter++).padStart(4, '0')}`;
+          const sortedByAge = [...rawFam].sort((a, b) => {
+            const ageDiff = (Number(b.Age) || 0) - (Number(a.Age) || 0);
+            if (ageDiff !== 0) return ageDiff;
+            return (b.Gender === 'Male' ? 1 : 0) - (a.Gender === 'Male' ? 1 : 0);
+          });
+          const head = rawFam.find(m => m.relation.includes('ससुरा') || m.relation.includes('बुबा')) || sortedByAge[0] || v;
+
+          rawFam.forEach(m => {
+            const mKey = `${m.TenantID || tId}_${m.VoterID}`;
+            const target = freshIdx.byId.get(mKey) || freshIdx.byId.get(String(m.VoterID));
             if (target) {
               target.HouseholdID = hhId;
-              target.FamilyVotesCount = fam.length;
+              target.FamilyVotesCount = rawFam.length;
               if (target.VoterID === head.VoterID) {
                 target.FamilyRelation = 'घरमुली';
-              } else if (!target.FamilyRelation || target.FamilyRelation === 'घरमुली') {
-                target.FamilyRelation = m.relation.split('(')[0].trim();
+              } else {
+                const cleanRel = m.relation ? m.relation.split('(')[0].replace('स्वयम्', '').trim() : '';
+                target.FamilyRelation = (cleanRel && cleanRel !== 'घरमुली') ? cleanRel : 'परिवार सदस्य';
               }
-              assignedVoterIds.add(target.VoterID);
+              assignedVoterKeys.add(mKey);
             }
           });
 
-          const phoneOwner = fam.find(m => m.Phone && cleanPhone(m.Phone)) || head;
+          const phoneOwner = rawFam.find(m => m.Phone && cleanPhone(m.Phone)) || head;
           newHouseholds.push({
             HouseholdID: hhId,
+            TenantID: tId,
             WardNo: Number(v.Ward) || 1,
             BoothNo: head.BoothNo || v.BoothNo || 'A',
             Tole: head.Tole || v.Tole || '',
@@ -18687,7 +19200,7 @@ function renderCommunityLeadersTable(filteredGroups) {
             PrimaryContactName: head.Name,
             FamilySurname: extractSurname(head.Name) || '',
             PrimaryPhone: phoneOwner.Phone || '',
-            MemberCount: fam.length,
+            MemberCount: rawFam.length,
             VerificationStatus: 'Verified'
           });
         }
@@ -18700,10 +19213,12 @@ function renderCommunityLeadersTable(filteredGroups) {
       if (!silent) {
         renderHouseholdsList();
         refreshDashboardMetrics();
-        showToast(`🏠 ${newHouseholds.length} वटा वास्तविक घरधुरी (${assignedVoterIds.size} मतदाता) सफलतापूर्वक निर्माण गरियो!`, 'success');
+        const scopedHhCount = (typeof getScopedHouseholds === 'function') ? getScopedHouseholds().length : newHouseholds.length;
+        const scopedLinkedCount = (typeof getScopedVoters === 'function') ? getScopedVoters().filter(x => !!x.HouseholdID).length : assignedVoterKeys.size;
+        showToast(`🏠 ${scopedHhCount} वटा वास्तविक घरधुरी (${scopedLinkedCount} मतदाता) सफलतापूर्वक निर्माण गरियो!`, 'success');
       }
 
-      return { builtCount: newHouseholds.length, linkedVoters: assignedVoterIds.size };
+      return { builtCount: newHouseholds.length, linkedVoters: assignedVoterKeys.size };
     }
 
     function setHouseholdPage(p) {
@@ -18717,12 +19232,13 @@ function renderCommunityLeadersTable(filteredGroups) {
       const tableWrap = document.getElementById('householdTableContainer');
       if (!tbody) return;
 
-      // Auto-build households on first view if none exist yet and voters exist
-      if ((!state.households || state.households.length === 0) && state.voters && state.voters.length > 0) {
+      // Auto-build households on first view if current tenant has 0 households while having voters
+      if (getScopedHouseholds().length === 0 && getScopedVoters().length > 0) {
         autoBuildStrictHouseholds(true);
       }
 
       const allVoters = getScopedVoters();
+      const scopedHouseholds = getScopedHouseholds();
       const linkedVotersCount = allVoters.filter(v => !!v.HouseholdID).length;
       const missingParentsCount = allVoters.filter(v => !isValidPersonNameForMatch(v.FatherName) || !isValidPersonNameForMatch(v.MotherName)).length;
       const solidFamilyVotes = allVoters.filter(v => !!v.HouseholdID && ((v.SupportTier === 'solid') || (v.SelfReportedResponse === 'Support'))).length;
@@ -18736,7 +19252,7 @@ function renderCommunityLeadersTable(filteredGroups) {
       const elContactedFam = document.getElementById('hhKpiContactedFamilies');
       const elMissing = document.getElementById('hhKpiMissingParents');
 
-      const totalHh = (state.households || []).length;
+      const totalHh = scopedHouseholds.length;
       if (elTotal) elTotal.textContent = totalHh;
       if (elAvg) elAvg.textContent = totalHh > 0 ? `औसत ${(linkedVotersCount / totalHh).toFixed(1)} मतदाता / परिवार` : 'औसत ० सदस्य';
       if (elLinked) elLinked.textContent = linkedVotersCount;
@@ -18751,7 +19267,7 @@ function renderCommunityLeadersTable(filteredGroups) {
       const sizeFilter = document.getElementById('householdSizeFilter')?.value || '';
 
       if (toleSelectEl) {
-        const allToles = [...new Set((state.households || []).filter(h => !wardFilter || String(h.WardNo) === String(wardFilter)).map(h => (h.Tole || '').trim()).filter(Boolean))].sort();
+        const allToles = [...new Set(scopedHouseholds.filter(h => !wardFilter || String(h.WardNo) === String(wardFilter)).map(h => (h.Tole || '').trim()).filter(Boolean))].sort();
         const curVal = toleSelectEl.value;
         toleSelectEl.innerHTML = '<option value="">सबै टोल (All Toles)</option>' + allToles.map(t => `<option value="${esc(t)}" ${t === curVal ? 'selected' : ''}>🏘️ ${esc(t)}</option>`).join('');
       }
@@ -18766,13 +19282,13 @@ function renderCommunityLeadersTable(filteredGroups) {
       });
 
       let contactedFamiliesCount = 0;
-      (state.households || []).forEach(h => {
+      scopedHouseholds.forEach(h => {
         const mems = membersByHh[h.HouseholdID] || [];
         if (mems.some(m => m.ContactStatus === 'Contacted')) contactedFamiliesCount++;
       });
       if (elContactedFam) elContactedFam.textContent = `${contactedFamiliesCount} परिवार भेटघाट सम्पन्न`;
 
-      let filtered = (state.households || []).filter(h => {
+      let filtered = scopedHouseholds.filter(h => {
         const mems = membersByHh[h.HouseholdID] || [];
         const mCount = mems.length || h.MemberCount || 0;
         if (wardFilter && String(h.WardNo) !== String(wardFilter)) return false;
@@ -19237,7 +19753,8 @@ function renderCommunityLeadersTable(filteredGroups) {
     // ==========================================
     function renderFollowupsList(filter = 'All') {
       const tbody = document.getElementById('followupsTableRows');
-      let list = state.followups;
+      if (!tbody) return;
+      let list = getScopedFollowups();
       if (filter !== 'All') {
         list = list.filter(f => f.Status === filter);
       }
@@ -19302,8 +19819,10 @@ function renderCommunityLeadersTable(filteredGroups) {
     function saveScheduledFollowup(e, voterId) {
       e.preventDefault();
       const fd = new FormData(e.target);
+      const activeTenant = getActiveTenantId() === 'ALL' ? 'TNT_HELAMBU' : getActiveTenantId();
       state.followups.unshift({
         FollowUpID: 'FUP_' + Date.now().toString(36).toUpperCase(),
+        TenantID: activeTenant,
         VoterID: voterId,
         DueDate: fd.get('DueDate') || new Date().toISOString().slice(0, 10),
         AssignedUserID: currentUser ? currentUser.Name : 'Field Team',
@@ -20208,9 +20727,10 @@ function renderCommunityLeadersTable(filteredGroups) {
       let totBooths = 0, totToles = 0, totHh = 0, totVoters = 0, totVil = 0, totCity = 0, totAbr = 0, totDeliv = 0, totSolid = 0, totSwing = 0, totOpp = 0, totContacted = 0;
 
       const rowsHtml = [];
+      const scopedHhs = getScopedHouseholds();
       for (const w of getActivePalikaWardNumbers()) {
         const wVoters = allVoters.filter(v => Number(v.Ward || 1) === w);
-        const wHh = (state.households || []).filter(h => Number(h.WardNo || 1) === w).length;
+        const wHh = scopedHhs.filter(h => Number(h.WardNo || 1) === w).length;
         if (w > 7 && wVoters.length === 0 && wHh === 0) continue; // Helambu has 7 wards by default; show 8-9 only if data exists
 
         const boothsSet = new Set(wVoters.map(v => v.BoothNo || 'A'));
@@ -20909,6 +21429,7 @@ function renderCommunityLeadersTable(filteredGroups) {
     // ==========================================
     function openAddCandidateModal() {
       const palette = getActivePartyPalette();
+      const wardNums = getActivePalikaWardNumbers();
       openModal(
         '🎯 नयाँ उम्मेदवार दर्ता गर्नुहोस् (Add Candidate)',
         `
@@ -20927,6 +21448,15 @@ function renderCommunityLeadersTable(filteredGroups) {
                 <option value="महिला वडा सदस्य (Ward Member)">महिला वडा सदस्य (Ward Member)</option>
                 <option value="दलित महिला वडा सदस्य (Ward Member)">दलित महिला वडा सदस्य (Ward Member)</option>
                 <option value="खुला वडा सदस्य (Ward Member)">खुला वडा सदस्य (Ward Member)</option>
+                <option value="प्रदेश सभा सदस्य (क्षेत्र क/ख)">प्रदेश सभा सदस्य (क्षेत्र क/ख)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">निर्वाचन तह (Election Level) *</label>
+              <select name="Level" required class="form-control">
+                <option value="स्थानीय तह (Local Level)">स्थानीय तह (Local Level)</option>
+                <option value="प्रदेश सभा (Province Assembly)">प्रदेश सभा (Province Assembly)</option>
+                <option value="प्रतिनिधि सभा (National Level)">प्रतिनिधि सभा (National Level)</option>
               </select>
             </div>
             <div class="form-group">
@@ -20941,7 +21471,7 @@ function renderCommunityLeadersTable(filteredGroups) {
               <label class="form-label">निर्वाचन क्षेत्र / वडा *</label>
               <select name="Ward" required class="form-control">
                 <option value="All">समग्र पालिका (All Wards)</option>
-                ${state.wards.map(w => `<option value="${w.WardNo}">वडा नं ${w.WardNo}</option>`).join('')}
+                ${wardNums.map(wNo => `<option value="${wNo}">वडा नं ${wNo}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
@@ -20973,19 +21503,19 @@ function renderCommunityLeadersTable(filteredGroups) {
       e.preventDefault();
       const form = e.target;
       const formData = new FormData(form);
-      const activeTenant = (state.settings && state.settings.CURRENT_TENANT_ID) || 'TNT_HELAMBU';
+      const activeTenant = getActiveTenantId() === 'ALL' ? ((state.settings && state.settings.CURRENT_TENANT_ID) || 'TNT_HELAMBU') : getActiveTenantId();
 
       const newCand = {
         CandidateID: 'CND_' + Date.now().toString(36).toUpperCase(),
         Name: formData.get('Name').trim(),
         Post: formData.get('Post'),
-        Level: 'स्थानीय तह (Local Level)',
+        Level: formData.get('Level') || 'स्थानीय तह (Local Level)',
         Ward: formData.get('Ward'),
         Party: formData.get('Party').trim(),
         Symbol: formData.get('Symbol').trim(),
         Phone: formData.get('Phone').trim(),
         TargetVotes: parseInt(formData.get('TargetVotes')) || 4500,
-        PIN: formData.get('PIN') || '2084',
+        PIN: (formData.get('PIN') || '2084').trim(),
         TenantID: activeTenant,
         events: [],
         StrategyNotes: []
@@ -20993,19 +21523,23 @@ function renderCommunityLeadersTable(filteredGroups) {
 
       if (!state.candidates) state.candidates = [];
       state.candidates.push(newCand);
+      state.selectedCandidateId = newCand.CandidateID;
       saveState();
 
       logActivity('candidate_manage', `🎯 नयाँ उम्मेदवार ${newCand.Name} (${newCand.Post}) दर्ता गरियो।`);
       closeModal();
       renderTeamList();
-      if (typeof populateWarRoomCandidateSelector === 'function') populateWarRoomCandidateSelector();
+      if (typeof populateLoginUserSelector === 'function') populateLoginUserSelector();
+      if (typeof populateCandidateDropdowns === 'function') populateCandidateDropdowns();
       if (typeof renderCandidateWarRoom === 'function') renderCandidateWarRoom();
       showToast(`${newCand.Name} उम्मेदवारको रूपमा दर्ता हुनुभयो!`, 'success');
     }
+    const saveCandidate = saveNewCandidate;
 
     function openEditCandidateModal(candId) {
       const c = (state.candidates || []).find(x => x.CandidateID === candId);
       if (!c) return showToast('उम्मेदवार फेला परेन', 'error');
+      const wardNums = getActivePalikaWardNumbers();
 
       openModal(
         `✏️ उम्मेदवार विवरण सम्पादन: ${esc(c.Name)}`,
@@ -21025,6 +21559,7 @@ function renderCommunityLeadersTable(filteredGroups) {
                 <option value="महिला वडा सदस्य (Ward Member)" ${c.Post && c.Post.includes('महिला वडा सदस्य') ? 'selected' : ''}>महिला वडा सदस्य (Ward Member)</option>
                 <option value="दलित महिला वडा सदस्य (Ward Member)" ${c.Post && c.Post.includes('दलित') ? 'selected' : ''}>दलित महिला वडा सदस्य (Ward Member)</option>
                 <option value="खुला वडा सदस्य (Ward Member)" ${c.Post && c.Post.includes('खुला') ? 'selected' : ''}>खुला वडा सदस्य (Ward Member)</option>
+                <option value="प्रदेश सभा सदस्य (क्षेत्र क/ख)" ${c.Post && c.Post.includes('प्रदेश') ? 'selected' : ''}>प्रदेश सभा सदस्य (क्षेत्र क/ख)</option>
               </select>
             </div>
             <div class="form-group">
@@ -21039,7 +21574,7 @@ function renderCommunityLeadersTable(filteredGroups) {
               <label class="form-label">निर्वाचन क्षेत्र / वडा *</label>
               <select name="Ward" required class="form-control">
                 <option value="All" ${c.Ward === 'All' ? 'selected' : ''}>समग्र पालिका (All Wards)</option>
-                ${state.wards.map(w => `<option value="${w.WardNo}" ${String(c.Ward) === String(w.WardNo) ? 'selected' : ''}>वडा नं ${w.WardNo}</option>`).join('')}
+                ${wardNums.map(wNo => `<option value="${wNo}" ${String(c.Ward) === String(wNo) ? 'selected' : ''}>वडा नं ${wNo}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
@@ -21081,13 +21616,14 @@ function renderCommunityLeadersTable(filteredGroups) {
       c.Ward = formData.get('Ward');
       c.Phone = formData.get('Phone').trim();
       c.TargetVotes = parseInt(formData.get('TargetVotes')) || 4500;
-      c.PIN = formData.get('PIN') || '2084';
+      c.PIN = (formData.get('PIN') || '2084').trim();
 
       saveState();
       logActivity('candidate_manage', `✏️ उम्मेदवार ${c.Name} को विवरण सम्पादन गरियो।`);
       closeModal();
       renderTeamList();
-      if (typeof populateWarRoomCandidateSelector === 'function') populateWarRoomCandidateSelector();
+      if (typeof populateLoginUserSelector === 'function') populateLoginUserSelector();
+      if (typeof populateCandidateDropdowns === 'function') populateCandidateDropdowns();
       if (typeof renderCandidateWarRoom === 'function') renderCandidateWarRoom();
       showToast(`${c.Name} को विवरण सुरक्षित भयो!`, 'success');
     }
@@ -21103,7 +21639,8 @@ function renderCommunityLeadersTable(filteredGroups) {
           saveState();
           logActivity('candidate_manage', `🗑️ उम्मेदवार ${c.Name} लाई हटाइयो।`);
           renderTeamList();
-          if (typeof populateWarRoomCandidateSelector === 'function') populateWarRoomCandidateSelector();
+          if (typeof populateLoginUserSelector === 'function') populateLoginUserSelector();
+          if (typeof populateCandidateDropdowns === 'function') populateCandidateDropdowns();
           if (typeof renderCandidateWarRoom === 'function') renderCandidateWarRoom();
           showToast(`उम्मेदवार ${c.Name} हटाइयो।`, 'info');
         }
@@ -22877,14 +23414,16 @@ function renderCommunityLeadersTable(filteredGroups) {
     // ==========================================
     function renderIssuesList() {
       const tbody = document.getElementById('issuesTableRows');
-      if (!state.issues.length) {
+      if (!tbody) return;
+      const issues = getScopedIssues();
+      if (!issues.length) {
         tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 32px; color: var(--slate-600);">No issues logged.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = state.issues.map(i => `
+      tbody.innerHTML = issues.map(i => `
         <tr>
-          <td>${new Date().toISOString().slice(0,10)}</td>
+          <td>${i.CreatedDate || new Date().toISOString().slice(0,10)}</td>
           <td>Ward ${i.WardNo} ${i.BoothID ? '• Booth ' + i.BoothID : ''}</td>
           <td>${esc(i.Category)}</td>
           <td><span class="badge ${i.Priority === 'Critical' ? 'badge-urgent' : 'badge-pending'}">${i.Priority}</span></td>
@@ -22898,6 +23437,7 @@ function renderCommunityLeadersTable(filteredGroups) {
     }
 
     function openReportIssueModal() {
+      const wardNums = getActivePalikaWardNumbers();
       openModal(
         'Report Field Issue / Incident',
         `
@@ -22906,7 +23446,7 @@ function renderCommunityLeadersTable(filteredGroups) {
             <div class="form-group">
               <label class="form-label">Ward *</label>
               <select name="WardNo" required class="form-control">
-                ${state.wards.map(w => `<option value="${w.WardNo}">Ward ${w.WardNo}</option>`).join('')}
+                ${wardNums.map(wNo => `<option value="${wNo}">Ward ${wNo}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
@@ -22945,8 +23485,11 @@ function renderCommunityLeadersTable(filteredGroups) {
       e.preventDefault();
       const form = e.target;
       const formData = new FormData(form);
+      const activeTenant = getActiveTenantId() === 'ALL' ? 'TNT_HELAMBU' : getActiveTenantId();
       state.issues.unshift({
         IssueID: 'ISS_' + Date.now().toString(36).toUpperCase(),
+        TenantID: activeTenant,
+        CreatedDate: new Date().toISOString().slice(0, 10),
         WardNo: Number(formData.get('WardNo')),
         Category: formData.get('Category'),
         Priority: formData.get('Priority'),
@@ -22976,12 +23519,14 @@ function renderCommunityLeadersTable(filteredGroups) {
     // ==========================================
     function renderPublicSubsList() {
       const tbody = document.getElementById('publicSubsTableRows');
-      if (!state.publicSubs.length) {
+      if (!tbody) return;
+      const subs = getScopedPublicSubs();
+      if (!subs.length) {
         tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 32px; color: var(--slate-600);">No public submissions pending review.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = state.publicSubs.map(s => `
+      tbody.innerHTML = subs.map(s => `
         <tr>
           <td>${s.CreatedDate || '-'}</td>
           <td><b>${esc(s.FullName)}</b></td>
@@ -23005,10 +23550,12 @@ function renderCommunityLeadersTable(filteredGroups) {
       const s = state.publicSubs.find(x => x.SubmissionID === id);
       if (!s) return;
       s.Status = 'Approved New';
+      const activeTenant = s.TenantID || (getActiveTenantId() === 'ALL' ? 'TNT_HELAMBU' : getActiveTenantId());
 
       // Insert as new verified voter
       state.voters.unshift({
         VoterID: 'VOT_' + Date.now().toString(36).toUpperCase(),
+        TenantID: activeTenant,
         Name: s.FullName,
         Phone: s.Phone,
         Ward: s.WardNo,
@@ -23018,6 +23565,7 @@ function renderCommunityLeadersTable(filteredGroups) {
         RecordSource: 'Public Form',
         Notes: 'Approved from public form'
       });
+      _voterIndexDirty = true;
 
       saveState();
       renderPublicSubsList();
@@ -29040,6 +29588,38 @@ function renderCommunityLeadersTable(filteredGroups) {
 
       const totalVoters = candidateVoters.length;
 
+      // Helper for consistent location classification
+      function classifyWarRoomLocation(locRaw) {
+        const loc = String(locRaw || 'गाउँमै उपस्थित (On-Ground)').trim();
+        if (!loc || loc.includes('गाउँ') || loc.includes('On-Ground')) return 'onGround';
+        if (loc.includes('काठमाडौं') || loc.includes('Kathmandu') || loc.includes('City') || loc.includes('शहर')) return 'city';
+        if (loc.includes('खाडी') || loc.includes('Gulf') || loc.includes('कतार') || loc.includes('मलेसिया') || loc.includes('दुबई') || loc.includes('साउदी') || loc.includes('कुवेत') || loc.includes('युएई')) return 'gulf';
+        if (loc.includes('भारत') || loc.includes('India')) return 'india';
+        return 'west';
+      }
+
+      function getCandPartyKey(partyStr) {
+        const s = String(partyStr || '');
+        if (s.includes('एमाले') || s.toUpperCase() === 'UML') return 'UML';
+        if (s.includes('कांग्रेस') || s.includes('काँग्रेस') || s.toUpperCase() === 'NC' || s === 'Congress') return 'NC';
+        if (s.includes('रास्वपा') || s.includes('स्वतन्त्र पार्टी') || s.toUpperCase() === 'RSP') return 'RSP';
+        if (s.includes('माओवादी') || s.toUpperCase() === 'MAOIST') return 'MAOIST';
+        if (s.includes('राप्रपा') || s.toUpperCase() === 'RPP') return 'RPP';
+        return 'INDEPENDENT';
+      }
+
+      function normalizeVoterPartyKey(pRaw) {
+        const p = String(pRaw || '').trim();
+        if (!p || p === 'Undecided' || p === 'खुलेको छैन') return '';
+        if (p === 'UML' || p.includes('एमाले')) return 'UML';
+        if (p === 'NC' || p === 'Congress' || p.includes('कांग्रेस') || p.includes('काँग्रेस')) return 'NC';
+        if (p === 'RSP' || p.includes('रास्वपा')) return 'RSP';
+        if (p === 'MAOIST' || p === 'Maoist' || p.includes('माओवादी')) return 'MAOIST';
+        if (p === 'RPP' || p.includes('राप्रपा')) return 'RPP';
+        if (p === 'INDEPENDENT' || p === 'Independent' || p.includes('स्वतन्त्र')) return 'INDEPENDENT';
+        return p.toUpperCase();
+      }
+
       // Classify by Location
       let onGroundCount = 0;
       let cityCount = 0;
@@ -29047,18 +29627,32 @@ function renderCommunityLeadersTable(filteredGroups) {
       let indiaCount = 0;
       let westCount = 0;
 
+      // Calculate candidate's current votes (only among present + city voters):
+      let sureVotes = 0;
+      let softVotes = 0;
+      let oppVotes = 0;
+      const candPartyKey = getCandPartyKey(cand.Party);
+
       candidateVoters.forEach(v => {
-        const loc = v.CurrentLocation || 'गाउँमै उपस्थित (On-Ground)';
-        if (loc.includes('गाउँ') || loc.includes('On-Ground')) {
-          onGroundCount++;
-        } else if (loc.includes('काठमाडौं') || loc.includes('Kathmandu') || loc.includes('City')) {
-          cityCount++;
-        } else if (loc.includes('खाडी') || loc.includes('Gulf')) {
-          gulfCount++;
-        } else if (loc.includes('भारत') || loc.includes('India')) {
-          indiaCount++;
+        const bucket = classifyWarRoomLocation(v.CurrentLocation);
+        if (bucket === 'onGround') onGroundCount++;
+        else if (bucket === 'city') cityCount++;
+        else if (bucket === 'gulf') gulfCount++;
+        else if (bucket === 'india') indiaCount++;
+        else westCount++;
+
+        const isAbroad = (bucket === 'gulf' || bucket === 'india' || bucket === 'west');
+        if (isAbroad) return;
+
+        const tierKey = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
+        const voterPartyKey = normalizeVoterPartyKey(v.PartyLeaning);
+
+        if (tierKey === 'solid' || tierKey === 'lean' || (voterPartyKey && voterPartyKey === candPartyKey) || v.SelfReportedResponse === 'Support') {
+          sureVotes += 1;
+        } else if (tierKey === 'swing' || !voterPartyKey || v.SelfReportedResponse === 'Undecided') {
+          softVotes += 1;
         } else {
-          westCount++;
+          oppVotes += 1;
         }
       });
 
@@ -29066,29 +29660,6 @@ function renderCommunityLeadersTable(filteredGroups) {
       const abroadAbsent = gulfCount + indiaCount + westCount;
       const projectedTurnout = totalVoters - abroadAbsent;
       const magicTarget = Math.floor(projectedTurnout / 2) + 1;
-
-      // Calculate candidate's current votes:
-      let sureVotes = 0;
-      let softVotes = 0;
-      let oppVotes = 0;
-
-      candidateVoters.forEach(v => {
-        const locStr = String(v.CurrentLocation || '');
-        const isAbroad = locStr.includes('विदेश') || locStr.includes('Abroad') || locStr.includes('खाडी') || locStr.includes('भारत') || locStr.includes('युरोप');
-        if (isAbroad) return;
-
-        const tierKey = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
-        const p = v.PartyLeaning || '';
-        const candPartyKey = cand.Party.includes('एमाले') ? 'UML' : (cand.Party.includes('कांग्रेस') || cand.Party.includes('काँग्रेस')) ? 'NC' : cand.Party.includes('रास्वपा') ? 'RSP' : cand.Party.includes('माओवादी') ? 'MAOIST' : cand.Party.includes('राप्रपा') ? 'RPP' : 'INDEPENDENT';
-
-        if (tierKey === 'solid' || tierKey === 'lean' || p === candPartyKey || (candPartyKey === 'NC' && (p === 'NC' || p === 'Congress')) || v.SelfReportedResponse === 'Support') {
-          sureVotes += 1;
-        } else if (tierKey === 'swing' || p === 'Undecided' || !p || v.SelfReportedResponse === 'Undecided') {
-          softVotes += 1;
-        } else {
-          oppVotes += 1;
-        }
-      });
 
       // Update Win Meter DOM elements
       const elTot = document.getElementById('wrTotalVoters');
@@ -29229,6 +29800,14 @@ function renderCommunityLeadersTable(filteredGroups) {
       const tbody = document.getElementById('warRoomToleTableRows');
       if (!tbody) return;
 
+      const s = String((cand && cand.Party) || '');
+      const candPartyKey = (s.includes('एमाले') || s.toUpperCase() === 'UML') ? 'UML'
+        : (s.includes('कांग्रेस') || s.includes('काँग्रेस') || s.toUpperCase() === 'NC' || s === 'Congress') ? 'NC'
+        : (s.includes('रास्वपा') || s.toUpperCase() === 'RSP') ? 'RSP'
+        : (s.includes('माओवादी') || s.toUpperCase() === 'MAOIST') ? 'MAOIST'
+        : (s.includes('राप्रपा') || s.toUpperCase() === 'RPP') ? 'RPP'
+        : 'INDEPENDENT';
+
       // Group voters by Ward + Tole + Booth
       const groups = {};
       candidateVoters.forEach(v => {
@@ -29251,20 +29830,33 @@ function renderCommunityLeadersTable(filteredGroups) {
         const g = groups[key];
         g.total++;
 
-        const loc = v.CurrentLocation || 'गाउँमै उपस्थित (On-Ground)';
-        if (loc.includes('गाउँ') || loc.includes('On-Ground')) g.onGround++;
-        else if (loc.includes('काठमाडौं') || loc.includes('City')) g.city++;
-        else g.abroad++;
+        const loc = String(v.CurrentLocation || 'गाउँमै उपस्थित (On-Ground)').trim();
+        let isAbroad = false;
+        if (!loc || loc.includes('गाउँ') || loc.includes('On-Ground')) g.onGround++;
+        else if (loc.includes('काठमाडौं') || loc.includes('Kathmandu') || loc.includes('City') || loc.includes('शहर')) g.city++;
+        else {
+          g.abroad++;
+          isAbroad = true;
+        }
 
-        const candPartyKey = cand.Party.includes('एमाले') ? 'UML' : cand.Party.includes('कांग्रेस') ? 'Congress' : cand.Party.includes('रास्वपा') ? 'RSP' : cand.Party.includes('माओवादी') ? 'Maoist' : cand.Party.includes('राप्रपा') ? 'RPP' : 'Independent';
-        const p = v.PartyLeaning || '';
+        if (isAbroad) return;
 
-        if (p === candPartyKey || v.SelfReportedResponse === 'Support') {
-          g.sure += (v.FamilyVotesCount || 1);
-        } else if (p === 'Undecided' || !p || v.SelfReportedResponse === 'Undecided') {
-          g.soft++;
+        const tierKey = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
+        const pRaw = String(v.PartyLeaning || '').trim();
+        const voterPartyKey = (!pRaw || pRaw === 'Undecided' || pRaw === 'खुलेको छैन') ? ''
+          : (pRaw === 'UML' || pRaw.includes('एमाले')) ? 'UML'
+          : (pRaw === 'NC' || pRaw === 'Congress' || pRaw.includes('कांग्रेस') || pRaw.includes('काँग्रेस')) ? 'NC'
+          : (pRaw === 'RSP' || pRaw.includes('रास्वपा')) ? 'RSP'
+          : (pRaw === 'MAOIST' || pRaw === 'Maoist' || pRaw.includes('माओवादी')) ? 'MAOIST'
+          : (pRaw === 'RPP' || pRaw.includes('राप्रपा')) ? 'RPP'
+          : 'INDEPENDENT';
+
+        if (tierKey === 'solid' || tierKey === 'lean' || (voterPartyKey && voterPartyKey === candPartyKey) || v.SelfReportedResponse === 'Support') {
+          g.sure += 1;
+        } else if (tierKey === 'swing' || !voterPartyKey || v.SelfReportedResponse === 'Undecided') {
+          g.soft += 1;
         } else {
-          g.opp++;
+          g.opp += 1;
         }
       });
 
@@ -29313,14 +29905,14 @@ function renderCommunityLeadersTable(filteredGroups) {
       const cityVoters = getScopedVoters().filter(v => {
         if (!isAll && String(v.Ward) !== String(cand.Ward)) return false;
         const loc = v.CurrentLocation || '';
-        return loc.includes('काठमाडौं') || loc.includes('Kathmandu') || loc.includes('City');
+        return loc.includes('काठमाडौं') || loc.includes('Kathmandu') || loc.includes('City') || loc.includes('शहर');
       });
 
       openModal(
         `🚗 काठमाडौं / शहरमा रहेका मतदाता परिचालन (${cityVoters.length} जना)`,
         `
         <div style="font-size: 13px; color: var(--slate-700); margin-bottom: 14px;">
-          यी मतदाताहरू मतदानका लागि हेलम्बु बाहिर छन्। गाडी रिजर्भ वा यात्रा समन्वय गरेर मात्र भोट खसाल्न सकिन्छ:
+          यी मतदाताहरू मतदानका लागि पालिका बाहिर छन्। गाडी रिजर्भ वा यात्रा समन्वय गरेर मात्र भोट खसाल्न सकिन्छ:
         </div>
         <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
           <button class="btn btn-sm btn-primary" style="background: #25D366; border-color: #25D366;" onclick="dispatchKathmanduTransportWhatsapp()">
@@ -29380,7 +29972,7 @@ function renderCommunityLeadersTable(filteredGroups) {
       const cityVoters = getScopedVoters().filter(v => {
         if (!isAll && String(v.Ward) !== String(cand.Ward)) return false;
         const loc = v.CurrentLocation || '';
-        return (loc.includes('काठमाडौं') || loc.includes('City')) && v.Phone;
+        return (loc.includes('काठमाडौं') || loc.includes('Kathmandu') || loc.includes('City') || loc.includes('शहर')) && v.Phone;
       });
       const phones = cityVoters.map(v => cleanPhone(v.Phone)).filter(Boolean).join(',');
       navigator.clipboard.writeText(phones);
@@ -29394,14 +29986,14 @@ function renderCommunityLeadersTable(filteredGroups) {
       const gulfVoters = getScopedVoters().filter(v => {
         if (!isAll && String(v.Ward) !== String(cand.Ward)) return false;
         const loc = v.CurrentLocation || '';
-        return loc.includes('खाडी') || loc.includes('Gulf') || loc.includes('मलेसिया');
+        return loc.includes('खाडी') || loc.includes('Gulf') || loc.includes('कतार') || loc.includes('मलेसिया') || loc.includes('दुबई') || loc.includes('साउदी');
       });
 
       openModal(
         `🏜️ खाडी मुलुक / मलेसिया डायस्पोरा अपिल (${gulfVoters.length} जना)`,
         `
         <div style="font-size: 13.5px; color: var(--slate-700); margin-bottom: 14px; line-height: 1.6;">
-          खाडीमा रहेका युवाहरू मतदानको दिन स्वदेश आउन नसके पनि उनीहरूको <b>पारिवारिक भोट प्रभाव</b> अत्यधिक हुन्छ। कतार, साउदी वा युएईमा रहेका यी मतदाताहरूलाई आफ्नो घरपरिवारलाई ${cand.Name} का लागि भोट हाल्न भन्न WhatsApp अपिल पठाउनुहोस्।
+          खाडीमा रहेका युवाहरू मतदानको दिन स्वदेश आउन नसके पनि उनीहरूको <b>पारिवारिक भोट प्रभाव</b> अत्यधिक हुन्छ। कतार, साउदी वा युएईमा रहेका यी मतदाताहरूलाई आफ्नो घरपरिवारलाई ${cand ? cand.Name : 'उम्मेदवार'} का लागि भोट हाल्न भन्न WhatsApp अपिल पठाउनुहोस्।
         </div>
         <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
           <table>
@@ -29421,11 +30013,11 @@ function renderCommunityLeadersTable(filteredGroups) {
                   <td style="text-align: center; font-weight: 700;">${i + 1}</td>
                   <td><b>${esc(v.Name)}</b></td>
                   <td>वडा ${v.Ward}</td>
-                  <td><span class="badge" style="background:#e0e7ff; color:#3730a3;">${esc(v.CityAddress || 'खाडी मुलुक')}</span></td>
+                  <td><span class="badge" style="background:#e0e7ff; color:#3730a3;">${esc(v.CityAddress || v.CurrentLocation || 'खाडी मुलुक')}</span></td>
                   <td><b style="color: #059669;">~ ${v.FamilyVotesCount || 2} मत (घरपरिवार)</b></td>
                   <td>
                     ${v.Phone ? `
-                      <a href="https://wa.me/977${cleanPhone(v.Phone)}?text=${encodeURIComponent('नमस्ते ' + v.Name + ' जी! परदेशबाट पनि आफ्नो गाउँ ठाउँको विकासका लागि आफ्नो परिवारलाई ' + cand.Name + ' (' + cand.Symbol + ') लाई मतदान गर्न हौसला प्रदान गरिदिनुहुन हार्दिक अनुरोध गर्दछौं।')}" target="_blank" class="btn btn-sm btn-primary" style="background: #25D366; border-color: #25D366; text-decoration: none;">
+                      <a href="https://wa.me/977${cleanPhone(v.Phone)}?text=${encodeURIComponent('नमस्ते ' + v.Name + ' जी! परदेशबाट पनि आफ्नो गाउँ ठाउँको विकासका लागि आफ्नो परिवारलाई ' + (cand ? cand.Name + ' (' + cand.Symbol + ')' : 'हाम्रो उम्मेदवार') + ' लाई मतदान गर्न हौसला प्रदान गरिदिनुहुन हार्दिक अनुरोध गर्दछौं।')}" target="_blank" class="btn btn-sm btn-primary" style="background: #25D366; border-color: #25D366; text-decoration: none;">
                         📲 WhatsApp अपिल
                       </a>
                     ` : '-'}
@@ -29441,115 +30033,7 @@ function renderCommunityLeadersTable(filteredGroups) {
       );
     }
 
-    // Modal 3: Add Candidate
-    function openAddCandidateModal() {
-      openModal(
-        '🎯 नयाँ उम्मेदवार दर्ता (Register Candidate)',
-        `
-        <form id="addCandidateForm" onsubmit="saveCandidate(event)">
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">उम्मेदवारको नाम (Full Name) *</label>
-              <input type="text" name="Name" required class="form-control" placeholder="उदा: राम बहादुर लामा">
-            </div>
-            <div class="form-group">
-              <label class="form-label">उम्मेदवारी पद (Electoral Post) *</label>
-              <select name="Post" required class="form-control">
-                <option value="पालिका प्रमुख / मेयर (Mayor)">पालिका प्रमुख / मेयर (Mayor)</option>
-                <option value="पालिका उपप्रमुख / उपमेयर (Deputy Mayor)">पालिका उपप्रमुख / उपमेयर (Deputy Mayor)</option>
-                <option value="वडा अध्यक्ष (वडा १)">वडा अध्यक्ष (वडा १)</option>
-                <option value="वडा अध्यक्ष (वडा २)">वडा अध्यक्ष (वडा २)</option>
-                <option value="वडा अध्यक्ष (वडा ३)">वडा अध्यक्ष (वडा ३)</option>
-                <option value="वडा अध्यक्ष (वडा ४)">वडा अध्यक्ष (वडा ४)</option>
-                <option value="वडा अध्यक्ष (वडा ५)">वडा अध्यक्ष (वडा ५)</option>
-                <option value="वडा अध्यक्ष (वडा ६)">वडा अध्यक्ष (वडा ६)</option>
-                <option value="वडा अध्यक्ष (वडा ७)">वडा अध्यक्ष (वडा ७)</option>
-                <option value="वडा अध्यक्ष (वडा ८)">वडा अध्यक्ष (वडा ८)</option>
-                <option value="वडा अध्यक्ष (वडा ९)">वडा अध्यक्ष (वडा ९)</option>
-                <option value="प्रदेश सभा सदस्य (क्षेत्र क/ख)">प्रदेश सभा सदस्य (क्षेत्र क/ख)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">निर्वाचन तह (Election Level) *</label>
-              <select name="Level" required class="form-control">
-                <option value="स्थानीय तह (Local Level)">स्थानीय तह (Local Level)</option>
-                <option value="प्रदेश सभा (Province Assembly)">प्रदेश सभा (Province Assembly)</option>
-                <option value="प्रतिनिधि सभा (National Level)">प्रतिनिधि सभा (National Level)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">कार्यक्षेत्र वडा (Ward Scope) *</label>
-              <select name="Ward" required class="form-control">
-                <option value="All">समग्र पालिका (मेयर / उपमेयर / प्रदेश)</option>
-                ${state.wards.map(w => `<option value="${w.WardNo}">वडा नं. ${w.WardNo}</option>`).join('')}
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">पार्टी वा स्वतन्त्र (Political Party) *</label>
-              <select name="Party" required class="form-control">
-                <option value="नेकपा (एमाले)">नेकपा (एमाले)</option>
-                <option value="नेपाली कांग्रेस">नेपाली कांग्रेस</option>
-                <option value="राष्ट्रिय स्वतन्त्र पार्टी (रास्वपा)">राष्ट्रिय स्वतन्त्र पार्टी (रास्वपा)</option>
-                <option value="नेकपा (माओवादी केन्द्र)">नेकपा (माओवादी केन्द्र)</option>
-                <option value="राष्ट्रिय प्रजातन्त्र पार्टी (राप्रपा)">राष्ट्रिय प्रजातन्त्र पार्टी (राप्रपा)</option>
-                <option value="स्वतन्त्र (Independent)">स्वतन्त्र (Independent)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">चुनाव चिन्ह (Election Symbol) *</label>
-              <input type="text" name="Symbol" required class="form-control" placeholder="उदा: सूर्य ☀️ वा रुख 🌳 वा घण्टी 🔔 वा माइक 🎤" value="सूर्य ☀️">
-            </div>
-            <div class="form-group">
-              <label class="form-label">सम्पर्क फोन (Phone Number)</label>
-              <input type="text" name="Phone" class="form-control" placeholder="उदा: 9851000000">
-            </div>
-            <div class="form-group">
-              <label class="form-label">वार-रूम लगिन पिन (4-Digit War-Room PIN) *</label>
-              <input type="password" name="PIN" maxlength="4" required class="form-control" placeholder="उदा: 2026" value="2026">
-            </div>
-            <div class="form-group">
-              <label class="form-label">लक्षित विजय मत (Target Votes)</label>
-              <input type="number" name="TargetVotes" class="form-control" placeholder="उदा: 4800" value="4800">
-            </div>
-          </div>
-          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 14px;">उम्मेदवार सुरक्षित गर्नुहोस्</button>
-        </form>
-        `,
-        `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>`
-      );
-    }
-
-    function saveCandidate(e) {
-      e.preventDefault();
-      const form = e.target;
-      const formData = new FormData(form);
-
-      const newCand = {
-        CandidateID: 'CND_' + Date.now().toString(36).toUpperCase(),
-        Name: formData.get('Name').trim(),
-        Post: formData.get('Post'),
-        Level: formData.get('Level'),
-        Ward: formData.get('Ward'),
-        Party: formData.get('Party'),
-        Symbol: formData.get('Symbol').trim(),
-        Phone: formData.get('Phone').trim(),
-        PIN: formData.get('PIN').trim() || '2026',
-        TargetVotes: Number(formData.get('TargetVotes')) || 4500,
-        TenantID: (currentUser && currentUser.TenantID) || 'TNT_HELAMBU'
-      };
-
-      if (!state.candidates) state.candidates = [];
-      state.candidates.push(newCand);
-      state.selectedCandidateId = newCand.CandidateID;
-      saveState();
-
-      logActivity('candidate_add', `🎯 नयाँ उम्मेदवार ${newCand.Name} (${newCand.Post} • ${newCand.Party}) प्रणालीमा दर्ता गरियो।`);
-      closeModal();
-      showToast(`उम्मेदवार ${newCand.Name} दर्ता भयो!`, 'success');
-      populateLoginUserSelector();
-      populateCandidateDropdowns();
-      renderCandidateWarRoom();
-    }
+    const populateWarRoomCandidateSelector = populateCandidateDropdowns;
 
     // ==========================================
     // MOBILE NATIVE TOUCH GESTURE ENHANCEMENTS

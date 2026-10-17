@@ -12,16 +12,27 @@ if (!fs.existsSync('dist')) {
 fs.copyFileSync('index.html', 'dist/index.html');
 console.log('Copied index.html -> dist/index.html');
 
+if (fs.existsSync('public')) {
+  fs.copyFileSync('index.html', 'public/index.html');
+  console.log('Synced index.html -> public/index.html');
+}
+
 // Copy sw.js
 if (fs.existsSync('sw.js')) {
   fs.copyFileSync('sw.js', 'dist/sw.js');
   console.log('Copied sw.js -> dist/sw.js');
+  if (fs.existsSync('public')) {
+    fs.copyFileSync('sw.js', 'public/sw.js');
+  }
 }
 
 // Copy manifest.json
 if (fs.existsSync('manifest.json')) {
   fs.copyFileSync('manifest.json', 'dist/manifest.json');
   console.log('Copied manifest.json -> dist/manifest.json');
+  if (fs.existsSync('public')) {
+    fs.copyFileSync('manifest.json', 'public/manifest.json');
+  }
 }
 
 // Copy icons directory
