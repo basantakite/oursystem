@@ -3868,13 +3868,6 @@
           🏠 मुख्य पृष्ठमा जानुहोस् (Central HQ)
         </button>
       </div>
-
-      <!-- Footer Utilities -->
-      <div style="margin-top: 16px; text-align: center;">
-        <button type="button" onclick="forceAppHardReload()" style="background: none; border: none; color: #64748b; font-size: 11px; cursor: pointer; text-decoration: underline;" title="क्यास खाली गरी ताजा रिलोड गर्नुहोस्">
-          🔄 क्यास खाली गरी एप रिलोड गर्नुहोस्
-        </button>
-      </div>
     </div>
   </div>
 
@@ -4375,8 +4368,8 @@
                   <button type="button" id="segBtnRoll" class="voter-view-seg-btn active" onclick="setVoterDisplayMode('roll')" title="आधिकारिक नामावली तालिका (S.N., Voter ID, Full Name, Age, Gender, Spouse, Father, Mother)">
                     📋 नामावली (Roll)
                   </button>
-                  <button type="button" id="segBtnCampaign" class="voter-view-seg-btn" onclick="setVoterDisplayMode('table')" title="चुनावी अभियान तालिका (Campaign Intelligence)">
-                    🎯 अभियान
+                  <button type="button" id="segBtnCampaign" class="voter-view-seg-btn" onclick="setVoterDisplayMode('table')" title="चुनावी अभियान तालिका (Campaign Intelligence Table)">
+                    🎯 तालिका
                   </button>
                   <button type="button" id="segBtnCard" class="voter-view-seg-btn" onclick="setVoterDisplayMode('card')" title="मोबाइल कार्ड भ्यू (Touch Cards)">
                     🔲 कार्ड
@@ -7944,21 +7937,30 @@
 
     function forceAppHardReload() {
       showToast('नयाँ संस्करण लोड गरिँदैछ, कृपया १ सेकेन्ड पर्खनुहोस्...', 'info');
+      const getTargetUrl = () => {
+        try {
+          const u = new URL(window.location.href);
+          u.searchParams.set('_v', Date.now());
+          return u.toString();
+        } catch(e) {
+          return window.location.href;
+        }
+      };
       if ('caches' in window) {
         caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => {
           if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(regs => {
               regs.forEach(r => r.unregister());
               setTimeout(() => {
-                window.location.href = window.location.origin + window.location.pathname + '?_v=' + Date.now();
+                window.location.href = getTargetUrl();
               }, 250);
             });
           } else {
-            window.location.href = window.location.origin + window.location.pathname + '?_v=' + Date.now();
+            window.location.href = getTargetUrl();
           }
         });
       } else {
-        window.location.href = window.location.origin + window.location.pathname + '?_v=' + Date.now();
+        window.location.href = getTargetUrl();
       }
     }
 
