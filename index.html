@@ -8802,7 +8802,7 @@
         const slug = t.Slug || (t.PalikaName ? t.PalikaName.toLowerCase().replace(/[^a-z0-9]/g, '') : 'helambu');
         const baseUrl = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
           ? (window.location.origin + window.location.pathname)
-          : 'https://helambu1.vercel.app/';
+          : 'https://vrm-five.vercel.app/';
         const portalLink = `${baseUrl}?palika=${encodeURIComponent(slug)}`;
         const text = `नमस्ते ${t.ContactPerson || t.PalikaName} ज्यू!\n\n` +
           `बधाई छ, तपाईंको निर्वाचन कमान्ड खाता (${t.PalikaName}) Super Admin द्वारा स्वीकृत (Approved) भएको छ।\n\n` +
@@ -8888,7 +8888,7 @@
           const slug = t.Slug || (t.PalikaName ? t.PalikaName.toLowerCase().replace(/[^a-z0-9]/g, '') : 'helambu');
           const baseUrl = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file'))
             ? (window.location.origin + window.location.pathname)
-            : 'https://helambu1.vercel.app/';
+            : 'https://vrm-five.vercel.app/';
           const portalLink = `${baseUrl}?palika=${encodeURIComponent(slug)}`;
           openConfirmModal(
             '📲 WhatsApp मा पासवर्ड पठाउने?',
