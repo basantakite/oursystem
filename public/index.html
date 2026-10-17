@@ -5214,14 +5214,8 @@
                 </div>
               </div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button type="button" class="btn btn-sm" onclick="openCasteRuleManagerModal()" style="background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-weight: 700;">
+                <button type="button" class="btn btn-sm" onclick="openCasteRuleManagerModal()" style="background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.35); font-weight: 700; border-radius: 8px; padding: 6px 14px;">
                   ⚙️ १-क्लिक थर व्यवस्थापन (<span id="casteUnmappedBadgeTop">0</span>)
-                </button>
-                <button type="button" class="btn btn-sm" onclick="printCasteDemographicManifest()" style="background: #2563eb; color: #fff; border: 1px solid #1d4ed8; font-weight: 800;">
-                  🖨️ प्रिन्ट / रोस्टर रिपोर्ट
-                </button>
-                <button type="button" class="btn btn-sm" onclick="exportCasteVotersCsv()" style="background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid #10b981; font-weight: 700;">
-                  📥 Excel/CSV Export
                 </button>
               </div>
             </div>
@@ -5303,40 +5297,21 @@
             </div>
           </div>
 
-          <!-- SUMMARY ACCORDION / EXPANDABLE DEMOGRAPHIC BREAKDOWN TABLE -->
-          <div class="card" style="margin-bottom: 18px; padding: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
-              <h3 style="margin: 0; font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
-                📊 समुदायगत शक्ति सन्तुलन तथा मतदान स्थिति सारांश (Caste Breakdown Matrix)
-                <span class="badge" id="casteMatrixRowCount" style="background: var(--bg-hover); font-size: 11px;">0 समूह</span>
-              </h3>
-              <div style="font-size: 12px; color: var(--text-muted);">
-                * तल कुनै पनि जाति वा थरको रोमा क्लिक गरी सोझै नामावली फिल्टर गर्नुहोस्
-              </div>
-            </div>
-            <div style="overflow-x: auto; max-height: 240px; border: 1px solid var(--border-color); border-radius: 8px;">
-              <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
-                <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 2;">
-                  <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
-                    <th style="padding: 8px 12px;">क्र.सं.</th>
-                    <th style="padding: 8px 12px;">जातीय समूह / थर</th>
-                    <th style="padding: 8px 12px;">सरकारी क्लस्टर</th>
-                    <th style="padding: 8px 12px; text-align: right;">कुल मतदाता</th>
-                    <th style="padding: 8px 12px; text-align: right;">प्रतिशत (%)</th>
-                    <th style="padding: 8px 12px; text-align: right;">पक्का मत (✓)</th>
-                    <th style="padding: 8px 12px; text-align: right;">पक्का %</th>
-                    <th style="padding: 8px 12px; text-align: right;">दोधार / अन्य</th>
-                    <th style="padding: 8px 12px; text-align: right;">बाहिर (प्रवास)</th>
-                    <th style="padding: 8px 12px;">मुख्य प्रभाव वडा</th>
-                  </tr>
-                </thead>
-                <tbody id="casteSummaryMatrixBody">
-                  <!-- Populated dynamically by renderCasteDemographics() -->
-                </tbody>
-              </table>
-            </div>
+          <!-- CASTE SECTION SUB-NAV TABS -->
+          <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 18px;">
+            <button type="button" id="casteSubTab_voters" class="btn caste-sub-tab active" onclick="switchCasteSubTab('voters')" style="background: transparent; border: none; border-bottom: 3px solid #3b82f6; border-radius: 0; padding: 10px 18px; font-weight: 800; font-size: 14px; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px;">
+              <span>👥 मतदाता नामावली (Voters List)</span>
+            </button>
+            <button type="button" id="casteSubTab_matrix" class="btn caste-sub-tab" onclick="switchCasteSubTab('matrix')" style="background: transparent; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 18px; font-weight: 800; font-size: 14px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px;">
+              <span>📊 समुदायगत शक्ति सन्तुलन तथा सारांश (Caste Breakdown Matrix)</span>
+              <span class="badge" id="casteMatrixRowCountTab" style="background: var(--bg-hover); font-size: 11px;">0 समूह</span>
+            </button>
           </div>
 
+          
+
+          <!-- PANE 1: VOTERS ROSTER (TABLE & CARD VIEWS) -->
+          <div id="castePane_voters">
           <!-- DETAILED CONTROLS, SEARCH & FILTER BAR -->
           <div class="card" style="padding: 14px 16px; margin-bottom: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
@@ -5432,6 +5407,48 @@
             <div style="font-size: 36px; margin-bottom: 8px;">🔍</div>
             <div style="font-weight: 700;">छनोट गरिएको फिल्टर अनुसार कुनै मतदाता भेटिएन</div>
           </div>
+
+          </div>
+          <!-- END PANE 1: VOTERS ROSTER -->
+
+          <!-- PANE 2: DEDICATED CASTE BREAKDOWN MATRIX TAB -->
+          <div id="castePane_matrix" style="display: none;">
+            <div class="card" style="margin-bottom: 24px; padding: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+                <div>
+                  <h3 style="margin: 0; font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                    📊 समुदायगत शक्ति सन्तुलन तथा मतदान स्थिति सारांश (Caste Breakdown Matrix)
+                    <span class="badge" id="casteMatrixRowCount" style="background: var(--bg-hover); font-size: 11px;">0 समूह</span>
+                  </h3>
+                  <p style="margin: 4px 0 0; font-size: 12.5px; color: var(--text-muted);">
+                    नेपाल सरकारको आधिकारिक क्लस्टर अनुसार प्रत्येक थर, कुल मतदाता, पक्का मत दर र मुख्य प्रभाव वडाहरूको विश्लेषण। कुनै पनि रोमा क्लिक गरी सिधै मतदाता नामावली हेर्नुहोस्।
+                  </p>
+                </div>
+              </div>
+              <div style="overflow-x: auto; max-height: 600px; border: 1px solid var(--border-color); border-radius: 8px;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                  <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 2;">
+                    <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
+                      <th style="padding: 10px 12px;">क्र.सं.</th>
+                      <th style="padding: 10px 12px;">जातीय समूह / थर</th>
+                      <th style="padding: 10px 12px;">सरकारी क्लस्टर</th>
+                      <th style="padding: 10px 12px; text-align: right;">कुल मतदाता</th>
+                      <th style="padding: 10px 12px; text-align: right;">प्रतिशत (%)</th>
+                      <th style="padding: 10px 12px; text-align: right;">पक्का मत (✓)</th>
+                      <th style="padding: 10px 12px; text-align: right;">पक्का %</th>
+                      <th style="padding: 10px 12px; text-align: right;">दोधार / अन्य</th>
+                      <th style="padding: 10px 12px; text-align: right;">बाहिर (प्रवास)</th>
+                      <th style="padding: 10px 12px;">मुख्य प्रभाव वडा</th>
+                    </tr>
+                  </thead>
+                  <tbody id="casteSummaryMatrixBody">
+                    <!-- Populated dynamically by renderCasteDemographics() -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <!-- END PANE 2: CASTE BREAKDOWN MATRIX -->
 
           <!-- MODAL: 1-CLICK CASTE RULE MANAGER & OVERRIDE -->
           <div id="casteRuleManagerModal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
@@ -32660,6 +32677,8 @@ function renderCasteSummaryMatrix(enrichedVoters) {
   }
 
   if (countBadge) countBadge.textContent = sortedGroups.length + ' समूह';
+  const tabBadge = document.getElementById('casteMatrixRowCountTab');
+  if (tabBadge) tabBadge.textContent = sortedGroups.length + ' समूह';
 
   if (sortedGroups.length === 0) {
     tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 18px; color: var(--text-muted);">कुनै डाटा उपलब्ध छैन</td></tr>';
@@ -32712,7 +32731,44 @@ function renderCasteSummaryMatrix(enrichedVoters) {
   }).join('');
 }
 
+
+function switchCasteSubTab(tabName) {
+  const pVoters = document.getElementById('castePane_voters');
+  const pMatrix = document.getElementById('castePane_matrix');
+  const btnVoters = document.getElementById('casteSubTab_voters');
+  const btnMatrix = document.getElementById('casteSubTab_matrix');
+
+  if (tabName === 'voters') {
+    if (pVoters) pVoters.style.display = 'block';
+    if (pMatrix) pMatrix.style.display = 'none';
+    if (btnVoters) {
+      btnVoters.classList.add('active');
+      btnVoters.style.borderBottom = '3px solid #3b82f6';
+      btnVoters.style.color = 'var(--text-primary)';
+    }
+    if (btnMatrix) {
+      btnMatrix.classList.remove('active');
+      btnMatrix.style.borderBottom = '3px solid transparent';
+      btnMatrix.style.color = 'var(--text-muted)';
+    }
+  } else {
+    if (pVoters) pVoters.style.display = 'none';
+    if (pMatrix) pMatrix.style.display = 'block';
+    if (btnMatrix) {
+      btnMatrix.classList.add('active');
+      btnMatrix.style.borderBottom = '3px solid #3b82f6';
+      btnMatrix.style.color = 'var(--text-primary)';
+    }
+    if (btnVoters) {
+      btnVoters.classList.remove('active');
+      btnVoters.style.borderBottom = '3px solid transparent';
+      btnVoters.style.color = 'var(--text-muted)';
+    }
+  }
+}
+
 function filterCasteBySurnameFromRow(surname, cluster) {
+  switchCasteSubTab("voters");
   _casteFilterState.cluster = cluster;
   _casteFilterState.surname = surname;
   const sSel = document.getElementById('casteFilterSurnameSelect');
