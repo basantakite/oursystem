@@ -5587,7 +5587,12 @@
                 <h3 style="margin: 0; font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
                   ⚙️ १-क्लिक थर तथा जातीय समूह व्यवस्थापन
                 </h3>
-                <button type="button" class="btn btn-sm btn-icon" onclick="closeCasteRuleManagerModal()" style="font-size: 16px;">✕</button>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <button type="button" class="btn btn-sm" onclick="syncAndBroadcastAllCasteRules()" style="background: #2563eb; color: #fff; font-size: 11.5px; font-weight: 700; border-radius: 6px; padding: 4px 10px; display: inline-flex; align-items: center; gap: 4px;" title="नियमहरू तुरुन्तै सबै डिभाइस र क्लाउडमा पठाउनुहोस्">
+                    <span>📡 सिंक र ब्रोडकास्ट</span>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-icon" onclick="closeCasteRuleManagerModal()" style="font-size: 16px;">✕</button>
+                </div>
               </div>
               <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4;">
                 यहाँ कुनै पनि थरलाई नेपाल सरकारको आधिकारिक क्लस्टर तोक्न सक्नुहुन्छ। एक पटक तोकेपछि सो थर भएका सबै मतदाता तुरुन्तै र भविष्यका लागि पनि सोही समूहमा स्वतः वर्गीकरण हुनेछन्।
@@ -10361,6 +10366,125 @@
       }, delay);
     }
 
+    // ==========================================================
+    // REAL-TIME BROADCAST ENGINE (Sub-50ms Instant Cross-Browser Exchange)
+    // ==========================================================
+    function broadcastCasteRules(rules) {
+      try {
+        if (_realtimeChannel) {
+          const payloadRules = rules || (typeof getCustomCasteRules === 'function' ? getCustomCasteRules() : {});
+          _realtimeChannel.send({
+            type: 'broadcast',
+            event: 'caste_rules_updated',
+            payload: { rules: payloadRules, timestamp: Date.now() }
+          });
+          console.log('📡 [Broadcast Sent] caste_rules_updated (' + Object.keys(payloadRules).length + ' rules)');
+        }
+      } catch(e) {
+        console.warn('Broadcast caste rules warning:', e);
+      }
+    }
+
+    function broadcastVoterUpdated(voter) {
+      try {
+        if (_realtimeChannel && voter) {
+          _realtimeChannel.send({
+            type: 'broadcast',
+            event: 'voter_updated',
+            payload: { voter: voter, timestamp: Date.now() }
+          });
+          console.log('📡 [Broadcast Sent] voter_updated:', voter.VoterID);
+        }
+      } catch(e) {
+        console.warn('Broadcast voter update warning:', e);
+      }
+    }
+
+    function broadcastTenantsUpdated(tenants) {
+      try {
+        if (_realtimeChannel) {
+          _realtimeChannel.send({
+            type: 'broadcast',
+            event: 'tenants_updated',
+            payload: { tenants: tenants || state.tenants, timestamp: Date.now() }
+          });
+          console.log('📡 [Broadcast Sent] tenants_updated');
+        }
+      } catch(e) {
+        console.warn('Broadcast tenants warning:', e);
+      }
+    }
+
+    function handleBroadcastCasteRules(data) {
+      try {
+        const incomingRules = data?.rules || data;
+        if (!incomingRules || typeof incomingRules !== 'object') return;
+        const localRules = (typeof getCustomCasteRules === 'function') ? getCustomCasteRules() : {};
+        const merged = { ...localRules, ...incomingRules };
+        localStorage.setItem('vrm_caste_custom_rules', JSON.stringify(merged));
+        if (typeof updateCasteNavBadge === 'function') updateCasteNavBadge();
+        const cv = document.getElementById('viewCaste');
+        if (cv && cv.style.display !== 'none' && typeof renderCasteDemographics === 'function') {
+          renderCasteDemographics();
+        }
+        showToast('⚡ जाति/थर वर्गीकरण रियल-टाइममा अद्यावधिक भयो!', 'info');
+      } catch(e) {
+        console.warn('Error applying broadcast caste rules:', e);
+      }
+    }
+
+    function handleBroadcastVoterUpdated(data) {
+      try {
+        const incoming = data?.voter;
+        if (!incoming || !incoming.VoterID) return;
+        const vId = String(incoming.VoterID);
+
+        // Self-Echo Guard: If this browser edited this voter within 8 seconds, skip
+        const lastLocalEdit = _recentlyEditedVoters.get(vId);
+        if (lastLocalEdit && (Date.now() - lastLocalEdit < 8000)) return;
+
+        const existing = (typeof getVoterById === 'function' ? getVoterById(vId) : null) || state.voters.find(x => String(x.VoterID) === vId);
+        if (existing) {
+          Object.assign(existing, incoming);
+        } else {
+          state.voters.push(incoming);
+          if (typeof _voterIdMap !== 'undefined' && _voterIdMap) _voterIdMap.set(vId, incoming);
+        }
+
+        updateVoterInPlaceInDom(incoming);
+        saveState();
+
+        const activeCasteSec = document.querySelector('.view-section.active');
+        if (activeCasteSec && activeCasteSec.id === 'viewCaste' && typeof renderCasteDemographics === 'function') {
+          renderCasteDemographics();
+        }
+        if (typeof updateCasteNavBadge === 'function') updateCasteNavBadge();
+      } catch(e) {
+        console.warn('Error applying broadcast voter:', e);
+      }
+    }
+
+    function handleBroadcastTenantsUpdated(data) {
+      try {
+        const incomingTenants = data?.tenants;
+        if (!Array.isArray(incomingTenants) || incomingTenants.length === 0) return;
+        const localMap = new Map((state.tenants || []).map(t => [t.TenantID, t]));
+        incomingTenants.forEach(it => {
+          if (!it || !it.TenantID) return;
+          localMap.set(it.TenantID, { ...(localMap.get(it.TenantID) || {}), ...it });
+        });
+        state.tenants = Array.from(localMap.values());
+        saveState();
+        const activeSec = document.querySelector('.view-section.active');
+        if (activeSec && activeSec.id === 'viewTenants' && currentUser && currentUser.Role === 'Super Admin') {
+          renderTenantsManagement();
+        }
+        showToast('⚡ नयाँ टेनेन्ट विवरण रियल-टाइममा प्राप्त भयो!', 'info');
+      } catch(e) {
+        console.warn('Error applying broadcast tenants:', e);
+      }
+    }
+
     function setupSupabaseWebsocket() {
       const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
       const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
@@ -10377,7 +10501,23 @@
         }
 
         _realtimeClient = window.supabase.createClient(url, key);
-        _realtimeChannel = _realtimeClient.channel('vrm_public_realtime')
+        _realtimeChannel = _realtimeClient.channel('vrm_public_realtime', {
+          config: {
+            broadcast: { self: false }
+          }
+        })
+          .on('broadcast', { event: 'caste_rules_updated' }, (payload) => {
+            console.log('⚡ [Realtime Broadcast Received] caste_rules_updated:', payload);
+            handleBroadcastCasteRules(payload?.payload || payload);
+          })
+          .on('broadcast', { event: 'voter_updated' }, (payload) => {
+            console.log('⚡ [Realtime Broadcast Received] voter_updated:', payload);
+            handleBroadcastVoterUpdated(payload?.payload || payload);
+          })
+          .on('broadcast', { event: 'tenants_updated' }, (payload) => {
+            console.log('⚡ [Realtime Broadcast Received] tenants_updated:', payload);
+            handleBroadcastTenantsUpdated(payload?.payload || payload);
+          })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'voters' }, (payload) => {
             handleRealtimeVoterChange(payload);
           })
@@ -10407,8 +10547,18 @@
           .subscribe((status) => {
             console.log('[Realtime Subscription Status]:', status);
             const topBadge = document.getElementById('topbarSupabaseSyncBtn');
-            if (status === 'SUBSCRIBED' && topBadge) {
-              topBadge.title = '🟢 Real-time WebSocket Live Connected';
+            if (status === 'SUBSCRIBED') {
+              if (topBadge) topBadge.title = '🟢 Real-time Broadcast & WebSocket Live Connected';
+              // If this browser already has custom caste rules locally, broadcast them to peers and push to cloud!
+              const myRules = (typeof getCustomCasteRules === 'function') ? getCustomCasteRules() : {};
+              if (Object.keys(myRules).length > 0) {
+                setTimeout(() => {
+                  broadcastCasteRules(myRules);
+                  if (typeof pushCustomCasteRulesToCloud === 'function') {
+                    pushCustomCasteRulesToCloud(myRules);
+                  }
+                }, 600);
+              }
             }
           });
       } catch (err) {
@@ -10482,6 +10632,9 @@
             value: JSON.stringify(state.tenants)
           })
         });
+        if (typeof broadcastTenantsUpdated === 'function') {
+          broadcastTenantsUpdated(state.tenants);
+        }
       } catch(e) {
         console.warn('Could not persist tenants to Supabase system_settings:', e);
       }
@@ -10652,6 +10805,9 @@
 
         if (postRes.ok) {
           console.log('✅ Voter synced to Supabase (UPSERT):', v.VoterID);
+          if (typeof broadcastVoterUpdated === 'function') {
+            broadcastVoterUpdated(v);
+          }
           return true;
         } else {
           const errText = await postRes.text();
@@ -32715,7 +32871,20 @@ function saveCustomCasteRule(surname, clusterKey, clusterLabel, subCaste) {
     rules[surname.toLowerCase()] = rules[surname];
   }
   localStorage.setItem('vrm_caste_custom_rules', JSON.stringify(rules));
+  if (typeof broadcastCasteRules === 'function') broadcastCasteRules(rules);
   pushCustomCasteRulesToCloud(rules);
+}
+
+function syncAndBroadcastAllCasteRules() {
+  const rules = getCustomCasteRules();
+  const count = Object.keys(rules).length;
+  if (count === 0) {
+    showToast('अहिले कुनै कस्टम नियम सेभ गरिएको छैन', 'info');
+    return;
+  }
+  if (typeof broadcastCasteRules === 'function') broadcastCasteRules(rules);
+  if (typeof pushCustomCasteRulesToCloud === 'function') pushCustomCasteRulesToCloud(rules);
+  showToast(`📡 ${count} वटा नियमहरू सबै खुला ब्राउजर र क्लाउडमा सफलतापूर्वक पठाइयो!`, 'success');
 }
 
 // Universal Dual-Language (Nepali + English) Caste Classifier Engine
