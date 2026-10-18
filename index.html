@@ -32162,11 +32162,12 @@ function extractVoterSurname(name) {
   if (!name || typeof name !== 'string') return '';
   // 1. Remove text inside parentheses (e.g. English name like "(Ram B. Lama)")
   let clean = name.replace(/\([^)]*\)/g, ' ').trim();
-  // 2. Remove common prefixes
-  clean = clean.replace(/^(श्री|श्रीमती|सुश्री|डा\.|ई\.)\s+/i, '');
-  // 3. Normalize abbreviations
-  if (/(?:^|\s)वि[\.\s]*क[\.]*$/i.test(clean) || /(?:^|\s)विक$/i.test(clean)) return 'वि.क.';
-  if (/(?:^|\s)के[\.\s]*सी[\.]*$/i.test(clean) || /(?:^|\s)केसी$/i.test(clean)) return 'के.सी.';
+  // 2. Remove common title prefixes (Nepali & English)
+  clean = clean.replace(/^(श्री|श्रीमती|सुश्री|डा\.|ई\.|mr\.|mrs\.|ms\.|dr\.)\s+/i, '');
+
+  // 3. Normalize abbreviations (Nepali & English B.K. / K.C.)
+  if (/(?:^|\s)वि[\.\s]*क[\.]*$/i.test(clean) || /(?:^|\s)विक$/i.test(clean) || /(?:^|\s)b[\.\s]*k[\.]*$/i.test(clean)) return 'वि.क.';
+  if (/(?:^|\s)के[\.\s]*सी[\.]*$/i.test(clean) || /(?:^|\s)केसी$/i.test(clean) || /(?:^|\s)k[\.\s]*c[\.]*$/i.test(clean)) return 'के.सी.';
 
   // 4. Split by whitespace
   const parts = clean.split(/\s+/).filter(Boolean);
@@ -32174,16 +32175,183 @@ function extractVoterSurname(name) {
   let last = parts[parts.length - 1].trim();
   last = last.replace(/[.,/#!$%^&*;:{}=\-_~`()]/g, '');
 
-  // 5. Compound surnames (जस्तै: थापा मगर, रोका मगर, राना मगर)
+  // 5. Compound surnames (जस्तै: थापा मगर, रोका मगर, राना मगर / Thapa Magar)
   if (parts.length >= 2) {
     const secondLast = parts[parts.length - 2].replace(/[.,/#!$%^&*;:{}=\-_~`()]/g, '');
-    const compound = secondLast + ' ' + last;
-    if (compound === 'थापा मगर' || compound === 'रोका मगर' || compound === 'राना मगर') {
-      return compound;
-    }
+    const compLower = (secondLast + ' ' + last).toLowerCase();
+    if (compLower === 'थापा मगर' || compLower === 'thapa magar') return 'थापा मगर';
+    if (compLower === 'रोका मगर' || compLower === 'roka magar') return 'रोका मगर';
+    if (compLower === 'राना मगर' || compLower === 'rana magar') return 'राना मगर';
   }
   return last;
 }
+
+// Comprehensive English/Romanized to Nepal Govt Cluster & Sub-caste Knowledge Base
+const ROMANIZED_CASTE_DICTIONARY = {
+  // 1. Adivasi Janajati (आदिवासी जनजाति)
+  'hyolmo': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'ह्योल्मो', devanagari: 'ह्योल्मो' },
+  'helmo': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'ह्योल्मो', devanagari: 'ह्योल्मो' },
+  'hyalmo': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'ह्योल्मो', devanagari: 'ह्योल्मो' },
+  'yolmo': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'ह्योल्मो', devanagari: 'ह्योल्मो' },
+  'tamang': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'तामाङ' },
+  'lama': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ / ह्योल्मो', devanagari: 'लामा' },
+  'sherpa': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'शेर्पा', devanagari: 'शेर्पा' },
+  'gurung': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'गुरुङ', devanagari: 'गुरुङ' },
+  'ghale': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'घले', devanagari: 'घले' },
+  'magar': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'मगर', devanagari: 'मगर' },
+  'thapa magar': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'मगर', devanagari: 'थापा मगर' },
+  'roka magar': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'मगर', devanagari: 'रोका मगर' },
+  'rana magar': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'मगर', devanagari: 'राना मगर' },
+  'rai': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'राई', devanagari: 'राई' },
+  'limbu': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'लिम्बु', devanagari: 'लिम्बु' },
+  'danuwar': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'दनुवार (सीमान्तकृत)', devanagari: 'दनुवार' },
+  'thami': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'थामी (सीमान्तकृत)', devanagari: 'थामी' },
+  'majhi': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'माझी (सीमान्तकृत)', devanagari: 'माझी' },
+  'pahari': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'पहरी (सीमान्तकृत)', devanagari: 'पहरी' },
+  'bhujel': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'भुजेल', devanagari: 'भुजेल' },
+  'chepang': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'चेपाङ', devanagari: 'चेपाङ' },
+  'ghising': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'घिसिङ' },
+  'waiba': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'वाइबा' },
+  'moktan': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'मोक्तान' },
+  'pakhrin': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'पाख्रिन' },
+  'yonjan': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'योन्जन' },
+  'blon': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'ब्लोन' },
+  'thokar': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'थोकर' },
+  'singtan': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'सिङ्तान' },
+  'dong': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'दोङ' },
+  'gole': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'गोले' },
+  'lopchan': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'लोप्चन' },
+  'titung': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'तितुङ' },
+  'bomjan': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'बम्जन' },
+  'negi': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'नेगी' },
+  'jimba': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'जिम्बा' },
+  'gyaba': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'ग्याबा' },
+  'rumba': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'रुम्बा' },
+  'marpa': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'मार्पा' },
+  'lungba': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'लुङ्बा' },
+
+  // 2. Khas Arya (खस आर्य - Chhetri, Brahmin, Sanyasi, Thakuri)
+  'khadka': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'खड्का' },
+  'khadga': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'खड्का' },
+  'thapa': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'थापा' },
+  'karki': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'कार्की' },
+  'basnet': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'बस्नेत' },
+  'basnyat': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'बस्नेत' },
+  'bhandari': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'भण्डारी' },
+  'raut': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'राउत' },
+  'rawat': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'रावत' },
+  'bohara': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'बोहरा' },
+  'bohora': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'बोहोरा' },
+  'kunwar': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'कुँवर' },
+  'khatri': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'खत्री' },
+  'kc': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'के.सी.' },
+  'k.c.': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'के.सी.' },
+  'budhathoki': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'बुढाथोकी' },
+  'katuwal': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'कटुवाल' },
+  'silwal': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'सिलवाल' },
+  'gharti': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'घर्ती' },
+  'rayamajhi': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'रायमाझी' },
+  'mahat': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'महत' },
+  'dangi': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'डाँगी' },
+  'bisht': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'विष्ट' },
+  'bogati': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'बोगटी' },
+  'roka': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री / मगर', devanagari: 'रोका' },
+  'rokka': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री / मगर', devanagari: 'रोक्का' },
+
+  // Hill Brahmin
+  'poudel': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'पौडेल' },
+  'paudel': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'पौडेल' },
+  'poudyal': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'पौडेल' },
+  'adhikari': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'अधिकारी' },
+  'ghimire': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'घिमिरे' },
+  'pandit': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'पण्डित' },
+  'nepal': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'नेपाल' },
+  'dahal': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'दाहाल' },
+  'khanal': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'खनाल' },
+  'sharma': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'शर्मा' },
+  'bhattarai': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'भट्टराई' },
+  'sapkota': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'सापकोटा' },
+  'parajuli': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'पराजुली' },
+  'chapagain': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'चापागाईं' },
+  'koirala': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'कोइराला' },
+  'rijal': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'रिजाल' },
+  'tiwari': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'तिवारी' },
+  'upadhyaya': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'उपाध्याय' },
+  'regmi': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'रेग्मी' },
+  'baral': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'बराल' },
+  'dhakal': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'ढकाल' },
+  'subedi': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'सुवेदी' },
+  'bastola': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'बास्तोला' },
+  'mishra': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'मिश्र' },
+  'niroula': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'निरौला' },
+  'lamsal': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'लम्साल' },
+  'neupane': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'न्यौपाने' },
+  'pokharel': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'पोखरेल' },
+  'gautam': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'गौतम' },
+  'panta': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'पन्त' },
+  'dulal': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'दुलाल' },
+  'sigdel': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'सिग्देल' },
+  'timilsina': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'तिमिल्सिना' },
+
+  // Sanyasi / Dashnami
+  'giri': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'सन्यासी / दशनामी', devanagari: 'गिरी' },
+  'puri': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'सन्यासी / दशनामी', devanagari: 'पुरी' },
+  'bharati': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'सन्यासी / दशनामी', devanagari: 'भारती' },
+  'ban': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'सन्यासी / दशनामी', devanagari: 'वन' },
+  'van': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'सन्यासी / दशनामी', devanagari: 'वन' },
+  'saraswati': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'सन्यासी / दशनामी', devanagari: 'सरस्वती' },
+
+  // Thakuri
+  'shahi': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'ठकुरी', devanagari: 'शाही' },
+  'shah': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'ठकुरी', devanagari: 'शाह' },
+  'chand': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'ठकुरी', devanagari: 'चन्द' },
+  'singh': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'ठकुरी', devanagari: 'सिंह' },
+  'sen': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'ठकुरी', devanagari: 'सेन' },
+
+  // 3. Newar (नेवार समुदाय)
+  'shrestha': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'श्रेष्ठ' },
+  'srestha': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'श्रेष्ठ' },
+  'pradhan': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'प्रधान' },
+  'manandhar': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'मानन्धर' },
+  'bajracharya': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'बज्राचार्य' },
+  'shakya': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'शाक्य' },
+  'joshi': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'जोशी' },
+  'prajapati': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'प्रजापति' },
+  'maharjan': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'महर्जन' },
+  'dangol': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'डंगोल' },
+  'kayastha': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'कायस्थ' },
+  'karmacharya': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'कर्माचार्य' },
+  'malla': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'मल्ल' },
+  'rajbhandari': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'राजभण्डारी' },
+  'awal': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'अवाल' },
+  'khadgi': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'नेवार', devanagari: 'खड्गी' },
+
+  // 4. Dalit (पहाडी दलित)
+  'b.k.': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'विश्वकर्मा', devanagari: 'वि.क.' },
+  'bk': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'विश्वकर्मा', devanagari: 'वि.क.' },
+  'bishwakarma': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'विश्वकर्मा', devanagari: 'विश्वकर्मा' },
+  'baraili': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'विश्वकर्मा', devanagari: 'बराइली' },
+  'gajmer': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'विश्वकर्मा', devanagari: 'गजमेर' },
+  'lwagun': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'विश्वकर्मा', devanagari: 'ल्वागुन' },
+  'sunar': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'विश्वकर्मा', devanagari: 'सुनार' },
+  'lohar': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'विश्वकर्मा', devanagari: 'लोहार' },
+  'kami': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'विश्वकर्मा', devanagari: 'कामी' },
+  'rasaili': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'विश्वकर्मा', devanagari: 'रसाइली' },
+  'pariyar': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'परियार', devanagari: 'परियार' },
+  'darji': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'परियार', devanagari: 'दर्जी' },
+  'nepali': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'परियार', devanagari: 'नेपाली' },
+  'sundas': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'परियार', devanagari: 'सुन्दास' },
+  'mijar': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'मिजार', devanagari: 'मिजार' },
+  'sarki': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'मिजार', devanagari: 'मिजार' },
+  'tolangi': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'मिजार', devanagari: 'तोलाङ्गी' },
+
+  // 5. Madhesi / Others
+  'yadav': { cluster: 'other', clusterLabel: 'मधेसी / अन्य', sub: 'यादव', devanagari: 'यादव' },
+  'sah': { cluster: 'other', clusterLabel: 'मधेसी / अन्य', sub: 'साह', devanagari: 'साह' },
+  'jha': { cluster: 'other', clusterLabel: 'मधेसी / अन्य', sub: 'झा', devanagari: 'झा' },
+  'miya': { cluster: 'other', clusterLabel: 'मुस्लिम / अन्य', sub: 'मुस्लिम', devanagari: 'मियाँ' },
+  'ansari': { cluster: 'other', clusterLabel: 'मुस्लिम / अन्य', sub: 'मुस्लिम', devanagari: 'अन्सारी' }
+};
 
 function getCustomCasteRules() {
   try {
@@ -32203,9 +32371,14 @@ function saveCustomCasteRule(surname, clusterKey, clusterLabel, subCaste) {
     sub: subCaste || surname,
     code: 'CUSTOM_' + Date.now()
   };
+  // Also store lowercase key if Latin characters present
+  if (/[a-z]/i.test(surname)) {
+    rules[surname.toLowerCase()] = rules[surname];
+  }
   localStorage.setItem('vrm_caste_custom_rules', JSON.stringify(rules));
 }
 
+// Universal Dual-Language (Nepali + English) Caste Classifier Engine
 function getVoterCasteClassification(v) {
   if (!v) return { surname: '', cluster: 'unclassified', clusterLabel: 'पहिचान खुल्न बाँकी', sub: 'अन्य', isCustom: false };
 
@@ -32229,8 +32402,9 @@ function getVoterCasteClassification(v) {
 
   // 2. Extract Primary Surname
   const primarySurname = extractVoterSurname(v.Name);
+  const primaryLower = primarySurname.toLowerCase();
 
-  // 3. Check Custom Learned Rules first
+  // 3. Check Custom Learned Rules first (both original and lowercase)
   const customRules = getCustomCasteRules();
   if (primarySurname && customRules[primarySurname]) {
     return {
@@ -32241,8 +32415,17 @@ function getVoterCasteClassification(v) {
       isCustom: true
     };
   }
+  if (primaryLower && customRules[primaryLower]) {
+    return {
+      surname: customRules[primaryLower].sub || primarySurname,
+      cluster: customRules[primaryLower].cluster,
+      clusterLabel: customRules[primaryLower].clusterLabel,
+      sub: customRules[primaryLower].sub,
+      isCustom: true
+    };
+  }
 
-  // 4. Exact dictionary match on primary surname
+  // 4. Exact dictionary match (Devanagari standard)
   if (primarySurname && NEPAL_GOVT_CASTE_DICTIONARY[primarySurname]) {
     const dict = NEPAL_GOVT_CASTE_DICTIONARY[primarySurname];
     return {
@@ -32254,23 +32437,27 @@ function getVoterCasteClassification(v) {
     };
   }
 
-  // 5. Deep Scan: Scan full clean name words against dictionary
-  // Handles names like "अन्जना थापा मगर" or reversed words
+  // 5. Exact dictionary match (English/Romanized standard)
+  if (primaryLower && ROMANIZED_CASTE_DICTIONARY[primaryLower]) {
+    const rDict = ROMANIZED_CASTE_DICTIONARY[primaryLower];
+    return {
+      surname: rDict.devanagari || primarySurname,
+      cluster: rDict.cluster,
+      clusterLabel: rDict.clusterLabel,
+      sub: rDict.sub,
+      isCustom: false
+    };
+  }
+
+  // 6. Deep Scan: Scan full clean name words backwards against both dictionaries
   let cleanFullName = (v.Name || '').replace(/\([^)]*\)/g, ' ').trim();
   const words = cleanFullName.split(/\s+/).filter(Boolean);
 
-  // Check from end backwards
   for (let i = words.length - 1; i >= 0; i--) {
     let w = words[i].replace(/[.,/#!$%^&*;:{}=\-_~`()]/g, '');
-    if (customRules[w]) {
-      return {
-        surname: w,
-        cluster: customRules[w].cluster,
-        clusterLabel: customRules[w].clusterLabel,
-        sub: customRules[w].sub,
-        isCustom: true
-      };
-    }
+    let wLower = w.toLowerCase();
+
+    // Check Devanagari dictionary
     if (NEPAL_GOVT_CASTE_DICTIONARY[w]) {
       const dict = NEPAL_GOVT_CASTE_DICTIONARY[w];
       return {
@@ -32281,31 +32468,63 @@ function getVoterCasteClassification(v) {
         isCustom: false
       };
     }
+
+    // Check Romanized English dictionary
+    if (ROMANIZED_CASTE_DICTIONARY[wLower]) {
+      const rDict = ROMANIZED_CASTE_DICTIONARY[wLower];
+      return {
+        surname: rDict.devanagari || w,
+        cluster: rDict.cluster,
+        clusterLabel: rDict.clusterLabel,
+        sub: rDict.sub,
+        isCustom: false
+      };
+    }
+
+    // Check Custom rules
+    if (customRules[w] || customRules[wLower]) {
+      const cRule = customRules[w] || customRules[wLower];
+      return {
+        surname: cRule.sub || w,
+        cluster: cRule.cluster,
+        clusterLabel: cRule.clusterLabel,
+        sub: cRule.sub,
+        isCustom: true
+      };
+    }
   }
 
-  // 6. Substring scan for prominent community names (ह्योल्मो, तामाङ, शेर्पा, गुरुङ, मगर, श्रेष्ठ, खड्का, गिरी, वि.क., परियार, मिजार)
+  // 7. Substring regex scan for prominent community keywords (Devanagari & Romanized)
   const quickPatterns = [
-    { p: /ह्योल्मो|ह्याल्मो|हेल्मो/i, sur: 'ह्योल्मो', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'ह्योल्मो' },
-    { p: /तामाङ|तामाङ्ग/i, sur: 'तामाङ', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'तामाङ' },
-    { p: /लामा/i, sur: 'लामा', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'तामाङ / ह्योल्मो' },
-    { p: /शेर्पा/i, sur: 'शेर्पा', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'शेर्पा' },
-    { p: /मगर/i, sur: 'मगर', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'मगर' },
-    { p: /गुरुङ/i, sur: 'गुरुङ', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'गुरुङ' },
-    { p: /दनुवार/i, sur: 'दनुवार', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'दनुवार (सीमान्तकृत)' },
-    { p: /थामी/i, sur: 'थामी', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'थामी (सीमान्तकृत)' },
-    { p: /श्रेष्ठ|प्रधान|जोशी|शाक्य|मानन्धर/i, sur: 'श्रेष्ठ', cluster: 'newar', label: 'नेवार समुदाय', sub: 'नेवार' },
-    { p: /खड्का|बस्नेत|कार्की|थापा|भण्डारी|राउत|रावत|बोहरा/i, sur: primarySurname || 'क्षेत्री', cluster: 'khas_arya', label: 'खस आर्य', sub: 'क्षेत्री' },
-    { p: /पौडेल|पण्डित|घिमिरे|अधिकारी|नेपाल|दाहाल|भट्टराई|सापकोटा/i, sur: primarySurname || 'ब्राह्मण', cluster: 'khas_arya', label: 'खस आर्य', sub: 'पहाडी ब्राह्मण' },
-    { p: /गिरी|पुरी|भारती|वन|बन/i, sur: primarySurname || 'गिरी', cluster: 'khas_arya', label: 'खस आर्य', sub: 'सन्यासी / दशनामी' },
-    { p: /वि[.s]*क|विश्वकर्मा|बराइली|गजमेर|सुनार|कामी/i, sur: 'वि.क.', cluster: 'dalit', label: 'दलित समुदाय', sub: 'विश्वकर्मा' },
-    { p: /परियार|दर्जी|नेपाली|सुन्दास/i, sur: 'परियार', cluster: 'dalit', label: 'दलित समुदाय', sub: 'परियार' },
-    { p: /मिजार|सार्की|तोलाङ्गी|रोका/i, sur: 'मिजार', cluster: 'dalit', label: 'दलित समुदाय', sub: 'मिजार' }
+    // Janajati
+    { p: /ह्योल्मो|ह्याल्मो|हेल्मो|\b(hyolmo|helmo|hyalmo|yolmo)\b/i, sur: 'ह्योल्मो', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'ह्योल्मो' },
+    { p: /तामाङ|तामाङ्ग|\b(tamang|tamangg)\b/i, sur: 'तामाङ', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'तामाङ' },
+    { p: /लामा|\b(lama)\b/i, sur: 'लामा', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'तामाङ / ह्योल्मो' },
+    { p: /शेर्पा|\b(sherpa)\b/i, sur: 'शेर्पा', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'शेर्पा' },
+    { p: /मगर|\b(magar)\b/i, sur: 'मगर', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'मगर' },
+    { p: /गुरुङ|\b(gurung)\b/i, sur: 'गुरुङ', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'गुरुङ' },
+    { p: /दनुवार|\b(danuwar)\b/i, sur: 'दनुवार', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'दनुवार (सीमान्तकृत)' },
+    { p: /थामी|\b(thami)\b/i, sur: 'थामी', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'थामी (सीमान्तकृत)' },
+    
+    // Newar
+    { p: /श्रेष्ठ|प्रधान|जोशी|शाक्य|मानन्धर|\b(shrestha|srestha|pradhan|joshi|shakya|manandhar|maharjan|dangol)\b/i, sur: 'श्रेष्ठ', cluster: 'newar', label: 'नेवार समुदाय', sub: 'नेवार' },
+    
+    // Khas Arya
+    { p: /खड्का|बस्नेत|कार्की|थापा|भण्डारी|राउत|रावत|बोहरा|\b(khadka|khadga|basnet|basnyat|karki|thapa|bhandari|raut|rawat|bohara)\b/i, sur: primarySurname || 'क्षेत्री', cluster: 'khas_arya', label: 'खस आर्य', sub: 'क्षेत्री' },
+    { p: /पौडेल|पण्डित|घिमिरे|अधिकारी|नेपाल|दाहाल|भट्टराई|सापकोटा|\b(poudel|paudel|pandit|ghimire|adhikari|nepal|dahal|bhattarai|sapkota)\b/i, sur: primarySurname || 'ब्राह्मण', cluster: 'khas_arya', label: 'खस आर्य', sub: 'पहाडी ब्राह्मण' },
+    { p: /गिरी|पुरी|भारती|वन|बन|\b(giri|puri|bharati|ban|van)\b/i, sur: primarySurname || 'गिरी', cluster: 'khas_arya', label: 'खस आर्य', sub: 'सन्यासी / दशनामी' },
+    { p: /\b(shahi|shah|chand|singh|sen)\b/i, sur: primarySurname || 'ठकुरी', cluster: 'khas_arya', label: 'खस आर्य', sub: 'ठकुरी' },
+    
+    // Dalit
+    { p: /वि[\.\s]*क|विश्वकर्मा|बराइली|गजमेर|सुनार|कामी|\b(b\.k\.|bk|bishwakarma|baraili|sunar|kami)\b/i, sur: 'वि.क.', cluster: 'dalit', label: 'दलित समुदाय', sub: 'विश्वकर्मा' },
+    { p: /परियार|दर्जी|नेपाली|सुन्दास|\b(pariyar|darji|nepali|sundas)\b/i, sur: 'परियार', cluster: 'dalit', label: 'दलित समुदाय', sub: 'परियार' },
+    { p: /मिजार|सार्की|तोलाङ्गी|\b(mijar|sarki|tolangi)\b/i, sur: 'मिजार', cluster: 'dalit', label: 'दलित समुदाय', sub: 'मिजार' }
   ];
 
   for (let q of quickPatterns) {
     if (q.p.test(cleanFullName)) {
       return {
-        surname: primarySurname || q.sur,
+        surname: q.sur || primarySurname,
         cluster: q.cluster,
         clusterLabel: q.label,
         sub: q.sub,
@@ -32314,7 +32533,7 @@ function getVoterCasteClassification(v) {
     }
   }
 
-  // 7. If still not matched, mark as unclassified for review
+  // 8. If still not matched, mark as unclassified for 1-click review
   return {
     surname: primarySurname || 'अज्ञात',
     cluster: 'unclassified',
