@@ -5450,6 +5450,120 @@
           </div>
           <!-- END PANE 2: CASTE BREAKDOWN MATRIX -->
 
+          <!-- MODAL: MODERN 1-CLICK VOTER CASTE OVERRIDE -->
+          <div id="modernCasteOverrideModal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 16px; animation: fadeIn 0.18s ease-out;">
+            <div class="card" style="width: 100%; max-width: 520px; background: var(--bg-card); border: 1.5px solid var(--border-color); border-radius: 16px; box-shadow: 0 20px 45px rgba(0,0,0,0.4); padding: 22px; position: relative;">
+              <!-- Header -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); display: flex; align-items: center; justify-content: center; font-size: 20px; color: #fff;">
+                    ✏️
+                  </div>
+                  <div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary);">
+                      जातीय समूह सम्पादन (Caste Override)
+                    </h3>
+                    <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">
+                      मतदाताको सरकारी क्लस्टर तथा उप-जाति तुरुन्तै परिवर्तन गर्नुहोस्
+                    </p>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-icon" onclick="closeModernCasteOverrideModal()" style="font-size: 16px; border-radius: 50%;">✕</button>
+              </div>
+
+              <!-- Voter Information Box -->
+              <div style="background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                  <div>
+                    <h4 id="overrideModalVoterName" style="margin: 0; font-size: 15px; font-weight: 800; color: var(--text-primary);">
+                      -
+                    </h4>
+                    <div id="overrideModalVoterMeta" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                      -
+                    </div>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-size: 11px; color: var(--text-muted);">हालको क्लस्टर:</div>
+                    <span id="overrideModalCurrentBadge" class="badge" style="font-size: 11.5px; padding: 3px 8px; margin-top: 2px;">-</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Hidden input for VoterID -->
+              <input type="hidden" id="overrideModalVoterId">
+
+              <!-- Cluster Selection Cards -->
+              <label style="font-size: 13px; font-weight: 800; color: var(--text-primary); margin-bottom: 8px; display: block;">
+                नयाँ सरकारी क्लस्टर छान्नुहोस् (Select New Cluster):
+              </label>
+
+              <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 16px;" id="overrideModalClusterOptions">
+                <!-- Option 1: Janajati -->
+                <label style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1.5px solid #22c55e; border-radius: 10px; cursor: pointer; background: rgba(34, 197, 94, 0.04); transition: all 0.15s ease;">
+                  <input type="radio" name="overrideClusterRadio" value="janajati" style="width: 17px; height: 17px; accent-color: #22c55e;">
+                  <div style="flex: 1;">
+                    <div style="font-weight: 800; color: #16a34a; font-size: 13.5px;">🟢 आदिवासी जनजाति (Adivasi Janajati)</div>
+                    <div style="font-size: 11.5px; color: var(--text-muted);">ह्योल्मो, तामाङ, शेर्पा, गुरुङ, मगर, राई, दनुवार, थामी आदि</div>
+                  </div>
+                </label>
+
+                <!-- Option 2: Khas Arya -->
+                <label style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1.5px solid #3b82f6; border-radius: 10px; cursor: pointer; background: rgba(59, 130, 246, 0.04); transition: all 0.15s ease;">
+                  <input type="radio" name="overrideClusterRadio" value="khas_arya" style="width: 17px; height: 17px; accent-color: #3b82f6;">
+                  <div style="flex: 1;">
+                    <div style="font-weight: 800; color: #2563eb; font-size: 13.5px;">🔵 खस आर्य (Khas Arya)</div>
+                    <div style="font-size: 11.5px; color: var(--text-muted);">क्षेत्री, पहाडी ब्राह्मण, ठकुरी, सन्यासी / दशनामी (गिरी, पुरी आदि)</div>
+                  </div>
+                </label>
+
+                <!-- Option 3: Newar -->
+                <label style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1.5px solid #f97316; border-radius: 10px; cursor: pointer; background: rgba(249, 115, 22, 0.04); transition: all 0.15s ease;">
+                  <input type="radio" name="overrideClusterRadio" value="newar" style="width: 17px; height: 17px; accent-color: #f97316;">
+                  <div style="flex: 1;">
+                    <div style="font-weight: 800; color: #ea580c; font-size: 13.5px;">🟠 नेवार समुदाय (Newar)</div>
+                    <div style="font-size: 11.5px; color: var(--text-muted);">श्रेष्ठ, प्रधान, मानन्धर, बज्राचार्य, शाक्य, जोशी, प्रजापति आदि</div>
+                  </div>
+                </label>
+
+                <!-- Option 4: Dalit -->
+                <label style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1.5px solid #a855f7; border-radius: 10px; cursor: pointer; background: rgba(168, 85, 247, 0.04); transition: all 0.15s ease;">
+                  <input type="radio" name="overrideClusterRadio" value="dalit" style="width: 17px; height: 17px; accent-color: #a855f7;">
+                  <div style="flex: 1;">
+                    <div style="font-weight: 800; color: #9333ea; font-size: 13.5px;">🟣 दलित समुदाय (Dalit)</div>
+                    <div style="font-size: 11.5px; color: var(--text-muted);">विश्वकर्मा (वि.क., सुनार, बराइली), परियार (दर्जी), मिजार (सार्की)</div>
+                  </div>
+                </label>
+
+                <!-- Option 5: Other -->
+                <label style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1.5px solid #64748b; border-radius: 10px; cursor: pointer; background: rgba(100, 116, 139, 0.04); transition: all 0.15s ease;">
+                  <input type="radio" name="overrideClusterRadio" value="other" style="width: 17px; height: 17px; accent-color: #64748b;">
+                  <div style="flex: 1;">
+                    <div style="font-weight: 800; color: #475569; font-size: 13.5px;">⚪ मधेसी / अन्य (Madhesi / Others)</div>
+                    <div style="font-size: 11.5px; color: var(--text-muted);">यादव, साह, झा, थारू, मुस्लिम, वा अन्य समुदाय</div>
+                  </div>
+                </label>
+              </div>
+
+              <!-- Sub-caste / Surname Optional Input -->
+              <div style="margin-bottom: 20px;">
+                <label style="font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; display: block;">
+                  उप-जाति / थर (Sub-caste / Surname):
+                </label>
+                <input type="text" id="overrideModalSubCasteInput" class="form-control" placeholder="उदा: ह्योल्मो, क्षेत्री, विश्वकर्मा..." style="width: 100%; font-size: 13px; border-radius: 8px;">
+              </div>
+
+              <!-- Action Buttons -->
+              <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+                <button type="button" class="btn btn-sm" onclick="closeModernCasteOverrideModal()" style="border-radius: 8px; padding: 8px 16px; font-weight: 700;">
+                  रद्द गर्नुहोस्
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="submitModernCasteOverride()" style="border-radius: 8px; padding: 8px 20px; font-weight: 800; background: #2563eb;">
+                  💾 सुरक्षित गर्नुहोस्
+                </button>
+              </div>
+            </div>
+          </div>
+          
           <!-- MODAL: 1-CLICK CASTE RULE MANAGER & OVERRIDE -->
           <div id="casteRuleManagerModal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
             <div class="card" style="width: 100%; max-width: 680px; max-height: 85vh; overflow-y: auto; padding: 22px; border-radius: 14px; box-shadow: 0 12px 36px rgba(0,0,0,0.4);">
@@ -33259,26 +33373,91 @@ function openCasteOverrideModal(voterId) {
   if (!v) return;
   const c = getVoterCasteClassification(v);
 
-  const promptMsg = v.Name + " को जातीय क्लस्टर बदल्नुहोस् (हाल: " + c.clusterLabel + "):\n\n1 = आदिवासी जनजाति\n2 = खस आर्य\n3 = नेवार समुदाय\n4 = दलित समुदाय\n5 = मधेसी / अन्य\n\nकृपया नम्बर (१-५) टाइप गर्नुहोस्:";
-  const newCluster = prompt(promptMsg, '1');
-  if (!newCluster) return;
+  const modal = document.getElementById('modernCasteOverrideModal');
+  if (!modal) return;
 
-  const map = {
-    '1': { k: 'janajati', l: 'आदिवासी जनजाति' },
-    '2': { k: 'khas_arya', l: 'खस आर्य' },
-    '3': { k: 'newar', l: 'नेवार समुदाय' },
-    '4': { k: 'dalit', l: 'दलित समुदाय' },
-    '5': { k: 'other', l: 'मधेसी / अन्य' }
+  // Set hidden voter id
+  const inpId = document.getElementById('overrideModalVoterId');
+  if (inpId) inpId.value = voterId;
+
+  // Set Voter name & meta
+  const nameEl = document.getElementById('overrideModalVoterName');
+  if (nameEl) nameEl.textContent = v.Name;
+
+  const metaEl = document.getElementById('overrideModalVoterMeta');
+  if (metaEl) {
+    const age = getVoterNumericAge(v);
+    const gender = (v.Gender || 'पु');
+    metaEl.textContent = `${gender}/${age} वर्ष • वडा ${v.Ward || 1}, ${v.Tole || 'केन्द्र'} • ID: ${v.OfficialVoterID || v.VoterID}`;
+  }
+
+  // Set current badge
+  const badgeEl = document.getElementById('overrideModalCurrentBadge');
+  if (badgeEl) {
+    badgeEl.textContent = c.clusterLabel + ' (' + c.sub + ')';
+    const clusterColors = {
+      'janajati': 'background: rgba(34, 197, 94, 0.15); color: #16a34a; border: 1px solid #22c55e;',
+      'khas_arya': 'background: rgba(59, 130, 246, 0.15); color: #2563eb; border: 1px solid #3b82f6;',
+      'newar': 'background: rgba(249, 115, 22, 0.15); color: #ea580c; border: 1px solid #f97316;',
+      'dalit': 'background: rgba(168, 85, 247, 0.15); color: #9333ea; border: 1px solid #a855f7;',
+      'other': 'background: rgba(148, 163, 184, 0.15); color: #475569; border: 1px solid #94a3b8;',
+      'unclassified': 'background: rgba(239, 68, 68, 0.15); color: #dc2626; border: 1px solid #ef4444;'
+    };
+    badgeEl.style.cssText = clusterColors[c.cluster] || clusterColors['other'];
+  }
+
+  // Check current radio button
+  const currentKey = (c.cluster && c.cluster !== 'unclassified') ? c.cluster : 'janajati';
+  const radios = document.querySelectorAll('input[name="overrideClusterRadio"]');
+  radios.forEach(r => {
+    r.checked = (r.value === currentKey);
+  });
+
+  // Set subcaste input value
+  const subInp = document.getElementById('overrideModalSubCasteInput');
+  if (subInp) subInp.value = c.sub || c.surname || '';
+
+  modal.style.display = 'flex';
+}
+
+function closeModernCasteOverrideModal() {
+  const modal = document.getElementById('modernCasteOverrideModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function submitModernCasteOverride() {
+  const inpId = document.getElementById('overrideModalVoterId');
+  if (!inpId || !inpId.value) return;
+  const voterId = inpId.value;
+
+  const v = (state.voters || []).find(x => x.VoterID === voterId);
+  if (!v) return;
+
+  const selectedRadio = document.querySelector('input[name="overrideClusterRadio"]:checked');
+  const newCluster = selectedRadio ? selectedRadio.value : 'janajati';
+
+  const subInp = document.getElementById('overrideModalSubCasteInput');
+  const newSub = (subInp && subInp.value.trim()) ? subInp.value.trim() : extractVoterSurname(v.Name);
+
+  const cLabels = {
+    'janajati': 'आदिवासी जनजाति',
+    'khas_arya': 'खस आर्य',
+    'newar': 'नेवार समुदाय',
+    'dalit': 'दलित समुदाय',
+    'other': 'मधेसी / अन्य'
   };
 
-  if (map[newCluster]) {
-    v.CasteCluster = map[newCluster].k;
-    v.CasteSub = map[newCluster].l;
-    v.updated_at = new Date().toISOString();
-    if (typeof pushVoterToSupabase === 'function') pushVoterToSupabase(v);
-    showToast(v.Name + " को जातीय समूह '" + map[newCluster].l + "' मा सच्याइयो।", 'success');
-    renderCasteDemographics();
-  }
+  v.CasteCluster = newCluster;
+  v.CasteSub = newSub;
+  v.CasteSurname = extractVoterSurname(v.Name);
+  v.updated_at = new Date().toISOString();
+
+  if (typeof markVoterLocallyEdited === 'function') markVoterLocallyEdited(v.VoterID);
+  if (typeof pushVoterToSupabase === 'function') pushVoterToSupabase(v);
+
+  closeModernCasteOverrideModal();
+  showToast(`✓ सेभ भयो: ${v.Name} को जातीय समूह '${cLabels[newCluster]}' मा अद्यावधिक गरियो।`, 'success');
+  renderCasteDemographics();
 }
 
 function exportCasteVotersCsv() {
