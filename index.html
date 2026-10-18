@@ -8859,7 +8859,9 @@
     function getActiveTenantId() {
       if (!currentUser) return (state.settings && state.settings.CURRENT_TENANT_ID) || 'TNT_HELAMBU';
       if (currentUser.Role === 'Super Admin') return currentUser.TenantID || 'ALL';
-      return currentUser.TenantID || (state.settings && state.settings.CURRENT_TENANT_ID) || 'TNT_HELAMBU';
+      let tid = currentUser.TenantID || (state.settings && state.settings.CURRENT_TENANT_ID) || 'TNT_HELAMBU';
+      if (tid === 'TNT_MVBZVZC5') tid = 'TNT_MVC19UMP';
+      return tid;
     }
 
     function isWardRestrictedUser() {
@@ -8881,17 +8883,13 @@
         }
         return list;
       }
-      const activeTenantId = currentUser.TenantID;
+      let activeTenantId = currentUser.TenantID;
       if (!activeTenantId) return [];
-      list = list.filter(v => {
-        const vTid = v.TenantID || 'TNT_HELAMBU';
-        if (vTid === activeTenantId) return true;
-        // Helambu multi-tenant fallback: allows RSP (TNT_MVC19UMP), Helambu (TNT_HELAMBU), and Dinesh tenant (TNT_MVBZVZC5) to access Helambu voter base
-        const isHelambuUser = (activeTenantId === 'TNT_HELAMBU' || activeTenantId === 'TNT_MVBZVZC5' || activeTenantId === 'TNT_MVC19UMP' || String(currentUser.PalikaName || '').includes('हेलम्बु') || String(currentUser.TenantName || '').includes('हेलम्बु'));
-        const isHelambuVoter = (vTid === 'TNT_HELAMBU' || vTid === 'TNT_MVBZVZC5' || vTid === 'TNT_MVC19UMP');
-        if (isHelambuUser && isHelambuVoter) return true;
-        return false;
-      });
+      // If logged in as dinesh (TNT_MVBZVZC5), map to TNT_MVC19UMP so Dinesh accesses his 18,907 RSP Helambu roll
+      if (activeTenantId === 'TNT_MVBZVZC5') activeTenantId = 'TNT_MVC19UMP';
+      
+      // Strict pure isolation: each tenant sees only their own voter roll (RSP sees exactly 18,907 voters)
+      list = list.filter(v => (v.TenantID || 'TNT_HELAMBU') === activeTenantId);
       if (isWardRestrictedUser()) {
         list = list.filter(v => String(v.Ward || v.WardNo || '') === String(currentUser.Ward));
       }
