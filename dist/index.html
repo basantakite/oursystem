@@ -5451,8 +5451,8 @@
           <!-- END PANE 2: CASTE BREAKDOWN MATRIX -->
 
           <!-- MODAL: MODERN 1-CLICK VOTER CASTE OVERRIDE -->
-          <div id="modernCasteOverrideModal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 16px; animation: fadeIn 0.18s ease-out;">
-            <div class="card" style="width: 100%; max-width: 520px; background: var(--bg-card); border: 1.5px solid var(--border-color); border-radius: 16px; box-shadow: 0 20px 45px rgba(0,0,0,0.4); padding: 22px; position: relative;">
+          <div id="modernCasteOverrideModal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center; padding: 16px; animation: fadeIn 0.18s ease-out;">
+            <div class="card" style="width: 100%; max-width: 520px; background: #ffffff !important; color: #0f172a !important; border: 2px solid #cbd5e1; border-radius: 18px; box-shadow: 0 25px 60px rgba(0,0,0,0.55); padding: 24px; position: relative;">
               <!-- Header -->
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -8231,8 +8231,13 @@
               if (currentUser) {
                 refreshDashboardMetrics();
                 const activeSec = document.querySelector('.view-section.active');
-                if (activeSec && activeSec.id === 'viewVoters') renderVotersList();
-                else if (activeSec && activeSec.id === 'viewElectionDay') renderElectionReports();
+                const activeId = activeSec ? activeSec.id : '';
+                if (activeId === 'viewVoters') renderVotersList();
+                else if (activeId === 'viewCaste') renderCasteDemographics();
+                else if (activeId === 'viewHouseholds') renderHouseholdsList();
+                else if (activeId === 'viewElectionDay') renderElectionReports();
+              } else {
+                updateCasteNavBadge();
               }
             }
           }
@@ -10143,15 +10148,17 @@
           const activeEl = document.activeElement;
           const isUserTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
 
-          if (shouldFullFetch && !modalActive && !isUserTyping) {
+          if (!modalActive && !isUserTyping) {
             const activeSec = document.querySelector('.view-section.active');
             const activeId = activeSec ? activeSec.id : '';
             if (activeId === 'viewVoters') renderVotersList();
+            else if (activeId === 'viewCaste') renderCasteDemographics();
             else if (activeId === 'viewHouseholds') renderHouseholdsList();
-          else if (activeId === 'viewCaste') renderCasteDemographics();
+            else if (activeId === 'viewDashboard') refreshDashboardMetrics();
             else if (activeId === 'viewElectionDay') renderElectionReports();
             else if (activeId === 'viewTenants' && currentUser.Role === 'Super Admin') renderTenantsManagement();
           }
+          updateCasteNavBadge();
         } else {
           // If on login screen (?palika=slug) and cloud tenants just synced, refresh tenant branding without clearing typed inputs
           const params = new URLSearchParams(window.location.search);
@@ -10805,6 +10812,7 @@
           const activeSec = document.querySelector('.view-section.active');
           const activeId = activeSec ? activeSec.id : '';
           if (activeId === 'viewVoters') renderVotersList();
+          else if (activeId === 'viewCaste') renderCasteDemographics();
           else if (activeId === 'viewHouseholds') renderHouseholdsList();
           else if (activeId === 'viewTenants') renderTenantsManagement();
         }).catch(err => console.warn('Auto cloud sync on launch error:', err));
