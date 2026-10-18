@@ -21,6 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&family=Mukta:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     @keyframes pulseDot {
       0% { transform: scale(0.95); opacity: 0.8; }
@@ -4400,6 +4401,16 @@
                   </button>
                 </div>
 
+                <!-- 1. Staff Fast Phone Entry Button -->
+                <button type="button" class="btn btn-sm btn-primary" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border-color: #0284c7; font-weight: 800; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);" onclick="openStaffQuickPhoneEntryModal()" title="मतदाता नम्बर र फोन नम्बर द्रुत दर्ता (फिल्ड स्टाफको लागि अति सरल)">
+                  📲 फोन दर्ता (Staff)
+                </button>
+
+                <!-- 2. Tenant Admin & Super Admin Bulk Excel / CSV Upload Button -->
+                <button type="button" class="btn btn-sm btn-success" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border-color: #059669; font-weight: 800;" onclick="openTenantBulkPhoneUploadModal()" title="Excel / CSV बाट फोन नम्बर र जन्ममिति बल्क अपलोड गर्नुहोस् (Tenant Admin & Super Admin)">
+                  📥 फोन/DOB बल्क अपलोड
+                </button>
+
                 <button class="btn btn-sm btn-primary super-admin-only" style="background: #1e3a6e; border-color: #162d56; font-weight: 800; display: none;" onclick="openBulkVoterImportModal()" title="CSV बाट एकैपटक मतदाता सूची अपलोड र नमूना प्रिभ्यू (Super Admin Only)">
                   📤 Bulk Upload CSV
                 </button>
@@ -4416,6 +4427,8 @@
                     ⋮ थप
                   </button>
                   <div id="voterMoreToolsDropdown" class="voter-more-dropdown" style="display: none;">
+                    <button type="button" class="voter-more-item" onclick="openStaffQuickPhoneEntryModal(); closeVoterMoreTools();">📲 फोन दर्ता (Staff Quick Entry)</button>
+                    <button type="button" class="voter-more-item" onclick="openTenantBulkPhoneUploadModal(); closeVoterMoreTools();">📥 फोन/DOB बल्क अपलोड (Excel/CSV)</button>
                     <button type="button" class="voter-more-item super-admin-only" style="display: none;" onclick="openBulkVoterImportModal(); closeVoterMoreTools();">📤 Bulk Upload CSV / Sample Preview</button>
                     <button type="button" class="voter-more-item super-admin-only" style="display: none;" onclick="downloadSampleTemplate(); closeVoterMoreTools();">📄 Download Sample CSV Template</button>
                     <button type="button" class="voter-more-item" onclick="openBroadcastModal(); closeVoterMoreTools();">📢 Broadcast / SMS</button>
@@ -10254,6 +10267,15 @@
               const compKey = `${mappedVoter.TenantID}_${mappedVoter.VoterID}`;
               const idx = voterIdxMap.get(compKey);
               if (idx !== undefined) {
+                // PROTECTION CHECK: If this voter was locally edited within the last 90 seconds, do not let stale cloud poll overwrite local state!
+                const vIdStr = String(mappedVoter.VoterID);
+                const localEditedAt = (typeof _recentlyEditedVoters !== 'undefined' && _recentlyEditedVoters.has(vIdStr))
+                  ? _recentlyEditedVoters.get(vIdStr)
+                  : (state.voters[idx]._locallyEditedAt || 0);
+                if (localEditedAt && (Date.now() - localEditedAt < 90000)) {
+                  return; // Preserve local modifications!
+                }
+
                 if ((!mappedVoter.CommunityRoles || !mappedVoter.CommunityRoles.length) && state.voters[idx].CommunityRoles) {
                   mappedVoter.CommunityRoles = state.voters[idx].CommunityRoles;
                 }
@@ -16797,6 +16819,32 @@
         });
       }
 
+      // 3B-2. Auto-match Grandparents (हजुरबुबा / हजुरआमा) via Father (3-Generation 2-Hop Linking)
+      if (fatherVoter) {
+        const grandFatherVoter = findFatherCandidateFast(fatherVoter, idx, seenVoterIds, ignoredIds);
+        if (grandFatherVoter && list.length < 16) {
+          list.push({
+            ...grandFatherVoter,
+            isCurrent: false,
+            isRegisteredVoter: true,
+            matchType: 'auto',
+            relation: 'हजुरबुबा (Grandfather)'
+          });
+          seenVoterIds.add(grandFatherVoter.VoterID);
+        }
+        const grandMotherVoter = findMotherCandidateFast(fatherVoter, idx, grandFatherVoter, seenVoterIds, ignoredIds);
+        if (grandMotherVoter && list.length < 16) {
+          list.push({
+            ...grandMotherVoter,
+            isCurrent: false,
+            isRegisteredVoter: true,
+            matchType: 'auto',
+            relation: 'हजुरआमा (Grandmother)'
+          });
+          seenVoterIds.add(grandMotherVoter.VoterID);
+        }
+      }
+
       // 3C. Auto-match Spouse (पति / पत्नी)
       const spouseVoter = findSpouseCandidateFast(voter, idx, seenVoterIds, ignoredIds);
       if (spouseVoter) {
@@ -16835,6 +16883,19 @@
               relation: 'सासू (Mother-in-Law)'
             });
             seenVoterIds.add(sasu.VoterID);
+          }
+          if (sasura && list.length < 16) {
+            const hazurSasura = findFatherCandidateFast(sasura, idx, seenVoterIds, ignoredIds);
+            if (hazurSasura) {
+              list.push({
+                ...hazurSasura,
+                isCurrent: false,
+                isRegisteredVoter: true,
+                matchType: 'auto',
+                relation: 'हजुरससुरा (Grandfather-in-Law)'
+              });
+              seenVoterIds.add(hazurSasura.VoterID);
+            }
           }
         }
       } else if (isValidPersonNameForMatch(voter.SpouseName) && !ignoredIds.has('TEXT_SPOUSE')) {
@@ -20700,7 +20761,16 @@
       let seqCounter = 1;
 
       // Clear auto-generated HouseholdIDs so we build clean, age-anchored multi-generation households
+      // Note: Preserve voters belonging to manually-created or custom-verified households
+      const manualHhIds = new Set(
+        (state.households || [])
+          .filter(h => h && (h.isManual || h.isCustom || h.VerificationStatus === 'Manual'))
+          .map(h => String(h.HouseholdID))
+      );
       state.voters.forEach(v => {
+        if (v._isManualHousehold || (v.HouseholdID && manualHhIds.has(String(v.HouseholdID)))) {
+          return; // keep manual household!
+        }
         if (v.HouseholdID && (String(v.HouseholdID).startsWith('HHD_W') || String(v.HouseholdID).startsWith('HHD_FAM_') || String(v.HouseholdID).startsWith('HHD_TNT_'))) {
           v.HouseholdID = '';
         }
@@ -20713,7 +20783,8 @@
       (state.households || []).forEach(existingH => {
         if (!existingH || !existingH.HouseholdID) return;
         const hIdStr = String(existingH.HouseholdID);
-        if (hIdStr.startsWith('HHD_FAM_') || hIdStr.startsWith('HHD_W') || hIdStr.startsWith('HHD_TNT_')) return;
+        const isManuallyProtected = existingH.isManual || existingH.isCustom || existingH.VerificationStatus === 'Manual';
+        if (!isManuallyProtected && (hIdStr.startsWith('HHD_FAM_') || hIdStr.startsWith('HHD_W') || hIdStr.startsWith('HHD_TNT_'))) return;
         const tId = existingH.TenantID || 'TNT_HELAMBU';
         const mems = freshIdx.byHh.get(`${tId}_${existingH.HouseholdID}`) || freshIdx.byHh.get(existingH.HouseholdID) || [];
         if (mems.length >= 1 && mems.length <= 14) {
@@ -22170,6 +22241,8 @@
     async function quickUpdateVoterLocation(voterId, newLoc) {
       const v = getVoterByIdFast(voterId);
       if (!v) return;
+      v._locallyEditedAt = Date.now();
+      if (typeof markVoterLocallyEdited === 'function') markVoterLocallyEdited(voterId);
       v.CurrentLocation = newLoc;
       if (newLoc.includes('खाडी') || newLoc.includes('युरोप')) {
         v.ElectionDayTurnout = 'आउन नसक्ने / विदेश (Abroad/Absent)';
@@ -22188,6 +22261,8 @@
     async function quickUpdateVoterTurnout(voterId, newTurnout) {
       const v = getVoterByIdFast(voterId);
       if (!v) return;
+      v._locallyEditedAt = Date.now();
+      if (typeof markVoterLocallyEdited === 'function') markVoterLocallyEdited(voterId);
       v.ElectionDayTurnout = newTurnout;
       saveState();
       if (typeof pushVoterToSupabase === 'function') pushVoterToSupabase(v);
@@ -22198,6 +22273,8 @@
     async function quickUpdateVoterCityCluster(voterId, newCluster) {
       const v = getVoterByIdFast(voterId);
       if (!v) return;
+      v._locallyEditedAt = Date.now();
+      if (typeof markVoterLocallyEdited === 'function') markVoterLocallyEdited(voterId);
       v.CityAddress = String(newCluster || '').trim();
       saveState();
       if (typeof pushVoterToSupabase === 'function') pushVoterToSupabase(v);
@@ -28175,9 +28252,607 @@
       executeBulkStudioImport('csvPreviewOutput');
     }
 
-    // ==========================================
-    // 19. SUPABASE CONNECTION & SETTINGS
-    // ==========================================
+    // ==========================================================================
+    // 18B. STAFF QUICK PHONE ENTRY & TENANT/SUPER ADMIN BULK ENRICHMENT ENGINE
+    // ==========================================================================
+
+    let _staffRecentPhoneEntries = [];
+    let _bulkPhoneParsedMatches = [];
+    let _bulkPhoneUnmatchedCount = 0;
+
+    function cleanPhoneNumberHelper(raw) {
+      if (!raw) return '';
+      let s = String(raw).replace(/[^\d+]/g, '').trim();
+      if (s.startsWith('+977')) s = s.substring(4);
+      if (s.startsWith('977') && s.length === 13) s = s.substring(3);
+      s = s.replace(/\D/g, '');
+      if (/^9[6-8]\d{8}$/.test(s)) return s;
+      return s;
+    }
+
+    function cleanDobHelper(raw) {
+      if (!raw) return '';
+      let s = String(raw).trim().replace(/\./g, '/').replace(/-/g, '/');
+      const m = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+      if (m) {
+        return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
+      }
+      return s;
+    }
+
+    // 1. Staff Quick Phone Entry Modal (Simple, Fast, Zero-Clutter for Field Staff)
+    function openStaffQuickPhoneEntryModal(prefillVoterId = '') {
+      const modalHtml = `
+        <div style="font-family: inherit;">
+          <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;">
+            <div style="font-weight: 800; color: #166534; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
+              <span>⚡ फिल्ड स्टाफ द्रुत दर्ता (Fast Phone & DOB Entry)</span>
+            </div>
+            <div style="font-size: 12px; color: #15803d; margin-top: 3px;">
+              मतदाता नम्बर हान्ने बित्तिकै व्यक्तिको नाम र परिवार विवरण आफैँ देखिन्छ। फोन नम्बर हालेर <b>Enter</b> थिच्नासाथ तत्काल सेभ हुन्छ।
+            </div>
+          </div>
+
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; font-weight: 800; font-size: 12.5px; color: #1e293b; margin-bottom: 4px;">
+              १. मतदाता नम्बर (Voter ID): <span style="color: #dc2626;">*</span>
+            </label>
+            <input type="text" id="staffQuickVoterIdInput" class="form-control" 
+              placeholder="मतदाता नं. टाइप गर्नुहोस् (जस्तै: 12894561)..." 
+              value="${esc(prefillVoterId)}"
+              oninput="onStaffVoterIdLookup(this.value)"
+              autofocus
+              style="font-size: 14.5px; font-weight: 800; height: 40px; border: 2px solid #0284c7; border-radius: 8px;">
+          </div>
+
+          <!-- Live Voter Identification Preview Card -->
+          <div id="staffVoterPreviewCard" style="display: none; margin-bottom: 14px; padding: 12px 14px; border-radius: 8px; border: 1.5px solid #86efac; background: #f0fdf4;">
+            <!-- Filled dynamically -->
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+            <div>
+              <label style="display: block; font-weight: 800; font-size: 12.5px; color: #1e293b; margin-bottom: 4px;">
+                २. मोबाइल नम्बर (१० अङ्क): <span style="color: #dc2626;">*</span>
+              </label>
+              <input type="tel" id="staffQuickPhoneInput" class="form-control" 
+                placeholder="९८४१XXXXXX" 
+                maxlength="14"
+                onkeydown="if(event.key==='Enter') submitStaffQuickPhoneEntry()"
+                style="font-size: 14px; font-weight: 800; height: 38px; border-radius: 8px;">
+            </div>
+            <div>
+              <label style="display: block; font-weight: 800; font-size: 12.5px; color: #1e293b; margin-bottom: 4px;">
+                ३. जन्ममिति (DOB - ऐच्छिक):
+              </label>
+              <input type="text" id="staffQuickDobInput" class="form-control" 
+                placeholder="YYYY/MM/DD वा YYYY-MM-DD" 
+                onkeydown="if(event.key==='Enter') submitStaffQuickPhoneEntry()"
+                style="font-size: 13.5px; height: 38px; border-radius: 8px;">
+            </div>
+          </div>
+
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 12px; margin-bottom: 14px;">
+            <label style="font-size: 12px; font-weight: 700; color: #1e40af; display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+              <input type="checkbox" id="staffCascadeHouseholdChk" checked style="width: 16px; height: 16px;">
+              <span>यस फोन नम्बरलाई सिङ्गो घरधुरी (परिवार) को मुख्य सम्पर्क नम्बर बनाउनुहोस्</span>
+            </label>
+          </div>
+
+          <div id="staffRecentEntriesBox" style="font-size: 11.5px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+            <span style="font-weight: 700;">भर्खरै दर्ता गरिएका:</span> <span id="staffRecentEntriesList">कुनै छैन</span>
+          </div>
+        </div>
+      `;
+
+      const footerHtml = `
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">बन्द गर्नुहोस्</button>
+        <button type="button" class="btn btn-primary" id="btnSubmitStaffEntry" onclick="submitStaffQuickPhoneEntry()" style="background: #0284c7; border-color: #0369a1; font-weight: 800; min-width: 140px;">
+          💾 सुरक्षित गर्नुहोस् (Save)
+        </button>
+      `;
+
+      openModal('📲 मतदाता फोन तथा जन्ममिति द्रुत दर्ता', modalHtml, footerHtml, 'modal-md');
+      setTimeout(() => {
+        const inp = document.getElementById('staffQuickVoterIdInput');
+        if (inp) inp.focus();
+        if (prefillVoterId) onStaffVoterIdLookup(prefillVoterId);
+      }, 100);
+    }
+
+    function onStaffVoterIdLookup(val) {
+      const q = String(val || '').trim();
+      const card = document.getElementById('staffVoterPreviewCard');
+      const phoneInput = document.getElementById('staffQuickPhoneInput');
+      const dobInput = document.getElementById('staffQuickDobInput');
+      if (!card) return;
+
+      if (!q || q.length < 3) {
+        card.style.display = 'none';
+        return;
+      }
+
+      const activeTId = (currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') ? currentUser.TenantID : (state.activeTenantId || 'TNT_HELAMBU');
+      const isSuper = isSuperAdminUser();
+
+      // Find matching voter
+      const voter = (state.voters || []).find(v => {
+        if (!isSuper && v.TenantID && v.TenantID !== activeTId) return false;
+        return (String(v.VoterID) === q || String(v.OfficialVoterID) === q || String(v.VoterSerial) === q);
+      });
+
+      if (voter) {
+        card.style.display = 'block';
+        card.style.borderColor = '#86efac';
+        card.style.background = '#f0fdf4';
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <div style="font-weight: 800; font-size: 15px; color: #166534;">
+                👤 ${esc(voter.Name)} <span style="font-size: 12px; font-weight: 600; color: #15803d;">(${esc(voter.Age || '-')} वर्ष, ${esc(voter.Gender || '-')})</span>
+              </div>
+              <div style="font-size: 12.5px; color: #166534; margin-top: 4px;">
+                वडा नं: <b>${esc(voter.Ward || 1)}</b> | टोल: <b>${esc(voter.Tole || '-')}</b> | केन्द्र: <b>${esc(voter.BoothNo || 'A')}</b>
+              </div>
+              <div style="font-size: 12px; color: #15803d; margin-top: 2px;">
+                बाबु: <b>${esc(voter.FatherName || '-')}</b> | आमा: <b>${esc(voter.MotherName || '-')}</b> | पति/पत्नी: <b>${esc(voter.SpouseName || '-')}</b>
+              </div>
+              <div style="font-size: 11.5px; color: #047857; margin-top: 4px;">
+                हालको फोन: <b style="color: ${voter.Phone ? '#0f172a' : '#dc2626'};">${esc(voter.Phone || 'दर्ता छैन')}</b> | जन्ममिति: <b>${esc(voter.DOB || 'छैन')}</b>
+              </div>
+            </div>
+            <span class="badge" style="background: #bbf7d0; color: #14532d; font-size: 11px; font-weight: 800;">
+              ✓ पहिचान भयो
+            </span>
+          </div>
+        `;
+        if (phoneInput && !phoneInput.value && voter.Phone) {
+          phoneInput.value = voter.Phone;
+        }
+        if (dobInput && !dobInput.value && voter.DOB) {
+          dobInput.value = voter.DOB;
+        }
+      } else {
+        card.style.display = 'block';
+        card.style.borderColor = '#fca5a5';
+        card.style.background = '#fff1f2';
+        card.innerHTML = `
+          <div style="color: #be123c; font-size: 12.5px; font-weight: 700;">
+            ⚠️ मतदाता नम्बर "${esc(q)}" फेला परेन। कृपया सही मतदाता नम्बर जाँच गर्नुहोस्।
+          </div>
+        `;
+      }
+    }
+
+    async function submitStaffQuickPhoneEntry() {
+      const idInp = document.getElementById('staffQuickVoterIdInput');
+      const phoneInp = document.getElementById('staffQuickPhoneInput');
+      const dobInp = document.getElementById('staffQuickDobInput');
+      const cascadeChk = document.getElementById('staffCascadeHouseholdChk');
+      if (!idInp || !phoneInp) return;
+
+      const q = idInp.value.trim();
+      const rawPhone = phoneInp.value.trim();
+      const cleanPhone = cleanPhoneNumberHelper(rawPhone);
+      const cleanDob = cleanDobHelper(dobInp ? dobInp.value.trim() : '');
+
+      if (!q) {
+        showToast('कृपया मतदाता नम्बर प्रविष्ट गर्नुहोस्', 'error');
+        idInp.focus();
+        return;
+      }
+      if (!cleanPhone || cleanPhone.length < 10) {
+        showToast('कृपया कम्तीमा १० अङ्कको मान्य फोन नम्बर प्रविष्ट गर्नुहोस्', 'error');
+        phoneInp.focus();
+        return;
+      }
+
+      const activeTId = (currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') ? currentUser.TenantID : (state.activeTenantId || 'TNT_HELAMBU');
+      const isSuper = isSuperAdminUser();
+
+      const voter = (state.voters || []).find(v => {
+        if (!isSuper && v.TenantID && v.TenantID !== activeTId) return false;
+        return (String(v.VoterID) === q || String(v.OfficialVoterID) === q || String(v.VoterSerial) === q);
+      });
+
+      if (!voter) {
+        showToast('मतदाता नम्बर फेला परेन। कृपया सही नम्बर टाइप गर्नुहोस्।', 'error');
+        idInp.focus();
+        return;
+      }
+
+      // Update voter
+      voter.Phone = cleanPhone;
+      if (cleanDob) voter.DOB = cleanDob;
+      voter.UpdatedAt = new Date().toISOString();
+      voter._locallyEditedAt = Date.now();
+      if (typeof markVoterLocallyEdited === 'function') markVoterLocallyEdited(voter.VoterID);
+
+      // Cascade to Household if requested
+      if (cascadeChk && cascadeChk.checked && voter.HouseholdID) {
+        const hh = (state.households || []).find(h => h.HouseholdID === voter.HouseholdID);
+        if (hh) {
+          hh.PrimaryPhone = cleanPhone;
+          hh.PrimaryContactName = voter.Name;
+          hh.UpdatedAt = new Date().toISOString();
+        }
+      }
+
+      saveState();
+      if (typeof pushVoterToSupabase === 'function') pushVoterToSupabase(voter);
+      if (typeof broadcastVoterUpdated === 'function') broadcastVoterUpdated(voter);
+
+      // Add to recent entries list
+      _staffRecentPhoneEntries.unshift(`${voter.Name} (📞 ${cleanPhone})`);
+      if (_staffRecentPhoneEntries.length > 5) _staffRecentPhoneEntries.pop();
+      const recList = document.getElementById('staffRecentEntriesList');
+      if (recList) recList.innerHTML = _staffRecentPhoneEntries.map(e => `<span class="badge" style="background:#e0f2fe;color:#0369a1;margin:2px;">${esc(e)}</span>`).join(' ');
+
+      showToast(`✅ ${voter.Name} को फोन नम्बर (${cleanPhone}) सुरक्षित भयो!`, 'success');
+
+      // Reset for next entry
+      idInp.value = '';
+      phoneInp.value = '';
+      if (dobInp) dobInp.value = '';
+      const card = document.getElementById('staffVoterPreviewCard');
+      if (card) card.style.display = 'none';
+      idInp.focus();
+
+      if (typeof renderVotersMasterTable === 'function') renderVotersMasterTable();
+      if (typeof renderHouseholdsList === 'function') renderHouseholdsList();
+    }
+
+    // 2. Tenant Admin & Super Admin Bulk Phone & DOB Upload Engine
+    function openTenantBulkPhoneUploadModal() {
+      const isSuper = isSuperAdminUser();
+      const currentTId = (currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') ? currentUser.TenantID : (state.activeTenantId || 'TNT_HELAMBU');
+      const currentTenantObj = (state.tenants || []).find(t => t.TenantID === currentTId);
+      const palikaName = currentTenantObj ? (currentTenantObj.TenantName || currentTenantObj.PalikaName || currentTId) : currentTId;
+
+      _bulkPhoneParsedMatches = [];
+      _bulkPhoneUnmatchedCount = 0;
+
+      const modalHtml = `
+        <div style="font-family: inherit;">
+          <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div style="font-weight: 800; font-size: 13.5px; color: #0f172a;">
+                📥 Excel / CSV फोन तथा जन्ममिति बल्क अपलोड (Bulk Enrichment)
+              </div>
+              <span class="badge" style="background: #dbeafe; color: #1e40af; font-size: 11px; font-weight: 800;">
+                ${esc(palikaName)}
+              </span>
+            </div>
+            <div style="font-size: 12px; color: #475569; margin-top: 4px;">
+              वडा वा टोलबाट आएको <b>Excel (.xlsx, .xls)</b> वा <b>CSV</b> फाइल सिधै अपलोड गर्नुहोस्। फाइलमा कम्तीमा <b>मतदाता नम्बर (Voter ID)</b> र <b>फोन नम्बर (Phone)</b> हुनुपर्छ।
+            </div>
+          </div>
+
+          ${isSuper ? `
+          <div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 12px; margin-bottom: 14px;">
+            <label style="font-size: 12px; font-weight: 800; color: #92400e; display: block; margin-bottom: 4px;">
+              👑 Super Admin दायरा (Scope):
+            </label>
+            <select id="bulkUploadTenantScopeSelect" class="form-control" style="font-size: 12.5px; font-weight: 700; height: 32px;">
+              <option value="${esc(currentTId)}">यस पालिका मात्र (${esc(palikaName)})</option>
+              <option value="ALL">🌐 सबै पालिका (Master Cross-Tenant Routing by Voter ID)</option>
+            </select>
+          </div>` : ''}
+
+          <!-- Drag and Drop Upload Zone -->
+          <div id="bulkPhoneDropZone" style="border: 2px dashed #94a3b8; border-radius: 10px; padding: 22px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 14px;"
+            onclick="document.getElementById('bulkPhoneFileInput').click()"
+            ondragover="event.preventDefault(); this.style.borderColor='#059669'; this.style.background='#f0fdf4';"
+            ondragleave="this.style.borderColor='#94a3b8'; this.style.background='#f8fafc';"
+            ondrop="event.preventDefault(); this.style.borderColor='#94a3b8'; this.style.background='#f8fafc'; handleBulkPhoneFileDrop(event.dataTransfer.files)">
+            <div style="font-size: 32px; margin-bottom: 4px;">📊</div>
+            <div style="font-weight: 800; font-size: 14px; color: #1e293b;">Excel (.xlsx / .xls) वा CSV फाइल यहाँ छान्नुहोस् वा ड्र्याग गर्नुहोस्</div>
+            <div style="font-size: 11.5px; color: #64748b; margin-top: 3px;">(अपलोड हुनासाथ Voter ID र Phone कोलम आफैँ पहिचान हुनेछ)</div>
+            <input type="file" id="bulkPhoneFileInput" accept=".xlsx, .xls, .csv, .txt" style="display: none;" onchange="handleBulkPhoneFileSelect(this.files)">
+          </div>
+
+          <!-- Quick Paste Alternative Box -->
+          <details style="margin-bottom: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px;">
+            <summary style="font-size: 12px; font-weight: 700; color: #2563eb; cursor: pointer;">
+              📋 अथवा Excel बाट सिधै Copy-Paste गर्न यहाँ थिच्नुहोस् (No File Needed)
+            </summary>
+            <div style="margin-top: 8px;">
+              <textarea id="bulkPhonePasteArea" class="form-control" rows="4" 
+                placeholder="Excel बाट Voter ID र Phone कोलम सेलेक्ट गरी यहाँ Paste गर्नुहोस्..."
+                style="font-family: monospace; font-size: 12px;"
+                oninput="parseBulkPhonePasteContent(this.value)"></textarea>
+            </div>
+          </details>
+
+          <!-- Preview & Validation Results Box -->
+          <div id="bulkPhonePreviewResults" style="display: none; margin-bottom: 14px;">
+            <!-- Filled dynamically -->
+          </div>
+        </div>
+      `;
+
+      const footerHtml = `
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">रद्द गर्नुहोस्</button>
+        <button type="button" class="btn btn-success" id="btnApplyBulkPhone" onclick="applyBulkPhoneUpdates()" disabled style="background: #16a34a; border-color: #15803d; font-weight: 800; min-width: 170px;">
+          🚀 फोन तथा DOB अपडेट गर्नुहोस्
+        </button>
+      `;
+
+      openModal('📥 फोन तथा जन्ममिति बल्क अपलोड (Excel / CSV)', modalHtml, footerHtml, 'modal-lg');
+    }
+
+    function handleBulkPhoneFileSelect(files) {
+      if (!files || !files.length) return;
+      handleBulkPhoneFileDrop(files);
+    }
+
+    function handleBulkPhoneFileDrop(files) {
+      if (!files || !files.length) return;
+      const file = files[0];
+      const fileName = file.name.toLowerCase();
+
+      if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        if (typeof XLSX !== 'undefined') {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            try {
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, { type: 'array' });
+              const firstSheet = workbook.SheetNames[0];
+              const jsonRows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1 });
+              processBulkPhoneRawData(jsonRows, file.name);
+            } catch(err) {
+              showToast('Excel फाइल पढ्न समस्या भयो: ' + err.message, 'error');
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        } else {
+          showToast('XLSX लाइब्रेरी लोड हुँदैछ, कृपया १ सेकेन्ड पर्खनुहोस्...', 'info');
+        }
+      } else {
+        // CSV or TXT
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const text = e.target.result;
+          const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+          const rawRows = lines.map(line => {
+            if (line.includes('\t')) return line.split('\t');
+            if (line.includes(',')) return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+            return line.split(/\s+/);
+          });
+          processBulkPhoneRawData(rawRows, file.name);
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    function parseBulkPhonePasteContent(text) {
+      if (!text || !text.trim()) {
+        const box = document.getElementById('bulkPhonePreviewResults');
+        if (box) box.style.display = 'none';
+        const btn = document.getElementById('btnApplyBulkPhone');
+        if (btn) btn.disabled = true;
+        return;
+      }
+      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+      const rawRows = lines.map(line => {
+        if (line.includes('\t')) return line.split('\t');
+        if (line.includes(',')) return line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+        return line.split(/\s+/);
+      });
+      processBulkPhoneRawData(rawRows, 'Copy-Paste Content');
+    }
+
+    function processBulkPhoneRawData(rawRows, sourceName = '') {
+      if (!rawRows || rawRows.length < 1) {
+        showToast('कुनै डेटा भेटिएन', 'warning');
+        return;
+      }
+
+      // 1. Column Header Auto-Detection
+      const firstRow = rawRows[0].map(c => String(c || '').trim());
+      let voterColIdx = -1;
+      let phoneColIdx = -1;
+      let dobColIdx = -1;
+
+      // Check header text
+      firstRow.forEach((colName, idx) => {
+        const lower = colName.toLowerCase();
+        if (voterColIdx === -1 && /voter|मतदाता|serial|sn|id|क्रमाङ्क/i.test(lower)) voterColIdx = idx;
+        if (phoneColIdx === -1 && /phone|mobile|सम्पर्क|फोन|cell|tel/i.test(lower)) phoneColIdx = idx;
+        if (dobColIdx === -1 && /dob|birth|जन्ममिति|मिति|date/i.test(lower)) dobColIdx = idx;
+      });
+
+      let startRowIdx = 1;
+      // If header not found by text, guess by data shape
+      if (voterColIdx === -1 || phoneColIdx === -1) {
+        startRowIdx = 0;
+        // Look at first 5 data rows
+        for (let r = 0; r < Math.min(rawRows.length, 5); r++) {
+          const row = rawRows[r];
+          row.forEach((cell, cIdx) => {
+            const cleanCell = String(cell || '').replace(/[^\d]/g, '');
+            if (phoneColIdx === -1 && /^9[6-8]\d{8}$/.test(cleanCell)) phoneColIdx = cIdx;
+            if (voterColIdx === -1 && /^\d{6,10}$/.test(cleanCell) && cIdx !== phoneColIdx) voterColIdx = cIdx;
+          });
+        }
+      }
+
+      // Fallback: column 0 = voterId, column 1 = phone
+      if (voterColIdx === -1) voterColIdx = 0;
+      if (phoneColIdx === -1) phoneColIdx = 1;
+
+      const scopeSelect = document.getElementById('bulkUploadTenantScopeSelect');
+      const chosenScope = scopeSelect ? scopeSelect.value : ((currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') ? currentUser.TenantID : (state.activeTenantId || 'TNT_HELAMBU'));
+      const isSuper = isSuperAdminUser();
+
+      // Build Voter Lookup Map for fast O(1) matching
+      const voterMap = new Map();
+      (state.voters || []).forEach(v => {
+        if (!isSuper || chosenScope !== 'ALL') {
+          if (v.TenantID && v.TenantID !== chosenScope) return;
+        }
+        if (v.VoterID) voterMap.set(String(v.VoterID).trim(), v);
+        if (v.OfficialVoterID) voterMap.set(String(v.OfficialVoterID).trim(), v);
+      });
+
+      _bulkPhoneParsedMatches = [];
+      let invalidPhoneCount = 0;
+      let unmatchedVoterCount = 0;
+
+      for (let i = startRowIdx; i < rawRows.length; i++) {
+        const row = rawRows[i];
+        if (!row || !row.length) continue;
+
+        const rawVoterId = String(row[voterColIdx] || '').trim().replace(/^'/, '');
+        const rawPhone = String(row[phoneColIdx] || '').trim();
+        const rawDob = dobColIdx !== -1 ? String(row[dobColIdx] || '').trim() : '';
+
+        if (!rawVoterId && !rawPhone) continue;
+
+        const matchedVoter = voterMap.get(rawVoterId);
+        const cleanPhone = cleanPhoneNumberHelper(rawPhone);
+        const cleanDob = cleanDobHelper(rawDob);
+
+        if (!matchedVoter) {
+          unmatchedVoterCount++;
+          continue;
+        }
+
+        if (!cleanPhone || cleanPhone.length < 10) {
+          invalidPhoneCount++;
+        }
+
+        _bulkPhoneParsedMatches.push({
+          voter: matchedVoter,
+          rawVoterId: rawVoterId,
+          cleanPhone: cleanPhone,
+          cleanDob: cleanDob,
+          isValid: !!(cleanPhone && cleanPhone.length >= 10)
+        });
+      }
+
+      _bulkPhoneUnmatchedCount = unmatchedVoterCount;
+
+      // Render Preview UI
+      const resultsContainer = document.getElementById('bulkPhonePreviewResults');
+      const applyBtn = document.getElementById('btnApplyBulkPhone');
+      if (!resultsContainer) return;
+
+      const validMatches = _bulkPhoneParsedMatches.filter(m => m.isValid);
+
+      resultsContainer.style.display = 'block';
+      resultsContainer.innerHTML = `
+        <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+          <div style="font-weight: 800; font-size: 13px; color: #0f172a; margin-bottom: 8px;">
+            📊 विश्लेषण नतिजा (Analysis Summary) — ${esc(sourceName)}
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 10px;">
+              <div style="font-size: 11px; color: #166534; font-weight: 700;">अपडेट हुने मतदाता</div>
+              <div style="font-size: 18px; font-weight: 900; color: #166534;">${validMatches.length} जना</div>
+            </div>
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 8px 10px;">
+              <div style="font-size: 11px; color: #1e40af; font-weight: 700;">DOB सहित</div>
+              <div style="font-size: 18px; font-weight: 900; color: #1e40af;">${validMatches.filter(m => !!m.cleanDob).length} जना</div>
+            </div>
+            <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 6px; padding: 8px 10px;">
+              <div style="font-size: 11px; color: #be123c; font-weight: 700;">फेला नपरेका ID</div>
+              <div style="font-size: 18px; font-weight: 900; color: #be123c;">${unmatchedVoterCount} वटा</div>
+            </div>
+            <div style="background: #fefce8; border: 1px solid #fef08a; border-radius: 6px; padding: 8px 10px;">
+              <div style="font-size: 11px; color: #854d0e; font-weight: 700;">अमान्य फोन</div>
+              <div style="font-size: 18px; font-weight: 900; color: #854d0e;">${invalidPhoneCount} वटा</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="max-height: 220px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px;">
+          <table class="official-roll-table" style="font-size: 12px; margin-bottom: 0;">
+            <thead>
+              <tr style="background: #f1f5f9;">
+                <th>Voter ID</th>
+                <th>मतदाताको नाम</th>
+                <th>वडा</th>
+                <th>हालको फोन</th>
+                <th>नयाँ फोन</th>
+                <th>नयाँ जन्ममिति</th>
+                <th>स्थिति</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${_bulkPhoneParsedMatches.slice(0, 30).map(m => `
+                <tr style="${!m.isValid ? 'background:#fff1f2;' : ''}">
+                  <td><b>${esc(m.rawVoterId)}</b></td>
+                  <td>${esc(m.voter.Name)}</td>
+                  <td>W${esc(m.voter.Ward)}</td>
+                  <td style="color:#64748b;">${esc(m.voter.Phone || '-')}</td>
+                  <td><b style="color:#059669;">${esc(m.cleanPhone || '-')}</b></td>
+                  <td>${esc(m.cleanDob || '-')}</td>
+                  <td>
+                    ${m.isValid 
+                      ? '<span class="badge" style="background:#dcfce7;color:#15803d;font-weight:700;">✓ Ready</span>' 
+                      : '<span class="badge" style="background:#fee2e2;color:#b91c1c;font-weight:700;">Invalid</span>'}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${_bulkPhoneParsedMatches.length > 30 ? `<div style="font-size:11px;color:#64748b;margin-top:4px;text-align:center;">देखाउँदै पहिलो ३० रेकर्ड (जम्मा ${validMatches.length} जना अपडेटको लागि तयार)</div>` : ''}
+      `;
+
+      if (applyBtn) {
+        applyBtn.disabled = validMatches.length === 0;
+        applyBtn.textContent = `🚀 ${validMatches.length} जनाको फोन तथा DOB अपडेट गर्नुहोस्`;
+      }
+    }
+
+    async function applyBulkPhoneUpdates() {
+      const validMatches = _bulkPhoneParsedMatches.filter(m => m.isValid);
+      if (!validMatches.length) return showToast('अपडेट गर्न कुनै मान्य रेकर्ड छैन', 'error');
+
+      const applyBtn = document.getElementById('btnApplyBulkPhone');
+      if (applyBtn) {
+        applyBtn.disabled = true;
+        applyBtn.textContent = '⏳ अपडेट हुँदैछ...';
+      }
+
+      let updatedVotersList = [];
+
+      validMatches.forEach(item => {
+        const v = item.voter;
+        v.Phone = item.cleanPhone;
+        if (item.cleanDob) v.DOB = item.cleanDob;
+        v.UpdatedAt = new Date().toISOString();
+        v._locallyEditedAt = Date.now();
+        if (typeof markVoterLocallyEdited === 'function') markVoterLocallyEdited(v.VoterID);
+
+        // Cascade to household if empty
+        if (v.HouseholdID) {
+          const hh = (state.households || []).find(h => h.HouseholdID === v.HouseholdID);
+          if (hh && (!hh.PrimaryPhone || hh.PrimaryPhone === '-')) {
+            hh.PrimaryPhone = v.Phone;
+            hh.PrimaryContactName = v.Name;
+            hh.UpdatedAt = new Date().toISOString();
+          }
+        }
+        updatedVotersList.push(v);
+      });
+
+      saveState();
+
+      // Cloud batch push
+      if (typeof pushVotersBatchToSupabase === 'function') {
+        pushVotersBatchToSupabase(updatedVotersList, true);
+      }
+
+      closeModal();
+      showToast(`🎉 ${updatedVotersList.length} जना मतदाताको फोन तथा DOB सफलतापूर्वक अपडेट भयो!`, 'success');
+
+      if (typeof renderVotersMasterTable === 'function') renderVotersMasterTable();
+      if (typeof renderHouseholdsList === 'function') renderHouseholdsList();
+    }
     function saveSupabaseConfig() {
       const url = document.getElementById('supabaseUrlInput').value.trim();
       const key = document.getElementById('supabaseKeyInput').value.trim();
