@@ -9815,6 +9815,9 @@
         PollingLocation: parsedNotes.polling_location || '',
         HasVoted: parsedNotes.has_voted !== undefined ? !!parsedNotes.has_voted : !!cloudVoter.voted_status,
         VotedAt: parsedNotes.voted_at || cloudVoter.voted_time || '',
+        CasteCluster: parsedNotes.caste_cluster || '',
+        CasteSub: parsedNotes.caste_sub || '',
+        CasteSurname: parsedNotes.caste_surname || '',
         Active: true
       };
     }
@@ -9945,6 +9948,13 @@
 
       updateVoterInPlaceInDom(mapped);
       saveState();
+
+      // If viewing Caste Demographics, immediately refresh charts and counts
+      const activeCasteSec = document.querySelector('.view-section.active');
+      if (activeCasteSec && activeCasteSec.id === 'viewCaste' && typeof renderCasteDemographics === 'function') {
+        renderCasteDemographics();
+      }
+      if (typeof updateCasteNavBadge === 'function') updateCasteNavBadge();
     }
 
     // Lightweight Delta Cloud Fetch: Queries only voters modified within the last 3 minutes
@@ -10078,9 +10088,37 @@
         if (setRes && setRes.ok) {
           const sData = await setRes.json();
           if (Array.isArray(sData)) {
+            let cloudCasteRulesFound = false;
             sData.forEach(row => {
               if (row.key === 'admin_pin') state.settings.admin_pin = typeof row.value === 'string' ? row.value.replace(/"/g, '') : String(row.value);
               if (row.key === 'municipality_name') state.settings.MUNICIPALITY = typeof row.value === 'string' ? row.value.replace(/"/g, '') : String(row.value);
+              if (row.key === 'custom_caste_rules') {
+                cloudCasteRulesFound = true;
+                try {
+                  const cloudRules = typeof row.value === 'string' ? JSON.parse(row.value) : (row.value || {});
+                  const localRules = (typeof getCustomCasteRules === 'function') ? getCustomCasteRules() : {};
+                  const mergedRules = { ...cloudRules, ...localRules };
+                  const localCount = Object.keys(localRules).length;
+                  const cloudCount = Object.keys(cloudRules).length;
+                  const mergedCount = Object.keys(mergedRules).length;
+
+                  if (mergedCount > localCount || (mergedCount > 0 && localCount === 0)) {
+                    localStorage.setItem('vrm_caste_custom_rules', JSON.stringify(mergedRules));
+                    if (typeof updateCasteNavBadge === 'function') updateCasteNavBadge();
+                    const cv = document.getElementById('viewCaste');
+                    if (cv && cv.style.display !== 'none' && typeof renderCasteDemographics === 'function') {
+                      renderCasteDemographics();
+                    }
+                  }
+                  if (mergedCount > cloudCount) {
+                    if (typeof pushCustomCasteRulesToCloud === 'function') {
+                      pushCustomCasteRulesToCloud(mergedRules);
+                    }
+                  }
+                } catch(e) {
+                  console.warn('Error reading custom_caste_rules:', e);
+                }
+              }
               if (row.key === 'saas_tenants_registry') {
                 try {
                   // Do not overwrite if a local tenant save just happened within the last 8 seconds
@@ -10119,6 +10157,14 @@
                 }
               }
             });
+
+            // If Supabase didn't have custom_caste_rules row yet, but this browser has local rules, push them to cloud!
+            if (!cloudCasteRulesFound) {
+              const localRules = (typeof getCustomCasteRules === 'function') ? getCustomCasteRules() : {};
+              if (Object.keys(localRules).length > 0 && typeof pushCustomCasteRulesToCloud === 'function') {
+                pushCustomCasteRulesToCloud(localRules);
+              }
+            }
           }
         }
 
@@ -10340,7 +10386,22 @@
             debouncedBackgroundSync(500);
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, (payload) => {
-            console.log('⚡ [Realtime WebSocket] Settings updated on cloud:', payload.eventType);
+            console.log('⚡ [Realtime WebSocket] Settings updated on cloud:', payload.eventType, payload.new?.key);
+            if (payload && payload.new && payload.new.key === 'custom_caste_rules') {
+              try {
+                const cloudRules = typeof payload.new.value === 'string' ? JSON.parse(payload.new.value) : (payload.new.value || {});
+                const localRules = (typeof getCustomCasteRules === 'function') ? getCustomCasteRules() : {};
+                const merged = { ...localRules, ...cloudRules };
+                localStorage.setItem('vrm_caste_custom_rules', JSON.stringify(merged));
+                if (typeof updateCasteNavBadge === 'function') updateCasteNavBadge();
+                const cv = document.getElementById('viewCaste');
+                if (cv && cv.style.display !== 'none' && typeof renderCasteDemographics === 'function') {
+                  renderCasteDemographics();
+                }
+              } catch(e) {
+                console.warn('Realtime custom_caste_rules sync error:', e);
+              }
+            }
             debouncedBackgroundSync(500);
           })
           .subscribe((status) => {
@@ -10530,7 +10591,10 @@
         record_source: v.RecordSource || '',
         polling_location: v.PollingLocation || '',
         has_voted: !!v.HasVoted,
-        voted_at: v.VotedAt || ''
+        voted_at: v.VotedAt || '',
+        caste_cluster: v.CasteCluster || '',
+        caste_sub: v.CasteSub || '',
+        caste_surname: v.CasteSurname || ''
       });
 
       const houseAddress = v.HouseNo ? (String(v.HouseNo).startsWith('घर नं:') ? String(v.HouseNo) : 'घर नं: ' + String(v.HouseNo)) : (v.Address || '');
@@ -32606,6 +32670,37 @@ function getCustomCasteRules() {
   }
 }
 
+let _casteRulesPushTimer = null;
+function pushCustomCasteRulesToCloud(rules) {
+  if (!rules) rules = getCustomCasteRules();
+  if (_casteRulesPushTimer) clearTimeout(_casteRulesPushTimer);
+  _casteRulesPushTimer = setTimeout(async () => {
+    try {
+      const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+      const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+      if (!url || !key) return;
+      const headers = {
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      };
+      await cloudFetch(`${url}/rest/v1/system_settings`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({
+          key: 'custom_caste_rules',
+          value: JSON.stringify(rules),
+          updated_at: new Date().toISOString()
+        })
+      });
+      console.log('⚡ [Cloud Sync] Custom caste rules synced to Supabase Cloud');
+    } catch(e) {
+      console.warn('Failed to push custom caste rules to cloud:', e);
+    }
+  }, 300);
+}
+
 function saveCustomCasteRule(surname, clusterKey, clusterLabel, subCaste) {
   if (!surname) return;
   const rules = getCustomCasteRules();
@@ -32620,6 +32715,7 @@ function saveCustomCasteRule(surname, clusterKey, clusterLabel, subCaste) {
     rules[surname.toLowerCase()] = rules[surname];
   }
   localStorage.setItem('vrm_caste_custom_rules', JSON.stringify(rules));
+  pushCustomCasteRulesToCloud(rules);
 }
 
 // Universal Dual-Language (Nepali + English) Caste Classifier Engine
