@@ -3726,7 +3726,7 @@
       <!-- ================================================================= -->
       <!-- SCREEN A: SUPER ADMIN MASTER LOGIN (Default on root URL)          -->
       <!-- ================================================================= -->
-      <div id="authScreenSuper" style="display: none;">
+      <div id="authScreenSuper" style="display: block;">
         <div class="brand-icon" style="margin: 0 auto 10px; width: 56px; height: 56px; font-size: 28px; background: #0f172a; color: #fbbf24; border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(15,23,42,0.35); border: 1.5px solid #334155;">👑</div>
         <div class="pin-header" style="margin-bottom: 18px; text-align: center;">
           <h2 style="font-size: 21px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">Super Admin Login</h2>
@@ -8575,9 +8575,12 @@
       }
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+    function initElectionApp() {
+      if (window._electionAppInitialized) return;
+      window._electionAppInitialized = true;
+
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261019-v27-sync18907';
+      const CURRENT_APP_BUILD = '20261019-v28-winmargin';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8630,14 +8633,20 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261019-v27-sync18907')
+        navigator.serviceWorker.register('sw.js?v=20261019-v28-winmargin')
           .then((reg) => {
-            console.log('Election Ops PWA Service Worker Registered (v27-sync18907)');
+            console.log('Election Ops PWA Service Worker Registered (v28-winmargin)');
             reg.update();
           })
           .catch(err => console.log('SW registration error:', err));
       }
-    });
+    }
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', initElectionApp);
+    } else {
+      initElectionApp();
+    }
 
     function forceAppHardReload() {
       showToast('नयाँ संस्करण लोड गरिँदैछ, कृपया १ सेकेन्ड पर्खनुहोस्...', 'info');
@@ -33290,11 +33299,6 @@
       `;
 
       tbody.innerHTML = rowsHtml;
-    }
-
-      // 3. Render Area Live Timeline & Tole Breakdown
-      renderWarRoomLiveTimeline(cand);
-      renderWarRoomToleBreakdown(candidateVoters, cand);
     }
 
     // Live Timeline Scoped to Candidate's Area
