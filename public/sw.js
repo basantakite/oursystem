@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v27-sync18907 - Full 18907 Roll Fetch)
-const CACHE_NAME = 'election-ops-v27-sync18907';
+// Service Worker for Offline & Installable App Experience (v28-winmargin)
+const CACHE_NAME = 'election-ops-v28-winmargin';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

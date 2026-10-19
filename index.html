@@ -4187,8 +4187,9 @@
             </div>
 
             <!-- Interactive Sliders Grid -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 18px;">
-              <!-- 1. Expected Turnout Slider -->
+            <!-- 1. Turnout & Badar Dual Controls -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 18px;">
+              <!-- Expected Turnout Slider -->
               <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                   <label style="font-size: 12px; font-weight: 800; color: #1e3a8a;">🗳️ अपेक्षित मतदान दर (Turnout %):</label>
@@ -4202,7 +4203,7 @@
                 </div>
               </div>
 
-              <!-- 2. Badar / Invalid Votes Dual Linked Input -->
+              <!-- Badar / Invalid Votes Dual Linked Input -->
               <div style="background: #ffffff; border: 1.5px solid #fecaca; border-radius: 10px; padding: 12px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                   <label style="font-size: 12px; font-weight: 800; color: #991b1b;">❌ अनुमानित बदर मत (Invalid):</label>
@@ -4221,19 +4222,45 @@
                   <span>१५% (अत्यधिक)</span>
                 </div>
               </div>
+            </div>
 
-              <!-- 3. Top Opponent Share Slider -->
-              <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                  <label style="font-size: 12px; font-weight: 800; color: #c2410c;">⚔️ मुख्य प्रतिस्पर्धीको मत (%):</label>
-                  <span id="wrOpponentSliderVal" style="font-size: 13px; font-weight: 900; color: #c2410c; background: #ffedd5; padding: 2px 8px; border-radius: 6px;">34%</span>
+            <!-- 2. Multi-Party Vote Share Simulation Matrix -->
+            <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                <div>
+                  <h4 style="margin: 0; font-size: 15px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                    <span>🗳️</span> बहुदलीय मत विभाजन तथा प्रतिस्पर्धी शक्ति (Multi-Party Vote Share Matrix)
+                  </h4>
+                  <p style="margin: 2px 0 0; font-size: 12px; color: #64748b;">
+                    सदर मतमा विपक्षी दलहरूको अनुमानित हिस्सा (%) परिवर्तन गरी मुख्य प्रतिस्पर्धी र जितको अन्तर सिमुलेट गर्नुहोस्।
+                  </p>
                 </div>
-                <input type="range" id="wrOpponentSlider" min="20" max="60" value="34" step="1" oninput="onWarRoomSimulatorSliderChanged()" style="width: 100%; cursor: pointer;">
-                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #64748b; margin-top: 3px;">
-                  <span>२०% (कमजोर)</span>
-                  <span>३४% (औसत)</span>
-                  <span>६०% (बलियो)</span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="openAddNewPartyModal()" style="font-size: 11.5px; font-weight: 800; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 5px 12px; border-radius: 6px; cursor: pointer;">
+                    ➕ नयाँ दल थप्नुहोस्
+                  </button>
                 </div>
+              </div>
+
+              <!-- Real-time Stacked Visual Vote Share Bar -->
+              <div style="margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 700; color: #475569; margin-bottom: 5px;">
+                  <span>सदर मतको दलगत वितरण (Estimated Vote Share Breakdown)</span>
+                  <span id="wrStackedBarTotalPct">१००% सदर मत</span>
+                </div>
+                <div id="wrStackedVoteShareBar" style="display: flex; height: 28px; border-radius: 8px; overflow: hidden; background: #e2e8f0; box-shadow: inset 0 1px 3px rgba(0,0,0,0.12);">
+                  <!-- Dynamically populated party segments -->
+                </div>
+              </div>
+
+              <!-- Top Rival Highlight Alert Banner -->
+              <div id="wrTopRivalBanner" style="margin-bottom: 14px;">
+                <!-- Dynamically populated -->
+              </div>
+
+              <!-- Party Sliders Dynamic Grid -->
+              <div id="wrPartySlidersGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+                <!-- Dynamically populated party sliders -->
               </div>
             </div>
 
@@ -7665,8 +7692,53 @@
         heroGradient: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
         heroBorder: '#334155',
         gradient: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
+      },
+      SSP: {
+        id: 'SSP',
+        name: 'श्रम संस्कृति पार्टी',
+        nameEn: 'Shram Sanskriti Party',
+        symbol: '🛠️',
+        primary: '#7c3aed',        // Royal Purple / Grassroots Purple
+        primaryDark: '#5b21b6',
+        primaryLight: '#8b5cf6',
+        glow: 'rgba(124, 58, 237, 0.28)',
+        secondary: '#fbbf24',      // Gold / Yellow
+        accentBg: '#f5f3ff',
+        border: '#ddd6fe',
+        sidebarBg: 'linear-gradient(180deg, #4c1d95 0%, #2e1065 100%)',
+        heroGradient: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)',
+        heroBorder: '#7c3aed',
+        gradient: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)'
       }
     };
+
+    function getAllPartyPalettes() {
+      const merged = { ...PARTY_PALETTES };
+      if (state && Array.isArray(state.customParties)) {
+        state.customParties.forEach(cp => {
+          if (cp && cp.id) {
+            merged[cp.id] = {
+              id: cp.id,
+              name: cp.name || cp.id,
+              nameEn: cp.nameEn || cp.name || cp.id,
+              symbol: cp.symbol || '🚩',
+              primary: cp.primary || '#6366f1',
+              primaryDark: cp.primaryDark || '#4338ca',
+              primaryLight: cp.primaryLight || '#818cf8',
+              glow: cp.glow || 'rgba(99, 102, 241, 0.28)',
+              secondary: cp.secondary || '#fbbf24',
+              accentBg: cp.accentBg || '#eef2ff',
+              border: cp.border || '#c7d2fe',
+              sidebarBg: cp.sidebarBg || 'linear-gradient(180deg, #312e81 0%, #1e1b4b 100%)',
+              heroGradient: cp.heroGradient || 'linear-gradient(135deg, #312e81 0%, #6366f1 100%)',
+              heroBorder: cp.heroBorder || '#6366f1',
+              gradient: cp.gradient || 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+            };
+          }
+        });
+      }
+      return merged;
+    }
 
     function normalizePartyCode(raw) {
       if (!raw) return 'NC';
@@ -7676,26 +7748,34 @@
       if (s === 'RSP' || s.includes('घण्टी') || s.includes('BELL') || s.includes('स्वतन्त्र पार्टी')) return 'RSP';
       if (s === 'MAOIST' || s.includes('माओवादी') || s.includes('हँसिया') || s.includes('COMMUNIST')) return 'MAOIST';
       if (s === 'RPP' || s.includes('प्रजातन्त्र') || s.includes('राप्रपा') || s.includes('हल')) return 'RPP';
+      if (s === 'SSP' || s.includes('श्रम') || s.includes('संस्कृति') || s.includes('SHRAM')) return 'SSP';
       if (s === 'INDEPENDENT' || s.includes('स्वतन्त्र') || s.includes('साझा')) return 'INDEPENDENT';
+      // Check if custom party matches
+      if (state && Array.isArray(state.customParties)) {
+        const found = state.customParties.find(cp => cp && (cp.id === s || (cp.name && s.includes(cp.name.toUpperCase()))));
+        if (found) return found.id;
+      }
       return 'NC';
     }
 
     function getActivePartyPalette() {
+      const pals = getAllPartyPalettes();
       if (currentUser && currentUser.Role === 'Super Admin') {
-        return PARTY_PALETTES.INDEPENDENT;
+        return pals.INDEPENDENT || PARTY_PALETTES.INDEPENDENT;
       }
       if (currentUser && currentUser.Party) {
-        return PARTY_PALETTES[normalizePartyCode(currentUser.Party)] || PARTY_PALETTES.NC;
+        return pals[normalizePartyCode(currentUser.Party)] || pals.NC || PARTY_PALETTES.NC;
       }
       if (currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') {
         const curTenant = (state.tenants || []).find(t => t.TenantID === currentUser.TenantID);
-        if (curTenant && curTenant.Party) return PARTY_PALETTES[normalizePartyCode(curTenant.Party)] || PARTY_PALETTES.NC;
+        if (curTenant && curTenant.Party) return pals[normalizePartyCode(curTenant.Party)] || pals.NC || PARTY_PALETTES.NC;
       }
       const code = (state && state.activeParty) || (function(){ try { return localStorage.getItem('election_active_party'); } catch(e) { return null; } })() || 'NC';
-      return PARTY_PALETTES[normalizePartyCode(code)] || PARTY_PALETTES.NC;
+      return pals[normalizePartyCode(code)] || pals.NC || PARTY_PALETTES.NC;
     }
 
     function applyPartyTheme(partyCode) {
+      const pals = getAllPartyPalettes();
       if (!partyCode) {
         if (currentUser && currentUser.Role === 'Super Admin') {
           partyCode = 'INDEPENDENT';
@@ -7709,7 +7789,7 @@
         }
       }
       const key = normalizePartyCode(partyCode);
-      const p = PARTY_PALETTES[key] || PARTY_PALETTES.NC;
+      const p = pals[key] || pals.NC || PARTY_PALETTES.NC;
 
       if (state) state.activeParty = p.id;
       try { localStorage.setItem('election_active_party', p.id); } catch(e) {}
@@ -9622,6 +9702,7 @@
                 <option value="RSP">🔔 राष्ट्रिय स्वतन्त्र पार्टी (RSP)</option>
                 <option value="MAOIST">☭ नेकपा (माओवादी केन्द्र) (Maoist)</option>
                 <option value="RPP">🌾 राष्ट्रिय प्रजातन्त्र पार्टी (RPP)</option>
+                <option value="SSP">🛠️ श्रम संस्कृति पार्टी (Shram Sanskriti Party)</option>
                 <option value="INDEPENDENT">⚖️ स्वतन्त्र / अन्य (Independent)</option>
               </select>
             </div>
@@ -31930,13 +32011,19 @@
             </div>
 
             <div class="form-group full" style="margin-bottom: 4px;">
-              <label class="form-label" style="font-weight: 800; color: #1e3a8a;">राजनीतिक दल (Political Party / Branding) *</label>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <label class="form-label" style="font-weight: 800; color: #1e3a8a; margin: 0;">राजनीतिक दल (Political Party / Branding) *</label>
+                <button type="button" onclick="openAddNewPartyModal()" style="background: #eff6ff; color: #1d4ed8; border: 1.5px solid #bfdbfe; border-radius: 6px; padding: 3px 10px; font-size: 11.5px; font-weight: 800; cursor: pointer;">
+                  ➕ नयाँ दल थप्नुहोस्
+                </button>
+              </div>
               <select name="Party" id="superTenantPartySelect" required class="form-control" style="font-weight: 700; font-size: 13.5px; border: 1.5px solid #93c5fd; background: #eff6ff;" onchange="onSuperTenantPartyChange(this.value)">
                 <option value="NC">🌳 नेपाली काँग्रेस (Nepali Congress - Royal Blue & Crimson)</option>
                 <option value="UML">☀️ नेकपा (एमाले) (CPN UML - Communist Red & Sun Gold)</option>
                 <option value="RSP">🔔 राष्ट्रिय स्वतन्त्र पार्टी (RSP - Sky Bell Blue & Yellow)</option>
                 <option value="MAOIST">☭ नेकपा (माओवादी केन्द्र) (Maoist Centre - Deep Red & Gold)</option>
                 <option value="RPP">🌾 राष्ट्रिय प्रजातन्त्र पार्टी (RPP - Saffron Amber & Green)</option>
+                <option value="SSP">🛠️ श्रम संस्कृति पार्टी (Shram Sanskriti Party - Royal Purple)</option>
                 <option value="INDEPENDENT">⚖️ स्वतन्त्र / साझा कमाण्ड (Independent - Midnight Slate)</option>
               </select>
             </div>
@@ -32811,20 +32898,140 @@
     let _warRoomTurnoutPct = 68;
     let _warRoomBadarPct = 4.2;
     let _warRoomOpponentPct = 34;
+    let _warRoomPartyShares = {
+      NC: 28,
+      UML: 24,
+      MAOIST: 10,
+      RPP: 4,
+      SSP: 5,
+      INDEPENDENT: 4
+    };
 
     function resetWarRoomSliders() {
       _warRoomTurnoutPct = 68;
       _warRoomBadarPct = 4.2;
-      _warRoomOpponentPct = 34;
+      _warRoomPartyShares = {
+        NC: 28,
+        UML: 24,
+        MAOIST: 10,
+        RPP: 4,
+        SSP: 5,
+        INDEPENDENT: 4
+      };
       renderCandidateWarRoom();
-      showToast('सिमुलेटर स्लाइडरहरू रिसेट गरियो।', 'info');
+      showToast('सिमुलेटरका बहुदलीय स्लाइडरहरू रिसेट गरियो।', 'info');
     }
 
     function onWarRoomSimulatorSliderChanged() {
       const turnoutEl = document.getElementById('wrTurnoutSlider');
-      const oppEl = document.getElementById('wrOpponentSlider');
       if (turnoutEl) _warRoomTurnoutPct = parseFloat(turnoutEl.value) || 68;
-      if (oppEl) _warRoomOpponentPct = parseFloat(oppEl.value) || 34;
+      renderCandidateWarRoom();
+    }
+
+    function onWarRoomPartyShareSliderChanged(partyCode, val) {
+      const p = parseFloat(val);
+      if (!isNaN(p)) {
+        _warRoomPartyShares[partyCode] = Math.round(p * 10) / 10;
+        renderCandidateWarRoom();
+      }
+    }
+
+    function onWarRoomPartyShareInputChanged(partyCode, val) {
+      const p = parseFloat(val);
+      if (!isNaN(p) && p >= 0 && p <= 100) {
+        _warRoomPartyShares[partyCode] = Math.round(p * 10) / 10;
+        renderCandidateWarRoom();
+      }
+    }
+
+    function openAddNewPartyModal() {
+      openModal(
+        '🚩 नयाँ राजनीतिक दल / चुनाव चिन्ह दर्ता (Add New Political Party)',
+        `
+        <form id="addNewPartyForm" onsubmit="handleSaveNewParty(event)">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="form-group full">
+              <label class="form-label" style="font-weight: 800; color: #1e3a8a;">दलको पूरा नाम (Party Full Name) *</label>
+              <input type="text" id="newPartyName" required class="form-control" placeholder="उदा: नागरिक उन्मुक्ति पार्टी" style="font-size: 14px; font-weight: 700;">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 800; color: #1e3a8a;">दलको छोटकरी कोड (Code) *</label>
+              <input type="text" id="newPartyCode" required class="form-control" placeholder="उदा: NUP" maxlength="10" style="font-size: 14px; font-weight: 800; text-transform: uppercase;">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 800; color: #1e3a8a;">चुनाव चिन्ह / इमोजी (Symbol) *</label>
+              <input type="text" id="newPartySymbol" required class="form-control" placeholder="उदा: 🌾 वा 🚩" maxlength="4" style="font-size: 16px; text-align: center;">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 800; color: #1e3a8a;">दलको मुख्य रङ्ग (Theme Color) *</label>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="color" id="newPartyColor" value="#4f46e5" style="width: 48px; height: 38px; border: none; cursor: pointer; border-radius: 8px;">
+                <span style="font-size: 12px; color: #64748b;">क्लिक गरी रङ्ग रोज्नुहोस्</span>
+              </div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label" style="font-weight: 800; color: #1e3a8a;">अंग्रेजी नाम (English Name)</label>
+              <input type="text" id="newPartyNameEn" class="form-control" placeholder="उदा: Nagarik Unmukti Party" style="font-size: 13.5px;">
+            </div>
+          </div>
+          <div style="margin-top: 18px; display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">रद्द गर्नुहोस्</button>
+            <button type="submit" class="btn btn-primary" style="font-weight: 800; background: #2563eb; padding: 10px 20px;">
+              💾 दल दर्ता सुरक्षित गर्नुहोस्
+            </button>
+          </div>
+        </form>
+        `,
+        ''
+      );
+    }
+
+    function handleSaveNewParty(e) {
+      if (e) e.preventDefault();
+      const name = (document.getElementById('newPartyName').value || '').trim();
+      const code = (document.getElementById('newPartyCode').value || '').trim().toUpperCase().replace(/[^A-Z0-9_]/g, '');
+      const symbol = (document.getElementById('newPartySymbol').value || '🚩').trim();
+      const color = document.getElementById('newPartyColor').value || '#4f46e5';
+      const nameEn = (document.getElementById('newPartyNameEn').value || name).trim();
+
+      if (!name || !code) {
+        showToast('कृपया दलको नाम र कोड अनिवार्य भर्नुहोस्।', 'error');
+        return;
+      }
+
+      if (!state.customParties) state.customParties = [];
+      const existingIdx = state.customParties.findIndex(p => p.id === code);
+      const partyObj = {
+        id: code,
+        name: name,
+        nameEn: nameEn,
+        symbol: symbol,
+        primary: color,
+        primaryDark: color,
+        primaryLight: color,
+        glow: 'rgba(79, 70, 229, 0.28)',
+        secondary: '#fbbf24',
+        accentBg: '#f8fafc',
+        border: '#cbd5e1'
+      };
+
+      if (existingIdx >= 0) {
+        state.customParties[existingIdx] = partyObj;
+      } else {
+        state.customParties.push(partyObj);
+      }
+
+      _warRoomPartyShares[code] = 5;
+      saveState();
+      closeModal();
+      showToast(`✅ नयाँ दल "${name} (${symbol})" सफलतापूर्वक दर्ता गरियो!`, 'success');
+
+      const sel = document.getElementById('superTenantPartySelect');
+      if (sel) {
+        const pals = getAllPartyPalettes();
+        sel.innerHTML = Object.values(pals).map(p => `<option value="${p.id}" ${p.id === code ? 'selected' : ''}>${p.symbol} ${p.name} (${p.nameEn || p.id})</option>`).join('');
+      }
+
       renderCandidateWarRoom();
     }
 
@@ -33064,7 +33271,28 @@
       const projectedTurnout = Math.round(presentEligible * (_warRoomTurnoutPct / 100));
       const badarVotes = Math.round(projectedTurnout * (_warRoomBadarPct / 100));
       const validVotes = Math.max(0, projectedTurnout - badarVotes);
-      const opponentEstimatedVotes = Math.round(validVotes * (_warRoomOpponentPct / 100));
+
+      // Multi-Party Rival Dynamic Analysis
+      const allPalettes = getAllPartyPalettes();
+      const candPalette = allPalettes[candPartyKey] || allPalettes.RSP || PARTY_PALETTES.RSP;
+      const ourVotePct = validVotes > 0 ? (sureVotes / validVotes) * 100 : 0;
+      const rivalKeys = Object.keys(allPalettes).filter(k => k !== candPartyKey);
+
+      let topRivalKey = rivalKeys[0] || 'NC';
+      let topRivalPct = 0;
+      rivalKeys.forEach(k => {
+        if (_warRoomPartyShares[k] === undefined) {
+          _warRoomPartyShares[k] = (k === 'NC' ? 28 : (k === 'UML' ? 24 : (k === 'MAOIST' ? 10 : (k === 'SSP' ? 5 : 4))));
+        }
+        const pct = _warRoomPartyShares[k];
+        if (pct > topRivalPct) {
+          topRivalPct = pct;
+          topRivalKey = k;
+        }
+      });
+
+      const topRivalInfo = allPalettes[topRivalKey] || allPalettes.NC || PARTY_PALETTES.NC;
+      const opponentEstimatedVotes = Math.round(validVotes * (topRivalPct / 100));
       // Plurality Winning Target: Top Opponent + 1 vote!
       const magicTarget = opponentEstimatedVotes + 1;
       const shortfall = Math.max(0, magicTarget - sureVotes);
@@ -33073,19 +33301,104 @@
       // Update Slider Controls DOM values
       const sTurnout = document.getElementById('wrTurnoutSlider');
       const sTurnoutVal = document.getElementById('wrTurnoutSliderVal');
-      const sOpp = document.getElementById('wrOpponentSlider');
-      const sOppVal = document.getElementById('wrOpponentSliderVal');
       const inBadarPct = document.getElementById('wrBadarPctInput');
       const inBadarCount = document.getElementById('wrBadarCountInput');
       const sBadar = document.getElementById('wrBadarSlider');
 
       if (sTurnout) sTurnout.value = _warRoomTurnoutPct;
       if (sTurnoutVal) sTurnoutVal.textContent = _warRoomTurnoutPct + '%';
-      if (sOpp) sOpp.value = _warRoomOpponentPct;
-      if (sOppVal) sOppVal.textContent = _warRoomOpponentPct + '%';
       if (inBadarPct) inBadarPct.value = _warRoomBadarPct;
       if (inBadarCount) inBadarCount.value = badarVotes;
       if (sBadar) sBadar.value = _warRoomBadarPct;
+
+      // Render Multi-Party Real-Time Stacked Vote Share Bar
+      const totalShareSum = ourVotePct + rivalKeys.reduce((acc, k) => acc + (_warRoomPartyShares[k] || 0), 0);
+      const stackedBarEl = document.getElementById('wrStackedVoteShareBar');
+      if (stackedBarEl) {
+        let stackedHtml = '';
+        const ourWidth = totalShareSum > 0 ? Math.max(8, (ourVotePct / totalShareSum) * 100) : 25;
+        stackedHtml += `
+          <div style="width: ${ourWidth}%; background: ${candPalette.primary}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; overflow: hidden; white-space: nowrap; padding: 0 4px; border-right: 1.5px solid #ffffff; transition: width 0.3s ease;" title="हाम्रो सुरक्षित मत: ${sureVotes.toLocaleString()} (${Math.round(ourVotePct * 10) / 10}%)">
+            ${candPalette.symbol} ${candPalette.id} ${Math.round(ourVotePct * 10) / 10}%
+          </div>
+        `;
+        rivalKeys.forEach(k => {
+          const pInfo = allPalettes[k] || { symbol: '🚩', id: k, primary: '#64748b' };
+          const rPct = _warRoomPartyShares[k] || 0;
+          if (rPct <= 0) return;
+          const rWidth = totalShareSum > 0 ? (rPct / totalShareSum) * 100 : 15;
+          stackedHtml += `
+            <div style="width: ${rWidth}%; background: ${pInfo.primary || '#64748b'}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; overflow: hidden; white-space: nowrap; padding: 0 4px; border-right: 1.5px solid #ffffff; transition: width 0.3s ease;" title="${pInfo.name}: ${Math.round(validVotes * (rPct / 100)).toLocaleString()} मत (${rPct}%)">
+              ${pInfo.symbol} ${pInfo.id} ${rPct}%
+            </div>
+          `;
+        });
+        stackedBarEl.innerHTML = stackedHtml;
+      }
+
+      const barTotalEl = document.getElementById('wrStackedBarTotalPct');
+      if (barTotalEl) {
+        barTotalEl.textContent = `कुल सदर मत: ${validVotes.toLocaleString()} मत (हाम्रो + विपक्षी योग: ${Math.round(totalShareSum)}%)`;
+      }
+
+      // Render Top Rival Highlight Banner
+      const topRivalBannerEl = document.getElementById('wrTopRivalBanner');
+      if (topRivalBannerEl) {
+        topRivalBannerEl.innerHTML = `
+          <div style="background: ${leadMargin >= 0 ? '#f0fdf4' : '#fff7ed'}; border: 1.5px solid ${leadMargin >= 0 ? '#86efac' : '#fed7aa'}; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 26px;">${topRivalInfo.symbol || '⚔️'}</span>
+              <div>
+                <div style="font-size: 13.5px; font-weight: 800; color: #0f172a;">
+                  हालको मुख्य प्रतिस्पर्धी (Top Rival): <span style="color: ${topRivalInfo.primary || '#c2410c'}; font-size: 14.5px;">${topRivalInfo.symbol} ${topRivalInfo.name}</span> (${topRivalPct}% — ${opponentEstimatedVotes.toLocaleString()} मत)
+                </div>
+                <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">
+                  नेपालको निर्वाचन नियम: मुख्य प्रतिद्वन्द्वी भन्दा १ मत बढी (<b>${magicTarget.toLocaleString()} मत</b>) ल्याए जित सुनिश्चित हुन्छ (५१% चाहिँदैन)।
+                </div>
+              </div>
+            </div>
+            <div>
+              <span class="badge" style="background: ${leadMargin >= 0 ? '#15803d' : '#b91c1c'}; color: #ffffff; font-weight: 800; font-size: 12.5px; padding: 6px 14px; border-radius: 8px;">
+                ${leadMargin >= 0 ? `🏆 +${leadMargin.toLocaleString()} मत जित अग्रता` : `⚠️ जित्न -${shortfall.toLocaleString()} मत अपुग`}
+              </span>
+            </div>
+          </div>
+        `;
+      }
+
+      // Render Party Sliders Dynamic Grid
+      const slidersGridEl = document.getElementById('wrPartySlidersGrid');
+      if (slidersGridEl) {
+        let gridHtml = '';
+        rivalKeys.forEach(k => {
+          const pInfo = allPalettes[k] || { name: k, symbol: '🚩', primary: '#64748b' };
+          const isTop = (k === topRivalKey);
+          const rPct = _warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 5;
+          const rVotes = Math.round(validVotes * (rPct / 100));
+
+          gridHtml += `
+            <div style="background: ${isTop ? '#fffbeb' : '#ffffff'}; border: 1.5px solid ${isTop ? '#f59e0b' : '#cbd5e1'}; border-radius: 10px; padding: 12px; position: relative; box-shadow: ${isTop ? '0 2px 8px rgba(245, 158, 11, 0.15)' : 'none'};">
+              ${isTop ? `<div style="position: absolute; top: -10px; right: 10px; background: #ea580c; color: #ffffff; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.15);">⚔️ #१ मुख्य प्रतिस्पर्धी</div>` : ''}
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="font-size: 12px; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 16px;">${pInfo.symbol || '🚩'}</span>
+                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;" title="${pInfo.name}">${pInfo.name}</span>
+                </label>
+                <div style="display: flex; align-items: center; gap: 3px;">
+                  <input type="number" min="0" max="60" step="0.5" value="${rPct}" oninput="onWarRoomPartyShareInputChanged('${k}', this.value)" style="width: 48px; padding: 2px 4px; font-size: 12px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; color: ${pInfo.primary || '#0f172a'};">
+                  <span style="font-size: 11px; font-weight: 800; color: #475569;">%</span>
+                </div>
+              </div>
+              <input type="range" min="0" max="60" step="0.5" value="${rPct}" oninput="onWarRoomPartyShareSliderChanged('${k}', this.value)" style="width: 100%; cursor: pointer; accent-color: ${pInfo.primary || '#3b82f6'};">
+              <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b; margin-top: 3px;">
+                <span style="font-weight: 700; color: ${pInfo.primary || '#334155'};">${rVotes.toLocaleString()} मत</span>
+                <span>${rPct}% हिस्सा</span>
+              </div>
+            </div>
+          `;
+        });
+        slidersGridEl.innerHTML = gridHtml;
+      }
 
       // Update Math Cards DOM elements
       const elTot = document.getElementById('wrTotalVoters');
@@ -33144,7 +33457,7 @@
                 <span style="font-size: 26px;">🟢</span>
                 <div>
                   <div style="font-weight: 800; color: #047857; font-size: 14.5px;">सुरक्षित जित क्षेत्र (Safe Victory Zone)</div>
-                  <div style="font-size: 12px; color: #065f46;">मुख्य प्रतिस्पर्धी भन्दा <b>+${leadMargin.toLocaleString()} मत</b> को अग्रता छ।</div>
+                  <div style="font-size: 12px; color: #065f46;">मुख्य प्रतिस्पर्धी <b>${topRivalInfo.name}</b> भन्दा <b>+${leadMargin.toLocaleString()} मत</b> को अग्रता छ।</div>
                 </div>
               </div>
               <span class="badge" style="background: #059669; color: #ffffff; font-weight: 800; font-size: 13px; padding: 6px 14px; border-radius: 8px;">
@@ -33158,7 +33471,7 @@
                 <span style="font-size: 26px;">🎯</span>
                 <div>
                   <div style="font-weight: 800; color: #be123c; font-size: 14.5px;">जित्न अझै ${shortfall.toLocaleString()} मत अपुग (Target Gap)</div>
-                  <div style="font-size: 12px; color: #881337;">क्षेत्रमा रहेका <b>${softVotes.toLocaleString()} जना दोधार (Swing) मतदाता</b> बाट ${shortfall.toLocaleString()} जना ताने जित सुनिश्चित हुन्छ।</div>
+                  <div style="font-size: 12px; color: #881337;">मुख्य प्रतिस्पर्धी <b>${topRivalInfo.name}</b> लाई हराउन क्षेत्रका <b>${softVotes.toLocaleString()} जना दोधार (Swing) मतदाता</b> बाट ${shortfall.toLocaleString()} जना ताने जित सुनिश्चित हुन्छ।</div>
                 </div>
               </div>
               <span class="badge" style="background: #e11d48; color: #ffffff; font-weight: 800; font-size: 13px; padding: 6px 14px; border-radius: 8px;">
@@ -33171,10 +33484,10 @@
       // Tactical Advisory Formulation
       let adviceHtml = '';
       if (shortfall === 0) {
-        adviceHtml = `<b>🏆 विजय रणनीति विश्लेषण:</b> बधाई छ! ${cand.Name} को हालको सुरक्षित भोट (${sureVotes.toLocaleString()}) जितको लागि आवश्यक सीमा (${magicTarget.toLocaleString()}) भन्दा <b>+${leadMargin.toLocaleString()} मत बढी</b> छ। <br>• <b>अबको रणनीति:</b> बदर मत घटाउन ज्येष्ठ नागरिकलाई मतदान शिक्षा दिनुहोस् र मतदानको दिन आफ्ना सबै मतदातालाई बुथसम्म पुर्‍याउने (Get Out The Vote) गाडी व्यवस्थापन चुस्त राख्नुहोस्।`;
+        adviceHtml = `<b>🏆 विजय रणनीति विश्लेषण:</b> बधाई छ! ${cand.Name} को हालको सुरक्षित भोट (${sureVotes.toLocaleString()}) मुख्य प्रतिस्पर्धी <b>${topRivalInfo.name}</b> को अनुमानित मत (${opponentEstimatedVotes.toLocaleString()}) भन्दा <b>+${leadMargin.toLocaleString()} मत बढी</b> छ। <br>• <b>अबको रणनीति:</b> बदर मत घटाउन ज्येष्ठ नागरिकलाई मतदान शिक्षा दिनुहोस् र मतदानको दिन आफ्ना सबै मतदातालाई बुथसम्म पुर्‍याउने (Get Out The Vote) गाडी व्यवस्थापन चुस्त राख्नुहोस्।`;
       } else {
         const swingConversionPct = softVotes > 0 ? Math.min(100, Math.round((shortfall / softVotes) * 100)) : 0;
-        adviceHtml = `<b>🎯 विजय रणनीति सुझाव (Actionable Win Plan):</b> जित्नका लागि अझै <b>${shortfall.toLocaleString()} मत</b> आवश्यक छ। <br>• <b>दोधार मतदाता लक्ष्य:</b> कुल ${softVotes} जना Swing मतदाता मध्येबाट <b>${swingConversionPct}% (${shortfall} जना)</b> लाई आफ्नो पक्षमा ल्याउन उम्मेदवार र प्रभावशाली अगुवाहरू (Stars) ले प्रत्यक्ष घरदैलो गर्नुहोस्।<br>• <b>बदर मत रोकथाम:</b> यस क्षेत्रमा करिब ${badarVotes} मत बदर हुने जोखिम छ। बदर मत रोकथाम टोली खटाई आफ्ना मतदातालाई नमुना मतपत्रमा अभ्यास गराउनुहोस्।<br>• <b>काठमाडौं भोट बैंक:</b> काठमाडौंमा रहेका ${cityCount} मतदातालाई निर्वाचनको अघिल्लो दिन गाडी व्यवस्था गरी गाउँ ल्याउनुहोस्।`;
+        adviceHtml = `<b>🎯 विजय रणनीति सुझाव (Actionable Win Plan):</b> मुख्य प्रतिस्पर्धी <b>${topRivalInfo.name}</b> लाई पराजित गर्न अझै <b>${shortfall.toLocaleString()} मत</b> आवश्यक छ। <br>• <b>दोधार मतदाता लक्ष्य:</b> कुल ${softVotes} जना Swing मतदाता मध्येबाट <b>${swingConversionPct}% (${shortfall} जना)</b> लाई आफ्नो पक्षमा ल्याउन उम्मेदवार र प्रभावशाली अगुवाहरू (Stars) ले प्रत्यक्ष घरदैलो गर्नुहोस्।<br>• <b>बदर मत रोकथाम:</b> यस क्षेत्रमा करिब ${badarVotes} मत बदर हुने जोखिम छ। बदर मत रोकथाम टोली खटाई आफ्ना मतदातालाई नमुना मतपत्रमा अभ्यास गराउनुहोस्।<br>• <b>काठमाडौं भोट बैंक:</b> काठमाडौंमा रहेका ${cityCount} मतदातालाई निर्वाचनको अघिल्लो दिन गाडी व्यवस्था गरी गाउँ ल्याउनुहोस्।`;
       }
       if (elAdvice) elAdvice.innerHTML = adviceHtml;
 
@@ -33198,20 +33511,21 @@
       if (wrWestPct) wrWestPct.textContent = totalVoters > 0 ? `${Math.round((westCount / totalVoters) * 100)}%` : '0%';
 
       // 4. Render Ward-by-Ward Strategy Roll-Up Table
-      renderWardByWardRollupTable(cand);
+      renderWardByWardRollupTable(cand, topRivalPct, topRivalInfo);
 
       // 5. Render Area Live Timeline & Tole Breakdown
       renderWarRoomLiveTimeline(cand);
       renderWarRoomToleBreakdown(candidateVoters, cand);
     }
 
-    function renderWardByWardRollupTable(cand) {
+    function renderWardByWardRollupTable(cand, topRivalPct = 28, topRivalInfo = null) {
       const tbody = document.getElementById('wrWardRollupTbody');
       if (!tbody) return;
 
       const allScopedVoters = getScopedVoters();
       const wards = getActivePalikaWardNumbers();
-      const candPartyKey = (cand && cand.Party) ? (cand.Party.toUpperCase().includes('RSP') ? 'RSP' : (cand.Party.toUpperCase().includes('NC') ? 'NC' : 'UML')) : 'RSP';
+      const candPartyKey = (cand && cand.Party) ? normalizePartyCode(cand.Party) : 'RSP';
+      const rivalName = topRivalInfo ? topRivalInfo.name : 'मुख्य प्रतिस्पर्धी';
 
       let totRoll = 0, totTurnout = 0, totBadar = 0, totValid = 0, totTarget = 0, totSure = 0;
       let rowsHtml = '';
@@ -33229,8 +33543,8 @@
             return;
           }
           const tier = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
-          const p = String(v.PartyLeaning || '').toUpperCase();
-          if (tier === 'solid' || tier === 'lean' || p.includes(candPartyKey) || v.SelfReportedResponse === 'Support') {
+          const p = normalizePartyCode(v.PartyLeaning);
+          if (tier === 'solid' || tier === 'lean' || p === candPartyKey || v.SelfReportedResponse === 'Support') {
             wSure++;
           }
         });
@@ -33238,7 +33552,7 @@
         const wTurnout = Math.round((wRoll - wAbroad) * (_warRoomTurnoutPct / 100));
         const wBadar = Math.round(wTurnout * (_warRoomBadarPct / 100));
         const wValid = Math.max(0, wTurnout - wBadar);
-        const wOpponent = Math.round(wValid * (_warRoomOpponentPct / 100));
+        const wOpponent = Math.round(wValid * (topRivalPct / 100));
         const wTarget = wOpponent + 1;
         const wMargin = wSure - wTarget;
 
@@ -33280,7 +33594,7 @@
 
       rowsHtml += `
         <tr style="background: #f8fafc; font-weight: 900; border-top: 2px solid #cbd5e1; border-bottom: 2px solid #cbd5e1;">
-          <td style="padding: 12px; color: #0f172a; font-size: 13.5px;">👑 कुल योग (Palika Roll-Up)</td>
+          <td style="padding: 12px; color: #0f172a; font-size: 13.5px;">👑 कुल योग (Palika Roll-Up vs ${rivalName})</td>
           <td style="padding: 12px;">${totRoll.toLocaleString()}</td>
           <td style="padding: 12px;">${totTurnout.toLocaleString()}</td>
           <td style="padding: 12px; color: #b91c1c;">${totBadar.toLocaleString()}</td>
