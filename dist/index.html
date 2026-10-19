@@ -7899,8 +7899,12 @@
               }
             ];
           }
-          // Retain all valid SaaS tenants
-          state.tenants = state.tenants || [];
+          // Strictly purge any legacy Gokarneshwor demo tenant from LocalStorage
+          state.tenants = (state.tenants || []).filter(t => 
+            t.TenantID !== 'TNT_GOKARNESHWOR' && 
+            t.Slug !== 'gokarneshwor' && 
+            !(t.PalikaName && t.PalikaName.toLowerCase().includes('gokarneshwor'))
+          );
           state.tenants.forEach(t => {
             if (!t.TenantName) t.TenantName = t.PalikaName || 'हेलाम्बु गाउँ कार्यसमिति';
             if (!t.PalikaName) t.PalikaName = 'हेलाम्बु गाउँपालिका';
@@ -8250,19 +8254,14 @@
         req.onsuccess = () => {
           const idbState = req.result;
           if (idbState && Array.isArray(idbState.voters)) {
-            let idbVoters = idbState.voters;
-            if (currentUser && currentUser.Role !== 'Super Admin') {
-              const userPool = getTenantVoterPoolId(currentUser.TenantID);
-              idbVoters = idbVoters.filter(v => getTenantVoterPoolId(v.TenantID || 'TNT_HELAMBU') === userPool);
-            }
             const localVoterCount = (state.voters && state.voters.length) || 0;
             // Hydrate if IndexedDB has more voters (e.g. localStorage hit 5MB quota) or local votes cast states
-            if (idbVoters.length > localVoterCount) {
-              state.voters = idbVoters;
+            if (idbState.voters.length > localVoterCount) {
+              state.voters = idbState.voters;
               if (Array.isArray(idbState.households) && idbState.households.length > (state.households || []).length) {
                 state.households = idbState.households;
               }
-              invalidateVoterIndex();
+              _voterIndexDirty = true;
               if (currentUser) {
                 refreshDashboardMetrics();
                 const activeSec = document.querySelector('.view-section.active');
@@ -8383,7 +8382,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261019-v25';
+      const CURRENT_APP_BUILD = '20261014-v13';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8421,9 +8420,9 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261019-v25')
+        navigator.serviceWorker.register('sw.js?v=20261013-v16')
           .then((reg) => {
-            console.log('Election Ops PWA Service Worker Registered (v25.0.0)');
+            console.log('Election Ops PWA Service Worker Registered (v16.0.0)');
             reg.update();
           })
           .catch(err => console.log('SW registration error:', err));
@@ -8773,41 +8772,11 @@
     function findTenantBySlugOrId(slugParam) {
       if (!slugParam) return null;
       const s = slugParam.trim().toLowerCase();
-      const existing = (state.tenants || []).find(t =>
+      return (state.tenants || []).find(t =>
         (t.Slug && t.Slug.toLowerCase() === s) ||
         (t.TenantID && t.TenantID.toLowerCase() === s) ||
         (t.AdminUsername && t.AdminUsername.toLowerCase() === s)
-      );
-      if (existing) return existing;
-      if (s === 'helambu') return (state.tenants && state.tenants[0]) || null;
-
-      // Dynamic Palika Auto-Resolution: if a URL specifies a known Palika (e.g. ?palika=gokarneshwor), resolve instantly!
-      if (typeof findPalikaInBagmatiHierarchy === 'function') {
-        const palikaMatch = findPalikaInBagmatiHierarchy(s);
-        if (palikaMatch) {
-          const autoSlug = (typeof makeSafePalikaSlug === 'function') ? makeSafePalikaSlug(palikaMatch.name) : s;
-          const autoTenant = {
-            TenantID: 'TNT_' + autoSlug.toUpperCase(),
-            PalikaName: palikaMatch.name,
-            TenantName: `${palikaMatch.name} निर्वाचन अभियान समिति`,
-            District: palikaMatch.district || 'काठमाडौं',
-            Province: 'बागमती प्रदेश',
-            TotalWards: palikaMatch.ward_count || 9,
-            TotalPollingLocations: palikaMatch.location_count || 17,
-            WardsConfig: palikaMatch.wards || [],
-            Party: 'NC',
-            Slug: autoSlug,
-            AdminUsername: `${autoSlug}_admin`,
-            AdminPassword: 'admin',
-            Status: 'Active',
-            CreatedAt: new Date().toISOString().slice(0, 10)
-          };
-          if (!state.tenants) state.tenants = [];
-          state.tenants.push(autoTenant);
-          return autoTenant;
-        }
-      }
-      return null;
+      ) || (s === 'helambu' ? (state.tenants && state.tenants[0]) : null);
     }
 
     // STRICT URL ROUTING ENGINE (SECTION 2: 3 PURE SCREENS)
@@ -8905,25 +8874,6 @@
     }
 
     // STRICT TENANT & WARD DATA ISOLATION ENGINE
-    function getTenantVoterPoolId(tenantId) {
-      if (!tenantId) return 'TNT_MVDGFCVL';
-      const tid = String(tenantId).trim();
-      // Strict 1-to-1 Tenant Isolation: Each party/tenant is an isolated domain!
-      // Canonical mappings for tenant slugs/aliases:
-      if (tid === 'helambu_rsp' || tid === 'TNT_MVBZVZC5') return 'TNT_MVC19UMP';
-      if (tid === 'helambu_nc' || tid === 'TNT_HELAMBU' || tid === 'helambu') return 'TNT_MVDGFCVL';
-      if (tid === 'gokarneshwor' || tid === 'TNT_GOKARNESHWOR') return 'TNT_MVEM4L28';
-      // Match with known tenants by slug if available
-      if (typeof state !== 'undefined' && state.tenants) {
-        const matched = state.tenants.find(t => (t.Slug && t.Slug.toLowerCase() === tid.toLowerCase()) || (t.TenantID && t.TenantID.toLowerCase() === tid.toLowerCase()));
-        if (matched && matched.TenantID) {
-          if (matched.TenantID === 'TNT_HELAMBU') return 'TNT_MVDGFCVL';
-          return matched.TenantID;
-        }
-      }
-      return tid;
-    }
-
     function getActiveTenantId() {
       if (!currentUser) return (state.settings && state.settings.CURRENT_TENANT_ID) || 'TNT_HELAMBU';
       if (currentUser.Role === 'Super Admin') return currentUser.TenantID || 'ALL';
@@ -8947,15 +8897,17 @@
       let list = state.voters;
       if (currentUser.Role === 'Super Admin') {
         if (currentUser.TenantID && currentUser.TenantID !== 'ALL') {
-          const targetPool = getTenantVoterPoolId(currentUser.TenantID);
-          list = list.filter(v => getTenantVoterPoolId(v.TenantID || 'TNT_HELAMBU') === targetPool);
+          list = list.filter(v => (v.TenantID || 'TNT_HELAMBU') === currentUser.TenantID);
         }
         return list;
       }
-      const activeTenantId = currentUser.TenantID;
+      let activeTenantId = currentUser.TenantID;
       if (!activeTenantId) return [];
-      const userPool = getTenantVoterPoolId(activeTenantId);
-      list = list.filter(v => getTenantVoterPoolId(v.TenantID || 'TNT_HELAMBU') === userPool);
+      // If logged in as dinesh (TNT_MVBZVZC5), map to TNT_MVC19UMP so Dinesh accesses his 18,907 RSP Helambu roll
+      if (activeTenantId === 'TNT_MVBZVZC5') activeTenantId = 'TNT_MVC19UMP';
+      
+      // Strict pure isolation: each tenant sees only their own voter roll (RSP sees exactly 18,907 voters)
+      list = list.filter(v => (v.TenantID || 'TNT_HELAMBU') === activeTenantId);
       if (isWardRestrictedUser()) {
         list = list.filter(v => String(v.Ward || v.WardNo || '') === String(currentUser.Ward));
       }
@@ -8966,10 +8918,9 @@
       if (!state.households || !Array.isArray(state.households)) return [];
       if (!currentUser) return [];
       const activeTenantId = getActiveTenantId();
-      const userPool = getTenantVoterPoolId(activeTenantId);
       const wardRestricted = isWardRestrictedUser();
       return state.households.filter(h => {
-        if (activeTenantId !== 'ALL' && getTenantVoterPoolId(h.TenantID || 'TNT_HELAMBU') !== userPool) return false;
+        if (activeTenantId !== 'ALL' && (h.TenantID || 'TNT_HELAMBU') !== activeTenantId) return false;
         if (wardRestricted && String(h.WardNo || h.Ward || '') !== String(currentUser.Ward)) return false;
         return true;
       });
@@ -9184,16 +9135,11 @@
         state.settings.PALIKA_SLUG = tenant.Slug || 'helambu';
         state.activeParty = partyCode;
         applyPartyTheme(partyCode);
+        saveState();
         launchDashboard();
         switchView('dashboard');
-        logActivity('login', `🏛️ ${tenant.TenantName || tenant.PalikaName} Admin लगइन हुनुभयो।`, {
-          TenantID: tenant.TenantID,
-          PalikaSlug: tenant.Slug || 'helambu'
-        });
+        logActivity('login', `🏛️ ${tenant.TenantName || tenant.PalikaName} Admin लगइन हुनुभयो।`);
         showToast(`स्वागत छ! ${tenant.TenantName || tenant.PalikaName} Admin लगइन सफल भयो।`, 'success');
-        if (typeof ensureTenantVotersLoadedFromCloud === 'function') {
-          ensureTenantVotersLoadedFromCloud(tenant.TenantID);
-        }
       } else {
         const info = recordFailedAttempt(rateKey, 5, 300);
         if (info.attempts >= 5) {
@@ -10021,13 +9967,6 @@
       updateVoterInPlaceInDom(mapped);
       saveState();
 
-      // Real-time live update for Dashboard Turnout & Election Reports
-      refreshDashboardMetrics();
-      const activeElectionSec = document.querySelector('.view-section.active');
-      if (activeElectionSec && activeElectionSec.id === 'viewElectionDay' && typeof renderElectionReports === 'function') {
-        renderElectionReports();
-      }
-
       // If viewing Caste Demographics, immediately refresh charts and counts
       const activeCasteSec = document.querySelector('.view-section.active');
       if (activeCasteSec && activeCasteSec.id === 'viewCaste' && typeof renderCasteDemographics === 'function') {
@@ -10036,20 +9975,7 @@
       if (typeof updateCasteNavBadge === 'function') updateCasteNavBadge();
     }
 
-    let _supabaseHasTenantIdColumn = null;
-
-    async function probeSupabaseTenantIdColumn(url, headers) {
-      if (_supabaseHasTenantIdColumn !== null) return _supabaseHasTenantIdColumn;
-      try {
-        const probe = await cloudFetch(`${url}/rest/v1/voters?select=tenant_id&limit=1`, { headers });
-        _supabaseHasTenantIdColumn = !!(probe && probe.ok);
-      } catch(e) {
-        _supabaseHasTenantIdColumn = false;
-      }
-      return _supabaseHasTenantIdColumn;
-    }
-
-    // Lightweight Delta Cloud Fetch: Queries only voters modified within the last 3 minutes strictly for active tenant
+    // Lightweight Delta Cloud Fetch: Queries only voters modified within the last 3 minutes
     async function fetchDeltaCloudVoters(url, key) {
       const headers = {
         'apikey': key,
@@ -10057,15 +9983,9 @@
       };
       const sinceMs = _lastSuccessfulSyncTimestamp > 0 ? Math.max(0, _lastSuccessfulSyncTimestamp - 120000) : (Date.now() - 180000);
       const sinceIso = new Date(sinceMs).toISOString();
-      const targetPool = getTenantVoterPoolId(currentUser ? currentUser.TenantID : null);
-      const hasColumn = await probeSupabaseTenantIdColumn(url, headers);
-      let tenantParam = '';
-      if (targetPool && targetPool !== 'SUPER_ADMIN' && targetPool !== 'ALL') {
-        tenantParam = hasColumn ? `&tenant_id=eq.${encodeURIComponent(targetPool)}` : `&notes=like.*"tenant_id":"${encodeURIComponent(targetPool)}"*`;
-      }
 
       try {
-        const deltaRes = await cloudFetch(`${url}/rest/v1/voters?select=*&updated_at=gt.${encodeURIComponent(sinceIso)}${tenantParam}&limit=500`, { headers });
+        const deltaRes = await cloudFetch(`${url}/rest/v1/voters?select=*&updated_at=gt.${encodeURIComponent(sinceIso)}&limit=500`, { headers });
         if (deltaRes && deltaRes.ok) {
           const deltaData = await deltaRes.json().catch(() => []);
           if (Array.isArray(deltaData)) return deltaData;
@@ -10076,116 +9996,55 @@
       return [];
     }
 
-    // Helper: Fetches all voters strictly isolated per active tenant
-    async function fetchAllCloudVoters(url, key, progressCallback = null, onBatchReceived = null, targetTenantId = null) {
+    // Helper: Fetches all voters in controlled parallel wave-chunks of 1000 to overcome Supabase PostgREST limits reliably
+    async function fetchAllCloudVoters(url, key, progressCallback = null) {
       const headers = {
         'apikey': key,
-        'Authorization': `Bearer ${key}`
+        'Authorization': `Bearer ${key}`,
+        'Prefer': 'count=exact',
+        'Range': '0-999'
       };
 
-      const targetPool = getTenantVoterPoolId(targetTenantId || (currentUser ? currentUser.TenantID : null));
-      const hasColumn = await probeSupabaseTenantIdColumn(url, headers);
-      let tenantParam = '';
-      if (targetPool && targetPool !== 'SUPER_ADMIN' && targetPool !== 'ALL') {
-        tenantParam = hasColumn ? `&tenant_id=eq.${encodeURIComponent(targetPool)}` : `&notes=like.*"tenant_id":"${encodeURIComponent(targetPool)}"*`;
-      }
+      const firstRes = await cloudFetch(`${url}/rest/v1/voters?select=*`, { headers });
+      if (!firstRes || !firstRes.ok) return [];
 
-      let offset = 0;
-      const maxOffset = 65000;
-      let totalVotersEst = 18883;
+      const cr = firstRes.headers.get('content-range'); // e.g. "0-999/22861"
+      const firstBatch = await firstRes.json().catch(() => []);
+      if (!Array.isArray(firstBatch)) return [];
 
-      if (targetPool === 'TNT_MVDGFCVL') {
-        totalVotersEst = 18883;
-      } else if (targetPool === 'TNT_MVEM4L28') {
-        totalVotersEst = 37759;
-      } else if (targetPool === 'TNT_MVC19UMP') {
-        totalVotersEst = 24;
-      }
+      let allVoters = [...firstBatch];
 
-      // Query live exact count from Supabase server in <100ms via HEAD request
-      if (hasColumn && targetPool && targetPool !== 'SUPER_ADMIN' && targetPool !== 'ALL') {
-        try {
-          const countRes = await cloudFetch(`${url}/rest/v1/voters?select=voter_id${tenantParam}`, {
-            method: 'HEAD',
-            headers: { ...headers, 'Prefer': 'count=exact' }
-          });
-          if (countRes && countRes.ok) {
-            const cr = countRes.headers.get('content-range');
-            if (cr && cr.includes('/')) {
-              const exactCount = parseInt(cr.split('/')[1], 10);
-              if (!isNaN(exactCount) && exactCount > 0) {
-                totalVotersEst = exactCount;
-                try { localStorage.setItem('EMS_TENANT_TOTAL_' + targetPool, String(exactCount)); } catch(e) {}
-                if (typeof refreshDashboardMetrics === 'function') refreshDashboardMetrics();
-              }
+      if (cr && cr.includes('/')) {
+        const total = parseInt(cr.split('/')[1], 10);
+        if (total > 1000) {
+          const pageSize = 1000;
+          const waveConcurrency = 4;
+          for (let from = pageSize; from < total; from += pageSize * waveConcurrency) {
+            const wavePromises = [];
+            for (let p = from; p < Math.min(from + pageSize * waveConcurrency, total); p += pageSize) {
+              const to = Math.min(p + pageSize - 1, total - 1);
+              wavePromises.push(
+                cloudFetch(`${url}/rest/v1/voters?select=*`, {
+                  headers: {
+                    'apikey': key,
+                    'Authorization': `Bearer ${key}`,
+                    'Range': `${p}-${to}`
+                  }
+                }).then(r => r.ok ? r.json() : []).catch(() => [])
+              );
             }
-          }
-        } catch(e) {
-          console.warn('Instant tenant count HEAD error:', e);
-        }
-      }
-
-      const allVoters = [];
-      const pageSize = 1000;
-
-      const fetchChunkWithRetry = async (from, to, retries = 2) => {
-        for (let attempt = 0; attempt <= retries; attempt++) {
-          try {
-            const res = await cloudFetch(`${url}/rest/v1/voters?select=*${tenantParam}`, {
-              headers: { ...headers, 'Range': `${from}-${to}` }
+            const waveResults = await Promise.all(wavePromises);
+            waveResults.forEach(batch => {
+              if (Array.isArray(batch)) allVoters.push(...batch);
             });
-            if (res && res.ok) {
-              const data = await res.json().catch(() => []);
-              if (Array.isArray(data)) return data;
+            if (typeof progressCallback === 'function') {
+              progressCallback(allVoters.length, total);
             }
-          } catch(e) {
-            if (attempt === retries) return [];
-            await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
           }
         }
-        return [];
-      };
-
-      let loadedCount = 0;
-      while (offset < maxOffset) {
-        const p1 = offset;
-        const p2 = offset + pageSize;
-        const [chunk1, chunk2] = await Promise.all([
-          fetchChunkWithRetry(p1, p1 + pageSize - 1),
-          fetchChunkWithRetry(p2, p2 + pageSize - 1)
-        ]);
-
-        const incomingBatch = [];
-        if (Array.isArray(chunk1) && chunk1.length > 0) incomingBatch.push(...chunk1);
-        if (Array.isArray(chunk2) && chunk2.length > 0) incomingBatch.push(...chunk2);
-
-        if (incomingBatch.length > 0) {
-          allVoters.push(...incomingBatch);
-          loadedCount += incomingBatch.length;
-          if (typeof onBatchReceived === 'function') {
-            onBatchReceived(incomingBatch);
-          }
-        }
-
-        if (typeof progressCallback === 'function') {
-          progressCallback(loadedCount, totalVotersEst);
-        }
-
-        // If either chunk returned less than pageSize, we have reached the end of this tenant's cloud database!
-        if (!chunk2 || chunk2.length < pageSize || !chunk1 || chunk1.length < pageSize) {
-          break;
-        }
-        if (incomingBatch.length === 0) break;
-
-        offset += pageSize * 2;
-        await new Promise(r => setTimeout(r, 40));
       }
-
       try {
-        localStorage.setItem('EMS_SUPABASE_FULL_SYNC_DONE_' + targetPool, String(Date.now()));
-        if (allVoters.length > 0) {
-          localStorage.setItem('EMS_TENANT_TOTAL_' + targetPool, String(allVoters.length));
-        }
+        localStorage.setItem('EMS_SUPABASE_FULL_SYNC_DONE', String(Date.now()));
       } catch(e) {}
       return allVoters;
     }
@@ -10219,21 +10078,9 @@
       try {
         const headers = { 'apikey': key, 'Authorization': `Bearer ${key}` };
 
-        const localVoterCount = (state.voters && Array.isArray(state.voters)) ? state.voters.length : 0;
-        const activeTenantId = (currentUser && currentUser.TenantID) || getActiveTenantId();
-        const activePool = getTenantVoterPoolId(activeTenantId);
-        let expectedPoolCount = 20;
-        if (activePool === 'TNT_MVDGFCVL') expectedPoolCount = 18800;
-        else if (activePool === 'TNT_MVEM4L28') expectedPoolCount = 37000;
-        else if (activePool === 'TNT_MVC19UMP') expectedPoolCount = 20;
-
-        // Skip voter download on login screen (!currentUser) unless interactive button was explicitly clicked
-        const hasFullSynced = !!localStorage.getItem('EMS_SUPABASE_FULL_SYNC_DONE_' + activePool);
-        const shouldFullFetch = !!currentUser && (forceFull || interactive || scopedVoterCount < expectedPoolCount || !hasFullSynced);
-
-        if (interactive) {
-          showToast('🔄 Supabase Cloud बाट सम्पूर्ण मतदाता रोल लोड गरिँदैछ...', 'info');
-        }
+        // Delta sync by default when local cache already has complete voter roll; Full download if fresh browser or seed dummy (<500 voters)
+        const hasFullSynced = !!localStorage.getItem('EMS_SUPABASE_FULL_SYNC_DONE');
+        const shouldFullFetch = forceFull || !state.voters || state.voters.length < 500 || !hasFullSynced;
 
         if (interactive || shouldFullFetch) {
           if (badge) {
@@ -10245,53 +10092,9 @@
           }
         }
 
-        const onBatchChunk = (batch) => {
-          if (!Array.isArray(batch) || batch.length === 0) return;
-          if (!state.voters) state.voters = [];
-          if (!_voterIdMap) {
-            _voterIdMap = new Map();
-            state.voters.forEach(v => { if (v && v.VoterID) _voterIdMap.set(String(v.VoterID), v); });
-          }
-
-          let addedAny = false;
-          batch.forEach(cloudVoter => {
-            if (String(cloudVoter.voter_id).startsWith('VOT_00')) return;
-            const mapped = mapCloudVoterToLocal(cloudVoter);
-            if (!mapped) return;
-
-            // STRICT TENANT ISOLATION BARRIER:
-            if (currentUser && currentUser.Role !== 'Super Admin') {
-              const vPool = getTenantVoterPoolId(mapped.TenantID || 'TNT_HELAMBU');
-              if (vPool !== activePool) return; // DISCARD alien palika voters!
-            }
-
-            const vIdStr = String(mapped.VoterID);
-            const existing = _voterIdMap.get(vIdStr);
-            if (existing) {
-              Object.assign(existing, mapped);
-            } else {
-              _voterIdMap.set(vIdStr, mapped);
-              state.voters.push(mapped);
-              addedAny = true;
-            }
-          });
-
-          if (addedAny) {
-            _voterIndexDirty = true;
-            refreshDashboardMetrics();
-            const activeSec = document.querySelector('.view-section.active');
-            const activeId = activeSec ? activeSec.id : '';
-            if (activeId === 'viewVoters' && typeof renderVotersList === 'function') {
-              renderVotersList();
-            } else if (activeId === 'viewElectionDay' && typeof renderElectionReports === 'function') {
-              renderElectionReports();
-            }
-          }
-        };
-
         const voterFetchPromise = shouldFullFetch ? fetchAllCloudVoters(url, key, (loaded, total) => {
           if (topBadge) topBadge.innerHTML = `<span>⏳</span> <span class="sync-label btn-text-mobile-hide">${Math.round((loaded/total)*100)}%</span>`;
-        }, onBatchChunk, activeTenantId).catch(() => []) : (currentUser ? fetchDeltaCloudVoters(url, key).catch(() => []) : Promise.resolve([]));
+        }).catch(() => []) : fetchDeltaCloudVoters(url, key).catch(() => []);
 
         const [setRes, uRes, vData] = await Promise.all([
           cloudFetch(`${url}/rest/v1/system_settings?select=*`, { headers }).catch(() => null),
@@ -10436,30 +10239,14 @@
             // Fresh clean slate replacing dummy seed items with pure Supabase cloud voters
             const voterIdxMap = new Map();
             const realVoters = [];
-            const localMap = new Map();
-            (state.voters || []).forEach(v => {
-              const compKey = `${v.TenantID || 'TNT_HELAMBU'}_${v.VoterID}`;
-              localMap.set(compKey, v);
-            });
-
             vData.forEach(cloudVoter => {
               if (String(cloudVoter.voter_id).startsWith('VOT_00')) return;
               const mappedVoter = mapCloudVoterToLocal(cloudVoter);
               if (!mappedVoter) return;
-              if (currentUser && currentUser.Role !== 'Super Admin') {
-                const vPool = getTenantVoterPoolId(mappedVoter.TenantID || 'TNT_HELAMBU');
-                if (vPool !== activePool) return; // DISCARD alien palika voters!
-              }
               const compKey = `${mappedVoter.TenantID}_${mappedVoter.VoterID}`;
               if (!voterIdxMap.has(compKey)) {
                 voterIdxMap.set(compKey, realVoters.length);
-                const localV = localMap.get(compKey);
-                // Preserve recent local edits if edited within 90s
-                if (localV && localV._locallyEditedAt && (Date.now() - localV._locallyEditedAt < 90000)) {
-                  realVoters.push({ ...mappedVoter, ...localV });
-                } else {
-                  realVoters.push(mappedVoter);
-                }
+                realVoters.push(mappedVoter);
               }
             });
             state.voters = realVoters;
@@ -10476,10 +10263,6 @@
               if (String(cloudVoter.voter_id).startsWith('VOT_00')) return;
               const mappedVoter = mapCloudVoterToLocal(cloudVoter);
               if (!mappedVoter) return;
-              if (currentUser && currentUser.Role !== 'Super Admin') {
-                const vPool = getTenantVoterPoolId(mappedVoter.TenantID || 'TNT_HELAMBU');
-                if (vPool !== activePool) return; // DISCARD alien palika voters!
-              }
 
               const compKey = `${mappedVoter.TenantID}_${mappedVoter.VoterID}`;
               const idx = voterIdxMap.get(compKey);
@@ -10605,33 +10388,6 @@
       }, delay);
     }
 
-    // Zero-Click Dynamic Tenant Auto-Pull: Guarantees that a newly logged-in tenant or Support Mode session has complete voter records loaded from cloud
-    async function ensureTenantVotersLoadedFromCloud(tenantId, force = false) {
-      if (!tenantId || tenantId === 'ALL') return;
-      const targetPool = getTenantVoterPoolId(tenantId);
-      const localScoped = (state.voters || []).filter(v => getTenantVoterPoolId(v.TenantID || 'TNT_HELAMBU') === targetPool);
-      if (!force && localScoped.length > 50) {
-        return; // Already loaded in local memory!
-      }
-      console.log(`📥 [Tenant Auto-Pull] Dynamic cloud voter roll check initiated for pool ${targetPool} (${tenantId})...`);
-      const topBadge = document.getElementById('topbarSupabaseSyncBtn');
-      if (topBadge) {
-        topBadge.innerHTML = `<span>⏳</span> <span class="sync-label btn-text-mobile-hide">Loading Roll...</span>`;
-      }
-      try {
-        await syncSupabaseData(false, true);
-      } catch(e) {
-        console.warn('ensureTenantVotersLoadedFromCloud error:', e);
-      }
-      refreshDashboardMetrics();
-      const activeSec = document.querySelector('.view-section.active');
-      const activeId = activeSec ? activeSec.id : '';
-      if (activeId === 'viewVoters') renderVotersList();
-      else if (activeId === 'viewCaste') renderCasteDemographics();
-      else if (activeId === 'viewHouseholds') renderHouseholdsList();
-      else if (activeId === 'viewDashboard') refreshDashboardMetrics();
-    }
-
     // ==========================================================
     // REAL-TIME BROADCAST ENGINE (Sub-50ms Instant Cross-Browser Exchange)
     // ==========================================================
@@ -10719,13 +10475,6 @@
 
         updateVoterInPlaceInDom(incoming);
         saveState();
-
-        // Real-time live update for Dashboard Turnout & Election Reports
-        refreshDashboardMetrics();
-        const activeElectionSec = document.querySelector('.view-section.active');
-        if (activeElectionSec && activeElectionSec.id === 'viewElectionDay' && typeof renderElectionReports === 'function') {
-          renderElectionReports();
-        }
 
         const activeCasteSec = document.querySelector('.view-section.active');
         if (activeCasteSec && activeCasteSec.id === 'viewCaste' && typeof renderCasteDemographics === 'function') {
@@ -11025,7 +10774,7 @@
 
       const houseAddress = v.HouseNo ? (String(v.HouseNo).startsWith('घर नं:') ? String(v.HouseNo) : 'घर नं: ' + String(v.HouseNo)) : (v.Address || '');
 
-      const cloudPayload = {
+      return {
         voter_id: vId,
         full_name: v.Name || '',
         phone: v.Phone || '',
@@ -11049,10 +10798,6 @@
         updated_at: new Date().toISOString(),
         notes: metadataNotes
       };
-      if (_supabaseHasTenantIdColumn) {
-        cloudPayload.tenant_id = activeTenantId;
-      }
-      return cloudPayload;
     }
 
     // Push new or updated single voter to Supabase Cloud
@@ -11410,19 +11155,6 @@
 
       const isSuper = currentUser && currentUser.Role === 'Super Admin';
 
-      // Strict Tenant Local Memory Sweep: purge any alien palika voters from state.voters
-      if (currentUser && currentUser.Role !== 'Super Admin') {
-        const userPool = getTenantVoterPoolId(currentUser.TenantID);
-        if (state.voters && state.voters.length > 0) {
-          const prevLen = state.voters.length;
-          state.voters = state.voters.filter(v => getTenantVoterPoolId(v.TenantID || 'TNT_HELAMBU') === userPool);
-          if (state.voters.length !== prevLen) {
-            invalidateVoterIndex();
-            saveState();
-          }
-        }
-      }
-
       populateWardDropdowns();
       populateCandidateDropdowns();
       // Ensure search input is clean on workspace launch and immune to browser autofill
@@ -11436,15 +11168,9 @@
       const rolePerm = currentUser ? (ROLE_PERMISSIONS[currentUser.Role] || ROLE_PERMISSIONS['Field Worker']) : ROLE_PERMISSIONS['Palika Admin'];
       switchView(rolePerm.defaultView);
 
-      // Automatic live Cloud Sync from Supabase on every login (forces full if local roll is incomplete or tenant is empty)
+      // Automatic live Cloud Sync from Supabase on every login (forces full if local roll is incomplete)
       if (typeof syncSupabaseData === 'function') {
-        const scopedCount = (typeof getScopedVoters === 'function' && currentUser) ? getScopedVoters().length : (state.voters ? state.voters.length : 0);
-        const userPool = getTenantVoterPoolId((currentUser && currentUser.TenantID) || 'TNT_HELAMBU');
-        let minExpected = 20;
-        if (userPool === 'TNT_MVDGFCVL') minExpected = 18800;
-        else if (userPool === 'TNT_MVEM4L28') minExpected = 37000;
-        else if (userPool === 'TNT_MVC19UMP') minExpected = 20;
-        const needsFull = !state.voters || state.voters.length < minExpected || (currentUser && currentUser.Role !== 'Super Admin' && scopedCount < minExpected);
+        const needsFull = !state.voters || state.voters.length < 500;
         syncSupabaseData(false, needsFull).then(() => {
           refreshDashboardMetrics();
           const activeSec = document.querySelector('.view-section.active');
@@ -12322,43 +12048,22 @@
       const scopedBth = getScopedBooths();
       const scopedPub = getScopedPublicSubs();
 
-      let total = v.length;
-      if (!isWardRestrictedUser()) {
-        const activeTid = (currentUser && currentUser.TenantID) || (state.settings && state.settings.CURRENT_TENANT_ID) || 'TNT_HELAMBU';
-        const canonicalTid = typeof getTenantVoterPoolId === 'function' ? getTenantVoterPoolId(activeTid) : activeTid;
-        let cachedTenantTotal = Number(localStorage.getItem('EMS_TENANT_TOTAL_' + canonicalTid) || 0);
-        if (!cachedTenantTotal) {
-          if (canonicalTid === 'TNT_MVDGFCVL') cachedTenantTotal = 18883;
-          else if (canonicalTid === 'TNT_MVC19UMP') cachedTenantTotal = 24;
-          else if (canonicalTid === 'TNT_MVEM4L28') cachedTenantTotal = 37759;
-        }
-        if (total < cachedTenantTotal) {
-          total = cachedTenantTotal;
-        } else if (total > 0) {
-          try { localStorage.setItem('EMS_TENANT_TOTAL_' + canonicalTid, String(total)); } catch(e) {}
-        }
-      }
-
+      const total = v.length;
       const contacted = v.filter(x => x.ContactStatus === 'Contacted').length;
-      const notContacted = Math.max(0, total - contacted);
+      const notContacted = total - contacted;
       const verified = v.filter(x => x.VerificationStatus === 'Verified').length;
-      const pendingVerify = Math.max(0, total - verified);
+      const pendingVerify = total - verified;
       const pendingFollow = scopedFol.filter(x => x.Status === 'Pending').length;
       const openIssues = scopedIss.filter(x => x.Status !== 'Resolved').length;
       const publicPending = scopedPub.filter(x => x.Status === 'Pending Review').length;
       const votedCount = v.filter(x => !!x.HasVoted).length;
 
-      document.getElementById('voterCountBadge').textContent = total.toLocaleString();
+      document.getElementById('voterCountBadge').textContent = total;
       document.getElementById('pendingFollowBadge').textContent = pendingFollow;
       document.getElementById('issuesBadge').textContent = openIssues;
       document.getElementById('publicBadge').textContent = publicPending;
       const votedNavEl = document.getElementById('votedCountNavBadge');
       if (votedNavEl) votedNavEl.textContent = votedCount;
-      const saasTotalEl = document.getElementById('saasTotalPlatformVoters');
-      if (saasTotalEl) {
-        const isSuper = currentUser && currentUser.Role === 'Super Admin';
-        saasTotalEl.textContent = isSuper ? (state.voters ? state.voters.length : 0) : total;
-      }
 
       const wardNums = getActivePalikaWardNumbers();
       const wardLabel = isWardRestrictedUser() ? `Ward ${currentUser.Ward}` : `Across ${wardNums.length || 7} Wards`;
@@ -12409,11 +12114,9 @@
       for (const w of wardNums) {
         const wv = scopedVoters.filter(v => Number(v.Ward || v.WardNo || 0) === w);
         const contacted = wv.filter(v => v.ContactStatus === 'Contacted').length;
-        let booths = scopedBooths.filter(b => Number(b.WardNo || b.Ward || 0) === w).length;
-        if (booths === 0 && wv.length > 0) {
-          const distinctVoterBooths = new Set(wv.map(v => v.BoothNo).filter(Boolean));
-          booths = distinctVoterBooths.size || 1;
-        }
+        const verified = wv.filter(v => v.VerificationStatus === 'Verified').length;
+        const booths = scopedBooths.filter(b => Number(b.WardNo || b.Ward || 0) === w).length;
+        const issues = scopedIssues.filter(i => Number(i.WardNo || i.Ward || 0) === w && i.Status !== 'Resolved').length;
         const followups = scopedFollowups.filter(f => {
           const voter = getVoterByIdFast(f.VoterID);
           return voter && Number(voter.Ward || voter.WardNo || 0) === w && f.Status === 'Pending';
@@ -15414,26 +15117,14 @@
         activeTenant = (state.tenants || []).find(t => t.TenantID === currentUser.TenantID);
       }
       const palikaName = (activeTenant && activeTenant.PalikaName) || (state.settings && state.settings.MUNICIPALITY) || 'हेलम्बु गाउँपालिका';
-      const distName = (activeTenant && activeTenant.District) || '';
-      const matched = findPalikaInBagmatiHierarchy(palikaName, distName);
-
-      let pObj = (activeTenant && activeTenant.WardsConfig && activeTenant.WardsConfig.length > 0)
+      const pObj = (activeTenant && activeTenant.WardsConfig)
         ? { name: activeTenant.PalikaName, district: activeTenant.District || 'सिन्धुपाल्चोक', ward_count: activeTenant.TotalWards || activeTenant.WardsConfig.length, wards: activeTenant.WardsConfig }
-        : (matched || findPalikaInBagmatiHierarchy(palikaName) || findPalikaInBagmatiHierarchy('हेलम्बु गाउँपालिका', 'सिन्धुपाल्चोक'));
-
-      // If official hierarchy has more wards or locations (e.g. Gokarneshwor has 9 wards and 17 locations), align pObj to the full hierarchy
-      if (matched && pObj && (matched.ward_count > (pObj.ward_count || 0) || (matched.wards && matched.wards.length > (pObj.wards ? pObj.wards.length : 0)))) {
-        pObj = { ...pObj, ward_count: matched.ward_count, wards: matched.wards };
-      }
+        : (findPalikaInBagmatiHierarchy(palikaName) || findPalikaInBagmatiHierarchy('हेलम्बु गाउँपालिका', 'सिन्धुपाल्चोक'));
 
       if (!pObj) return;
 
-      // Dynamic data-driven ward detection: scan scoped voters to find highest ward present (e.g. Ward 8, 9, etc.)
-      const scopedVoters = (typeof getScopedVoters === 'function') ? getScopedVoters() : (state.voters || []);
-      const maxVoterWard = scopedVoters.reduce((m, v) => Math.max(m, Number(v.Ward || v.WardNo || 0)), 0);
-      const wardCount = Math.max(Number(pObj.ward_count) || (pObj.wards ? pObj.wards.length : 7), maxVoterWard);
-
-      // 1. Sync state.wards to exact Ward count of active Palika or detected from voters
+      // 1. Sync state.wards to exact Ward count of active Palika
+      const wardCount = Number(pObj.ward_count) || (pObj.wards ? pObj.wards.length : 7);
       state.wards = Array.from({ length: wardCount }, (_, i) => {
         const wNo = i + 1;
         const wConf = (pObj.wards || []).find(x => Number(x.number) === wNo);
@@ -15461,31 +15152,6 @@
           });
         });
       });
-
-      // Also ensure any distinct booths present in voter roll are registered into state.booths
-      if (scopedVoters.length > 0) {
-        const existingBoothKeys = new Set(newBooths.map(b => `${b.WardNo}_${(b.CenterName || '').toLowerCase().trim()}`));
-        scopedVoters.forEach(v => {
-          const bName = (v.BoothNo || '').trim();
-          const wNo = Number(v.Ward || v.WardNo || 1);
-          if (bName && wNo > 0) {
-            const key = `${wNo}_${bName.toLowerCase()}`;
-            if (!existingBoothKeys.has(key)) {
-              existingBoothKeys.add(key);
-              newBooths.push({
-                BoothID: `BTH_VOT_W${wNo}_${newBooths.length + 1}`,
-                WardNo: wNo,
-                BoothCode: String.fromCharCode(65 + (newBooths.length % 26)),
-                CenterName: bName,
-                Location: bName,
-                AssignedLead: '',
-                Status: 'Active'
-              });
-            }
-          }
-        });
-      }
-
       if (newBooths.length > 0) {
         state.booths = newBooths;
       }
@@ -15528,25 +15194,8 @@
       if (!state.wards || state.wards.length === 0) {
         syncActivePalikaHierarchyToState();
       }
-      const wardSet = new Set();
-      (state.wards || []).forEach(w => {
-        const n = Number(w.WardNo);
-        if (!isNaN(n) && n > 0 && n <= 50) wardSet.add(n);
-      });
-      // Dynamic Data-Driven: scan scoped voters for any wards present (e.g. Ward 8, 9, etc.)
-      const scopedVoters = (typeof getScopedVoters === 'function') ? getScopedVoters() : (state.voters || []);
-      scopedVoters.forEach(v => {
-        const w = Number(v.Ward || v.WardNo);
-        if (!isNaN(w) && w > 0 && w <= 50) wardSet.add(w);
-      });
-      if (wardSet.size === 0 && currentUser && currentUser.TenantID) {
-        const t = (state.tenants || []).find(x => x.TenantID === currentUser.TenantID);
-        if (t && t.TotalWards) {
-          for (let i = 1; i <= Number(t.TotalWards); i++) wardSet.add(i);
-        }
-      }
-      const sorted = Array.from(wardSet).sort((a, b) => a - b);
-      return sorted.length > 0 ? sorted : [1, 2, 3, 4, 5, 6, 7];
+      const nums = (state.wards || []).map(w => Number(w.WardNo)).filter(n => !isNaN(n) && n > 0);
+      return nums.length > 0 ? nums : [1, 2, 3, 4, 5, 6, 7];
     }
 
     function getFilteredVoters() {
@@ -29742,31 +29391,26 @@
       return a;
     }
 
-    // Helper: Check if activity strictly belongs to current Palika / Tenant
+    // Helper: Check if activity strictly belongs to current Palika
     function doesActivityBelongToCurrentPalika(a) {
       if (!a) return false;
       // Super Admin activities are strictly excluded from Palika view
       if (isSuperAdminActivity(a)) return false;
 
+      const currentSlug = ((state.settings && state.settings.PALIKA_SLUG) || 'helambu').toLowerCase();
       const currentTenantId = (currentUser && currentUser.TenantID) || '';
 
-      // Strict Multi-Tenant Isolation: If user belongs to a specific tenant, activities MUST match that tenant
-      if (currentTenantId && currentTenantId !== 'ALL') {
-        const actTenantId = a.TenantID || '';
-        if (actTenantId) {
-          return actTenantId === currentTenantId;
-        }
-        // Legacy activities without TenantID: only allow if PalikaSlug matches AND user is default TNT_HELAMBU
-        const currentSlug = ((state.settings && state.settings.PALIKA_SLUG) || 'helambu').toLowerCase();
-        if (a.PalikaSlug && a.PalikaSlug.toLowerCase() === currentSlug && currentTenantId === 'TNT_HELAMBU') {
-          return true;
-        }
-        return false;
-      }
+      // If activity has an explicit TenantID matching current user's TenantID
+      if (a.TenantID && currentTenantId && a.TenantID === currentTenantId) return true;
+      // If activity has PalikaSlug matching current settings PalikaSlug
+      if (a.PalikaSlug && a.PalikaSlug.toLowerCase() === currentSlug) return true;
 
-      // If Super Admin viewing Palika mode:
-      const currentSlug = ((state.settings && state.settings.PALIKA_SLUG) || 'helambu').toLowerCase();
+      // If legacy activity without tenant tag, allow if not Super Admin
+      if (!a.TenantID && !a.PalikaSlug) return true;
+
+      // If explicitly tagged with different palika, isolate it out!
       if (a.PalikaSlug && a.PalikaSlug.toLowerCase() !== currentSlug) return false;
+      if (a.TenantID && currentTenantId && a.TenantID !== currentTenantId) return false;
 
       return true;
     }
@@ -29834,14 +29478,13 @@
 
       const isSuper = currentUser && currentUser.Role === 'Super Admin';
       const palikaName = (state.settings && state.settings.MUNICIPALITY) || 'हेलम्बु गाउँपालिका';
-      const tenantDisplayName = (currentUser && (currentUser.TenantName || currentUser.PalikaName)) || palikaName;
       const headerTitleEl = document.getElementById('auditTrailHeaderTitle');
       const headerDescEl = document.getElementById('auditTrailHeaderDesc');
 
       if (headerTitleEl) {
         headerTitleEl.textContent = isSuper
           ? '👑 Platform Multi-Tenant & Security Audit Trail'
-          : `⏱️ ${tenantDisplayName} Field Operations Audit Trail`;
+          : `⏱️ ${palikaName} Field Operations Audit Trail`;
       }
       if (headerDescEl) {
         headerDescEl.textContent = isSuper
@@ -29860,13 +29503,8 @@
         if (isSuper) {
           workerList = (state.users || []);
         } else {
-          // Strictly isolate workers to current tenant (no cross-tenant leaks)
-          const currentTenantId = (currentUser && currentUser.TenantID) || 'TNT_HELAMBU';
-          workerList = (state.users || []).filter(u => {
-            if (u.Role === 'Super Admin' || u.UserID === 'USR_SUPER_OWNER') return false;
-            const uTenant = u.TenantID || 'TNT_HELAMBU';
-            return uTenant === currentTenantId;
-          });
+          // Strictly exclude Super Admin HQ and non-palika staff
+          workerList = (state.users || []).filter(u => u.Role !== 'Super Admin' && u.UserID !== 'USR_SUPER_OWNER');
         }
         workerFilter.innerHTML = '<option value="">All Workers (सबै युजर)</option>' +
           workerList.map(u => `<option value="${u.UserID}">${esc(u.Name)} (${esc(u.Role)})</option>`).join('');
@@ -30913,21 +30551,7 @@
     // Render Tab B inside Tenant Profile Dossier Modal
     function renderTenantVotersDossierTab(t) {
       const tenantId = t.TenantID;
-      const canonicalTid = typeof getTenantVoterPoolId === 'function' ? getTenantVoterPoolId(tenantId) : tenantId;
-      const tVoters = (state.voters || []).filter(v => {
-        const vTid = typeof getTenantVoterPoolId === 'function' ? getTenantVoterPoolId(v.TenantID || 'TNT_HELAMBU') : (v.TenantID || 'TNT_HELAMBU');
-        return vTid === canonicalTid;
-      });
-      let voterCount = tVoters.length;
-      if (voterCount === 0) {
-        let cached = Number(localStorage.getItem('EMS_TENANT_TOTAL_' + canonicalTid) || 0);
-        if (!cached) {
-          if (canonicalTid === 'TNT_MVDGFCVL') cached = 18883;
-          else if (canonicalTid === 'TNT_MVC19UMP') cached = 24;
-          else if (canonicalTid === 'TNT_MVEM4L28') cached = 37759;
-        }
-        if (cached > 0) voterCount = cached;
-      }
+      const tVoters = (state.voters || []).filter(v => (v.TenantID || 'TNT_HELAMBU') === tenantId);
       const wardsSet = new Set(tVoters.map(v => v.Ward || 1));
       const boothsSet = new Set(tVoters.map(v => v.BoothNo || 'A'));
       const batches = getImportBatchesList().filter(b => b.tenantId === tenantId);
@@ -30938,7 +30562,7 @@
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px;">
             <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 10px; padding: 14px;">
               <div style="font-size: 11px; font-weight: 700; color: #1e3a8a; text-transform: uppercase;">कुल मतदाता (Voters)</div>
-              <div style="font-size: 22px; font-weight: 800; color: #1d4ed8; margin-top: 2px;">${voterCount.toLocaleString()}</div>
+              <div style="font-size: 22px; font-weight: 800; color: #1d4ed8; margin-top: 2px;">${tVoters.length.toLocaleString()}</div>
               <div style="font-size: 11px; color: #64748b; margin-top: 2px;">यस Tenant का अभिलेख</div>
             </div>
             <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; padding: 14px;">
@@ -32258,14 +31882,8 @@
       switchView('dashboard');
       renderSupportModeBanner();
       const pInfo = PARTY_PALETTES[partyCode] || PARTY_PALETTES.NC;
-      logActivity('login', `👁️ Super Admin ले प्राविधिक सहयोग (Support Mode) का लागि ${t.TenantName || t.PalikaName} (${pInfo.name}) को Admin ड्यासबोर्ड खोल्नुभयो।`, {
-        TenantID: t.TenantID,
-        PalikaSlug: t.Slug || 'helambu'
-      });
+      logActivity('login', `👁️ Super Admin ले प्राविधिक सहयोग (Support Mode) का लागि ${t.TenantName || t.PalikaName} (${pInfo.name}) को Admin ड्यासबोर्ड खोल्नुभयो।`);
       showToast(`👁️ Support Mode: ${t.TenantName || t.PalikaName} (${pInfo.symbol} ${pInfo.name}) खोलियो।`, 'info');
-      if (typeof ensureTenantVotersLoadedFromCloud === 'function') {
-        ensureTenantVotersLoadedFromCloud(t.TenantID);
-      }
     }
 
     function renderSupportModeBanner() {
