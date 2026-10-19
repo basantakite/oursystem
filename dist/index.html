@@ -8378,7 +8378,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261019-v21';
+      const CURRENT_APP_BUILD = '20261019-v22';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8416,9 +8416,9 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261019-v21')
+        navigator.serviceWorker.register('sw.js?v=20261019-v22')
           .then((reg) => {
-            console.log('Election Ops PWA Service Worker Registered (v21.0.0)');
+            console.log('Election Ops PWA Service Worker Registered (v22.0.0)');
             reg.update();
           })
           .catch(err => console.log('SW registration error:', err));
@@ -10027,53 +10027,84 @@
       return [];
     }
 
-    // Helper: Fetches all voters in controlled parallel wave-chunks of 1000 to overcome Supabase PostgREST limits reliably
+    // Helper: Fetches all voters in robust 2-chunk parallel waves with retry (eliminates 500 statement timeouts & rate limit stalls)
     async function fetchAllCloudVoters(url, key, progressCallback = null) {
       const headers = {
         'apikey': key,
-        'Authorization': `Bearer ${key}`,
-        'Prefer': 'count=exact',
-        'Range': '0-999'
+        'Authorization': `Bearer ${key}`
       };
 
-      const firstRes = await cloudFetch(`${url}/rest/v1/voters?select=*`, { headers });
-      if (!firstRes || !firstRes.ok) return [];
-
-      const cr = firstRes.headers.get('content-range'); // e.g. "0-999/22861"
-      const firstBatch = await firstRes.json().catch(() => []);
-      if (!Array.isArray(firstBatch)) return [];
-
-      let allVoters = [...firstBatch];
-
-      if (cr && cr.includes('/')) {
-        const total = parseInt(cr.split('/')[1], 10);
-        if (total > 1000) {
-          const pageSize = 1000;
-          const waveConcurrency = 4;
-          for (let from = pageSize; from < total; from += pageSize * waveConcurrency) {
-            const wavePromises = [];
-            for (let p = from; p < Math.min(from + pageSize * waveConcurrency, total); p += pageSize) {
-              const to = Math.min(p + pageSize - 1, total - 1);
-              wavePromises.push(
-                cloudFetch(`${url}/rest/v1/voters?select=*`, {
-                  headers: {
-                    'apikey': key,
-                    'Authorization': `Bearer ${key}`,
-                    'Range': `${p}-${to}`
-                  }
-                }).then(r => r.ok ? r.json() : []).catch(() => [])
-              );
-            }
-            const waveResults = await Promise.all(wavePromises);
-            waveResults.forEach(batch => {
-              if (Array.isArray(batch)) allVoters.push(...batch);
-            });
-            if (typeof progressCallback === 'function') {
-              progressCallback(allVoters.length, total);
-            }
+      // Fast count estimate via lightweight header check (NO count=exact to avoid Postgres 57014 timeout)
+      let totalVotersEst = 60610;
+      try {
+        const countCheck = await cloudFetch(`${url}/rest/v1/voters?select=voter_id`, {
+          headers: { ...headers, 'Range': '0-0' }
+        });
+        if (countCheck && countCheck.headers) {
+          const cr = countCheck.headers.get('content-range');
+          if (cr && cr.includes('/')) {
+            const parsed = parseInt(cr.split('/')[1], 10);
+            if (!isNaN(parsed) && parsed > 0) totalVotersEst = parsed;
           }
         }
+      } catch(e) {}
+
+      const allVoters = [];
+      const pageSize = 1000;
+      let offset = 0;
+      const maxOffset = 100000;
+
+      const fetchChunkWithRetry = async (from, to, retries = 2) => {
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          try {
+            const res = await cloudFetch(`${url}/rest/v1/voters?select=*`, {
+              headers: { ...headers, 'Range': `${from}-${to}` }
+            });
+            if (res && res.ok) {
+              const data = await res.json().catch(() => []);
+              if (Array.isArray(data)) return data;
+            }
+          } catch(e) {
+            if (attempt === retries) return [];
+            await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+          }
+        }
+        return [];
+      };
+
+      while (offset < maxOffset) {
+        const p1 = offset;
+        const p2 = offset + pageSize;
+        const [chunk1, chunk2] = await Promise.all([
+          fetchChunkWithRetry(p1, p1 + pageSize - 1),
+          fetchChunkWithRetry(p2, p2 + pageSize - 1)
+        ]);
+
+        let hasData = false;
+        if (Array.isArray(chunk1) && chunk1.length > 0) {
+          allVoters.push(...chunk1);
+          hasData = true;
+        }
+        if (Array.isArray(chunk2) && chunk2.length > 0) {
+          allVoters.push(...chunk2);
+          hasData = true;
+        }
+
+        if (typeof progressCallback === 'function') {
+          progressCallback(allVoters.length, Math.max(totalVotersEst, allVoters.length));
+        }
+
+        // If either chunk returned less than pageSize, we have reached the end of the cloud database
+        if (!chunk2 || chunk2.length < pageSize || !chunk1 || chunk1.length < pageSize) {
+          break;
+        }
+        if (!hasData) break;
+
+        offset += pageSize * 2;
+        // 50ms breather between waves to respect Cloudflare / Supabase connection limits
+        await new Promise(r => setTimeout(r, 50));
       }
+
       try {
         localStorage.setItem('EMS_SUPABASE_FULL_SYNC_DONE', String(Date.now()));
       } catch(e) {}
@@ -10113,7 +10144,7 @@
         let cloudTotalVoters = 0;
         try {
           const countCheck = await cloudFetch(`${url}/rest/v1/voters?select=voter_id`, {
-            headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Range': '0-0', 'Prefer': 'count=exact' }
+            headers: { 'apikey': key, 'Authorization': `Bearer ${key}`, 'Range': '0-0' }
           });
           if (countCheck && countCheck.headers) {
             const cr = countCheck.headers.get('content-range');
@@ -12159,6 +12190,8 @@
       document.getElementById('publicBadge').textContent = publicPending;
       const votedNavEl = document.getElementById('votedCountNavBadge');
       if (votedNavEl) votedNavEl.textContent = votedCount;
+      const saasTotalEl = document.getElementById('saasTotalPlatformVoters');
+      if (saasTotalEl) saasTotalEl.textContent = state.voters ? state.voters.length : 0;
 
       const wardNums = getActivePalikaWardNumbers();
       const wardLabel = isWardRestrictedUser() ? `Ward ${currentUser.Ward}` : `Across ${wardNums.length || 7} Wards`;

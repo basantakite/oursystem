@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v21 - Fix Syntax Error & Auto-Tenant Provisioning)
-const CACHE_NAME = 'election-ops-v21';
+// Service Worker for Offline & Installable App Experience (v22 - Robust 2-Wave Parallel Cloud Sync & Retry)
+const CACHE_NAME = 'election-ops-v22';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
