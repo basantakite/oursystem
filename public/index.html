@@ -8383,7 +8383,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261019-v24';
+      const CURRENT_APP_BUILD = '20261019-v25';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8421,9 +8421,9 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261019-v24')
+        navigator.serviceWorker.register('sw.js?v=20261019-v25')
           .then((reg) => {
-            console.log('Election Ops PWA Service Worker Registered (v24.0.0)');
+            console.log('Election Ops PWA Service Worker Registered (v25.0.0)');
             reg.update();
           })
           .catch(err => console.log('SW registration error:', err));
@@ -8906,15 +8906,20 @@
 
     // STRICT TENANT & WARD DATA ISOLATION ENGINE
     function getTenantVoterPoolId(tenantId) {
-      if (!tenantId) return 'HELAMBU_POOL';
+      if (!tenantId) return 'TNT_MVDGFCVL';
       const tid = String(tenantId).trim();
-      // Helambu Municipal Pool includes all Helambu tenants (RSP, NC, Default)
-      if (['TNT_MVC19UMP', 'TNT_MVBZVZC5', 'TNT_MVDGFCVL', 'TNT_HELAMBU', 'helambu_rsp', 'helambu_nc', 'helambu'].includes(tid)) {
-        return 'HELAMBU_POOL';
-      }
-      // Gokarneshwor Municipal Pool includes all Gokarneshwor tenants
-      if (['TNT_MVEM4L28', 'TNT_GOKARNESHWOR', 'TNT_MV8ZGPMT', 'TNT_MV9D4U65', 'TNT_MV9JLPN0', 'TNT_MV9N12O4', 'TNT_MV9NBGQE', 'gokarneshwor'].includes(tid)) {
-        return 'GOKARNESHWOR_POOL';
+      // Strict 1-to-1 Tenant Isolation: Each party/tenant is an isolated domain!
+      // Canonical mappings for tenant slugs/aliases:
+      if (tid === 'helambu_rsp' || tid === 'TNT_MVBZVZC5') return 'TNT_MVC19UMP';
+      if (tid === 'helambu_nc' || tid === 'TNT_HELAMBU' || tid === 'helambu') return 'TNT_MVDGFCVL';
+      if (tid === 'gokarneshwor' || tid === 'TNT_GOKARNESHWOR') return 'TNT_MVEM4L28';
+      // Match with known tenants by slug if available
+      if (typeof state !== 'undefined' && state.tenants) {
+        const matched = state.tenants.find(t => (t.Slug && t.Slug.toLowerCase() === tid.toLowerCase()) || (t.TenantID && t.TenantID.toLowerCase() === tid.toLowerCase()));
+        if (matched && matched.TenantID) {
+          if (matched.TenantID === 'TNT_HELAMBU') return 'TNT_MVDGFCVL';
+          return matched.TenantID;
+        }
       }
       return tid;
     }
@@ -10031,7 +10036,20 @@
       if (typeof updateCasteNavBadge === 'function') updateCasteNavBadge();
     }
 
-    // Lightweight Delta Cloud Fetch: Queries only voters modified within the last 3 minutes
+    let _supabaseHasTenantIdColumn = null;
+
+    async function probeSupabaseTenantIdColumn(url, headers) {
+      if (_supabaseHasTenantIdColumn !== null) return _supabaseHasTenantIdColumn;
+      try {
+        const probe = await cloudFetch(`${url}/rest/v1/voters?select=tenant_id&limit=1`, { headers });
+        _supabaseHasTenantIdColumn = !!(probe && probe.ok);
+      } catch(e) {
+        _supabaseHasTenantIdColumn = false;
+      }
+      return _supabaseHasTenantIdColumn;
+    }
+
+    // Lightweight Delta Cloud Fetch: Queries only voters modified within the last 3 minutes strictly for active tenant
     async function fetchDeltaCloudVoters(url, key) {
       const headers = {
         'apikey': key,
@@ -10039,9 +10057,15 @@
       };
       const sinceMs = _lastSuccessfulSyncTimestamp > 0 ? Math.max(0, _lastSuccessfulSyncTimestamp - 120000) : (Date.now() - 180000);
       const sinceIso = new Date(sinceMs).toISOString();
+      const targetPool = getTenantVoterPoolId(currentUser ? currentUser.TenantID : null);
+      const hasColumn = await probeSupabaseTenantIdColumn(url, headers);
+      let tenantParam = '';
+      if (targetPool && targetPool !== 'SUPER_ADMIN' && targetPool !== 'ALL') {
+        tenantParam = hasColumn ? `&tenant_id=eq.${encodeURIComponent(targetPool)}` : `&notes=like.*"tenant_id":"${encodeURIComponent(targetPool)}"*`;
+      }
 
       try {
-        const deltaRes = await cloudFetch(`${url}/rest/v1/voters?select=*&updated_at=gt.${encodeURIComponent(sinceIso)}&limit=500`, { headers });
+        const deltaRes = await cloudFetch(`${url}/rest/v1/voters?select=*&updated_at=gt.${encodeURIComponent(sinceIso)}${tenantParam}&limit=500`, { headers });
         if (deltaRes && deltaRes.ok) {
           const deltaData = await deltaRes.json().catch(() => []);
           if (Array.isArray(deltaData)) return deltaData;
@@ -10052,7 +10076,7 @@
       return [];
     }
 
-    // Helper: Fetches all voters in robust 2-chunk parallel waves with retry and tenant-range prioritization
+    // Helper: Fetches all voters strictly isolated per active tenant
     async function fetchAllCloudVoters(url, key, progressCallback = null, onBatchReceived = null, targetTenantId = null) {
       const headers = {
         'apikey': key,
@@ -10060,14 +10084,45 @@
       };
 
       const targetPool = getTenantVoterPoolId(targetTenantId || (currentUser ? currentUser.TenantID : null));
+      const hasColumn = await probeSupabaseTenantIdColumn(url, headers);
+      let tenantParam = '';
+      if (targetPool && targetPool !== 'SUPER_ADMIN' && targetPool !== 'ALL') {
+        tenantParam = hasColumn ? `&tenant_id=eq.${encodeURIComponent(targetPool)}` : `&notes=like.*"tenant_id":"${encodeURIComponent(targetPool)}"*`;
+      }
+
       let offset = 0;
       const maxOffset = 65000;
-      let totalVotersEst = 60610;
+      let totalVotersEst = 18883;
 
-      if (targetPool === 'HELAMBU_POOL') {
-        totalVotersEst = 18909;
-      } else if (targetPool === 'GOKARNESHWOR_POOL') {
+      if (targetPool === 'TNT_MVDGFCVL') {
+        totalVotersEst = 18883;
+      } else if (targetPool === 'TNT_MVEM4L28') {
         totalVotersEst = 37759;
+      } else if (targetPool === 'TNT_MVC19UMP') {
+        totalVotersEst = 24;
+      }
+
+      // Query live exact count from Supabase server in <100ms via HEAD request
+      if (hasColumn && targetPool && targetPool !== 'SUPER_ADMIN' && targetPool !== 'ALL') {
+        try {
+          const countRes = await cloudFetch(`${url}/rest/v1/voters?select=voter_id${tenantParam}`, {
+            method: 'HEAD',
+            headers: { ...headers, 'Prefer': 'count=exact' }
+          });
+          if (countRes && countRes.ok) {
+            const cr = countRes.headers.get('content-range');
+            if (cr && cr.includes('/')) {
+              const exactCount = parseInt(cr.split('/')[1], 10);
+              if (!isNaN(exactCount) && exactCount > 0) {
+                totalVotersEst = exactCount;
+                try { localStorage.setItem('EMS_TENANT_TOTAL_' + targetPool, String(exactCount)); } catch(e) {}
+                if (typeof refreshDashboardMetrics === 'function') refreshDashboardMetrics();
+              }
+            }
+          }
+        } catch(e) {
+          console.warn('Instant tenant count HEAD error:', e);
+        }
       }
 
       const allVoters = [];
@@ -10076,7 +10131,7 @@
       const fetchChunkWithRetry = async (from, to, retries = 2) => {
         for (let attempt = 0; attempt <= retries; attempt++) {
           try {
-            const res = await cloudFetch(`${url}/rest/v1/voters?select=*`, {
+            const res = await cloudFetch(`${url}/rest/v1/voters?select=*${tenantParam}`, {
               headers: { ...headers, 'Range': `${from}-${to}` }
             });
             if (res && res.ok) {
@@ -10105,21 +10160,7 @@
         if (Array.isArray(chunk2) && chunk2.length > 0) incomingBatch.push(...chunk2);
 
         if (incomingBatch.length > 0) {
-          if (targetPool && targetPool !== 'SUPER_ADMIN' && targetPool !== 'ALL') {
-            const filteredChunk = incomingBatch.filter(cv => {
-              let tId = cv.tenant_id;
-              if (!tId && cv.notes) {
-                try {
-                  const m = cv.notes.match(/"tenant_id"\s*:\s*"([^"]+)"/);
-                  if (m) tId = m[1];
-                } catch(e) {}
-              }
-              return getTenantVoterPoolId(tId || 'TNT_HELAMBU') === targetPool;
-            });
-            allVoters.push(...filteredChunk);
-          } else {
-            allVoters.push(...incomingBatch);
-          }
+          allVoters.push(...incomingBatch);
           loadedCount += incomingBatch.length;
           if (typeof onBatchReceived === 'function') {
             onBatchReceived(incomingBatch);
@@ -10127,10 +10168,10 @@
         }
 
         if (typeof progressCallback === 'function') {
-          progressCallback(loadedCount, 60610);
+          progressCallback(loadedCount, totalVotersEst);
         }
 
-        // If either chunk returned less than pageSize, we have reached the end of the cloud database
+        // If either chunk returned less than pageSize, we have reached the end of this tenant's cloud database!
         if (!chunk2 || chunk2.length < pageSize || !chunk1 || chunk1.length < pageSize) {
           break;
         }
@@ -10142,6 +10183,9 @@
 
       try {
         localStorage.setItem('EMS_SUPABASE_FULL_SYNC_DONE_' + targetPool, String(Date.now()));
+        if (allVoters.length > 0) {
+          localStorage.setItem('EMS_TENANT_TOTAL_' + targetPool, String(allVoters.length));
+        }
       } catch(e) {}
       return allVoters;
     }
@@ -10178,10 +10222,10 @@
         const localVoterCount = (state.voters && Array.isArray(state.voters)) ? state.voters.length : 0;
         const activeTenantId = (currentUser && currentUser.TenantID) || getActiveTenantId();
         const activePool = getTenantVoterPoolId(activeTenantId);
-        const scopedVoterCount = (typeof getScopedVoters === 'function' && currentUser) ? getScopedVoters().length : localVoterCount;
-        let expectedPoolCount = 500;
-        if (activePool === 'HELAMBU_POOL') expectedPoolCount = 18800;
-        else if (activePool === 'GOKARNESHWOR_POOL') expectedPoolCount = 37000;
+        let expectedPoolCount = 20;
+        if (activePool === 'TNT_MVDGFCVL') expectedPoolCount = 18800;
+        else if (activePool === 'TNT_MVEM4L28') expectedPoolCount = 37000;
+        else if (activePool === 'TNT_MVC19UMP') expectedPoolCount = 20;
 
         // Skip voter download on login screen (!currentUser) unless interactive button was explicitly clicked
         const hasFullSynced = !!localStorage.getItem('EMS_SUPABASE_FULL_SYNC_DONE_' + activePool);
@@ -10981,7 +11025,7 @@
 
       const houseAddress = v.HouseNo ? (String(v.HouseNo).startsWith('घर नं:') ? String(v.HouseNo) : 'घर नं: ' + String(v.HouseNo)) : (v.Address || '');
 
-      return {
+      const cloudPayload = {
         voter_id: vId,
         full_name: v.Name || '',
         phone: v.Phone || '',
@@ -11005,6 +11049,10 @@
         updated_at: new Date().toISOString(),
         notes: metadataNotes
       };
+      if (_supabaseHasTenantIdColumn) {
+        cloudPayload.tenant_id = activeTenantId;
+      }
+      return cloudPayload;
     }
 
     // Push new or updated single voter to Supabase Cloud
@@ -11392,9 +11440,10 @@
       if (typeof syncSupabaseData === 'function') {
         const scopedCount = (typeof getScopedVoters === 'function' && currentUser) ? getScopedVoters().length : (state.voters ? state.voters.length : 0);
         const userPool = getTenantVoterPoolId((currentUser && currentUser.TenantID) || 'TNT_HELAMBU');
-        let minExpected = 500;
-        if (userPool === 'HELAMBU_POOL') minExpected = 18800;
-        else if (userPool === 'GOKARNESHWOR_POOL') minExpected = 37000;
+        let minExpected = 20;
+        if (userPool === 'TNT_MVDGFCVL') minExpected = 18800;
+        else if (userPool === 'TNT_MVEM4L28') minExpected = 37000;
+        else if (userPool === 'TNT_MVC19UMP') minExpected = 20;
         const needsFull = !state.voters || state.voters.length < minExpected || (currentUser && currentUser.Role !== 'Super Admin' && scopedCount < minExpected);
         syncSupabaseData(false, needsFull).then(() => {
           refreshDashboardMetrics();
@@ -12273,17 +12322,33 @@
       const scopedBth = getScopedBooths();
       const scopedPub = getScopedPublicSubs();
 
-      const total = v.length;
+      let total = v.length;
+      if (!isWardRestrictedUser()) {
+        const activeTid = (currentUser && currentUser.TenantID) || (state.settings && state.settings.CURRENT_TENANT_ID) || 'TNT_HELAMBU';
+        const canonicalTid = typeof getTenantVoterPoolId === 'function' ? getTenantVoterPoolId(activeTid) : activeTid;
+        let cachedTenantTotal = Number(localStorage.getItem('EMS_TENANT_TOTAL_' + canonicalTid) || 0);
+        if (!cachedTenantTotal) {
+          if (canonicalTid === 'TNT_MVDGFCVL') cachedTenantTotal = 18883;
+          else if (canonicalTid === 'TNT_MVC19UMP') cachedTenantTotal = 24;
+          else if (canonicalTid === 'TNT_MVEM4L28') cachedTenantTotal = 37759;
+        }
+        if (total < cachedTenantTotal) {
+          total = cachedTenantTotal;
+        } else if (total > 0) {
+          try { localStorage.setItem('EMS_TENANT_TOTAL_' + canonicalTid, String(total)); } catch(e) {}
+        }
+      }
+
       const contacted = v.filter(x => x.ContactStatus === 'Contacted').length;
-      const notContacted = total - contacted;
+      const notContacted = Math.max(0, total - contacted);
       const verified = v.filter(x => x.VerificationStatus === 'Verified').length;
-      const pendingVerify = total - verified;
+      const pendingVerify = Math.max(0, total - verified);
       const pendingFollow = scopedFol.filter(x => x.Status === 'Pending').length;
       const openIssues = scopedIss.filter(x => x.Status !== 'Resolved').length;
       const publicPending = scopedPub.filter(x => x.Status === 'Pending Review').length;
       const votedCount = v.filter(x => !!x.HasVoted).length;
 
-      document.getElementById('voterCountBadge').textContent = total;
+      document.getElementById('voterCountBadge').textContent = total.toLocaleString();
       document.getElementById('pendingFollowBadge').textContent = pendingFollow;
       document.getElementById('issuesBadge').textContent = openIssues;
       document.getElementById('publicBadge').textContent = publicPending;
@@ -30848,7 +30913,21 @@
     // Render Tab B inside Tenant Profile Dossier Modal
     function renderTenantVotersDossierTab(t) {
       const tenantId = t.TenantID;
-      const tVoters = (state.voters || []).filter(v => (v.TenantID || 'TNT_HELAMBU') === tenantId);
+      const canonicalTid = typeof getTenantVoterPoolId === 'function' ? getTenantVoterPoolId(tenantId) : tenantId;
+      const tVoters = (state.voters || []).filter(v => {
+        const vTid = typeof getTenantVoterPoolId === 'function' ? getTenantVoterPoolId(v.TenantID || 'TNT_HELAMBU') : (v.TenantID || 'TNT_HELAMBU');
+        return vTid === canonicalTid;
+      });
+      let voterCount = tVoters.length;
+      if (voterCount === 0) {
+        let cached = Number(localStorage.getItem('EMS_TENANT_TOTAL_' + canonicalTid) || 0);
+        if (!cached) {
+          if (canonicalTid === 'TNT_MVDGFCVL') cached = 18883;
+          else if (canonicalTid === 'TNT_MVC19UMP') cached = 24;
+          else if (canonicalTid === 'TNT_MVEM4L28') cached = 37759;
+        }
+        if (cached > 0) voterCount = cached;
+      }
       const wardsSet = new Set(tVoters.map(v => v.Ward || 1));
       const boothsSet = new Set(tVoters.map(v => v.BoothNo || 'A'));
       const batches = getImportBatchesList().filter(b => b.tenantId === tenantId);
@@ -30859,7 +30938,7 @@
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px;">
             <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 10px; padding: 14px;">
               <div style="font-size: 11px; font-weight: 700; color: #1e3a8a; text-transform: uppercase;">कुल मतदाता (Voters)</div>
-              <div style="font-size: 22px; font-weight: 800; color: #1d4ed8; margin-top: 2px;">${tVoters.length.toLocaleString()}</div>
+              <div style="font-size: 22px; font-weight: 800; color: #1d4ed8; margin-top: 2px;">${voterCount.toLocaleString()}</div>
               <div style="font-size: 11px; color: #64748b; margin-top: 2px;">यस Tenant का अभिलेख</div>
             </div>
             <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; padding: 14px;">

@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v24 - On-Demand Progressive Streaming & Strict Tenant Isolation)
-const CACHE_NAME = 'election-ops-v24';
+// Service Worker for Offline & Installable App Experience (v25 - Strict 1-to-1 Tenant Isolation & Instant Exact Summary)
+const CACHE_NAME = 'election-ops-v25';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
