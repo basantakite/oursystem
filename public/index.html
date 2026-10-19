@@ -7898,6 +7898,7 @@
                 CreatedAt: '2026-10-01'
               }
             ];
+          }
           // Retain all valid SaaS tenants
           state.tenants = state.tenants || [];
           state.tenants.forEach(t => {
@@ -8377,7 +8378,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261019-v20';
+      const CURRENT_APP_BUILD = '20261019-v21';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8415,9 +8416,9 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261019-v20')
+        navigator.serviceWorker.register('sw.js?v=20261019-v21')
           .then((reg) => {
-            console.log('Election Ops PWA Service Worker Registered (v20.0.0)');
+            console.log('Election Ops PWA Service Worker Registered (v21.0.0)');
             reg.update();
           })
           .catch(err => console.log('SW registration error:', err));
@@ -8767,11 +8768,41 @@
     function findTenantBySlugOrId(slugParam) {
       if (!slugParam) return null;
       const s = slugParam.trim().toLowerCase();
-      return (state.tenants || []).find(t =>
+      const existing = (state.tenants || []).find(t =>
         (t.Slug && t.Slug.toLowerCase() === s) ||
         (t.TenantID && t.TenantID.toLowerCase() === s) ||
         (t.AdminUsername && t.AdminUsername.toLowerCase() === s)
-      ) || (s === 'helambu' ? (state.tenants && state.tenants[0]) : null);
+      );
+      if (existing) return existing;
+      if (s === 'helambu') return (state.tenants && state.tenants[0]) || null;
+
+      // Dynamic Palika Auto-Resolution: if a URL specifies a known Palika (e.g. ?palika=gokarneshwor), resolve instantly!
+      if (typeof findPalikaInBagmatiHierarchy === 'function') {
+        const palikaMatch = findPalikaInBagmatiHierarchy(s);
+        if (palikaMatch) {
+          const autoSlug = (typeof makeSafePalikaSlug === 'function') ? makeSafePalikaSlug(palikaMatch.name) : s;
+          const autoTenant = {
+            TenantID: 'TNT_' + autoSlug.toUpperCase(),
+            PalikaName: palikaMatch.name,
+            TenantName: `${palikaMatch.name} निर्वाचन अभियान समिति`,
+            District: palikaMatch.district || 'काठमाडौं',
+            Province: 'बागमती प्रदेश',
+            TotalWards: palikaMatch.ward_count || 9,
+            TotalPollingLocations: palikaMatch.location_count || 17,
+            WardsConfig: palikaMatch.wards || [],
+            Party: 'NC',
+            Slug: autoSlug,
+            AdminUsername: `${autoSlug}_admin`,
+            AdminPassword: 'admin',
+            Status: 'Active',
+            CreatedAt: new Date().toISOString().slice(0, 10)
+          };
+          if (!state.tenants) state.tenants = [];
+          state.tenants.push(autoTenant);
+          return autoTenant;
+        }
+      }
+      return null;
     }
 
     // STRICT URL ROUTING ENGINE (SECTION 2: 3 PURE SCREENS)
