@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v19 - Force sync and cache bust)
-const CACHE_NAME = 'election-ops-v19';
+// Service Worker for Offline & Installable App Experience (v20 - Dynamic Ward Detection & Palika Hierarchy Sync)
+const CACHE_NAME = 'election-ops-v20';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

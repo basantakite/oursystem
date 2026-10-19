@@ -7898,13 +7898,8 @@
                 CreatedAt: '2026-10-01'
               }
             ];
-          }
-          // Strictly purge any legacy Gokarneshwor demo tenant from LocalStorage
-          state.tenants = (state.tenants || []).filter(t => 
-            t.TenantID !== 'TNT_GOKARNESHWOR' && 
-            t.Slug !== 'gokarneshwor' && 
-            !(t.PalikaName && t.PalikaName.toLowerCase().includes('gokarneshwor'))
-          );
+          // Retain all valid SaaS tenants
+          state.tenants = state.tenants || [];
           state.tenants.forEach(t => {
             if (!t.TenantName) t.TenantName = t.PalikaName || 'हेलाम्बु गाउँ कार्यसमिति';
             if (!t.PalikaName) t.PalikaName = 'हेलाम्बु गाउँपालिका';
@@ -8382,7 +8377,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261019-v19';
+      const CURRENT_APP_BUILD = '20261019-v20';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8420,9 +8415,9 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261019-v19')
+        navigator.serviceWorker.register('sw.js?v=20261019-v20')
           .then((reg) => {
-            console.log('Election Ops PWA Service Worker Registered (v19.0.0)');
+            console.log('Election Ops PWA Service Worker Registered (v20.0.0)');
             reg.update();
           })
           .catch(err => console.log('SW registration error:', err));
@@ -12183,9 +12178,11 @@
       for (const w of wardNums) {
         const wv = scopedVoters.filter(v => Number(v.Ward || v.WardNo || 0) === w);
         const contacted = wv.filter(v => v.ContactStatus === 'Contacted').length;
-        const verified = wv.filter(v => v.VerificationStatus === 'Verified').length;
-        const booths = scopedBooths.filter(b => Number(b.WardNo || b.Ward || 0) === w).length;
-        const issues = scopedIssues.filter(i => Number(i.WardNo || i.Ward || 0) === w && i.Status !== 'Resolved').length;
+        let booths = scopedBooths.filter(b => Number(b.WardNo || b.Ward || 0) === w).length;
+        if (booths === 0 && wv.length > 0) {
+          const distinctVoterBooths = new Set(wv.map(v => v.BoothNo).filter(Boolean));
+          booths = distinctVoterBooths.size || 1;
+        }
         const followups = scopedFollowups.filter(f => {
           const voter = getVoterByIdFast(f.VoterID);
           return voter && Number(voter.Ward || voter.WardNo || 0) === w && f.Status === 'Pending';
@@ -15186,14 +15183,26 @@
         activeTenant = (state.tenants || []).find(t => t.TenantID === currentUser.TenantID);
       }
       const palikaName = (activeTenant && activeTenant.PalikaName) || (state.settings && state.settings.MUNICIPALITY) || 'हेलम्बु गाउँपालिका';
-      const pObj = (activeTenant && activeTenant.WardsConfig)
+      const distName = (activeTenant && activeTenant.District) || '';
+      const matched = findPalikaInBagmatiHierarchy(palikaName, distName);
+
+      let pObj = (activeTenant && activeTenant.WardsConfig && activeTenant.WardsConfig.length > 0)
         ? { name: activeTenant.PalikaName, district: activeTenant.District || 'सिन्धुपाल्चोक', ward_count: activeTenant.TotalWards || activeTenant.WardsConfig.length, wards: activeTenant.WardsConfig }
-        : (findPalikaInBagmatiHierarchy(palikaName) || findPalikaInBagmatiHierarchy('हेलम्बु गाउँपालिका', 'सिन्धुपाल्चोक'));
+        : (matched || findPalikaInBagmatiHierarchy(palikaName) || findPalikaInBagmatiHierarchy('हेलम्बु गाउँपालिका', 'सिन्धुपाल्चोक'));
+
+      // If official hierarchy has more wards or locations (e.g. Gokarneshwor has 9 wards and 17 locations), align pObj to the full hierarchy
+      if (matched && pObj && (matched.ward_count > (pObj.ward_count || 0) || (matched.wards && matched.wards.length > (pObj.wards ? pObj.wards.length : 0)))) {
+        pObj = { ...pObj, ward_count: matched.ward_count, wards: matched.wards };
+      }
 
       if (!pObj) return;
 
-      // 1. Sync state.wards to exact Ward count of active Palika
-      const wardCount = Number(pObj.ward_count) || (pObj.wards ? pObj.wards.length : 7);
+      // Dynamic data-driven ward detection: scan scoped voters to find highest ward present (e.g. Ward 8, 9, etc.)
+      const scopedVoters = (typeof getScopedVoters === 'function') ? getScopedVoters() : (state.voters || []);
+      const maxVoterWard = scopedVoters.reduce((m, v) => Math.max(m, Number(v.Ward || v.WardNo || 0)), 0);
+      const wardCount = Math.max(Number(pObj.ward_count) || (pObj.wards ? pObj.wards.length : 7), maxVoterWard);
+
+      // 1. Sync state.wards to exact Ward count of active Palika or detected from voters
       state.wards = Array.from({ length: wardCount }, (_, i) => {
         const wNo = i + 1;
         const wConf = (pObj.wards || []).find(x => Number(x.number) === wNo);
@@ -15221,6 +15230,31 @@
           });
         });
       });
+
+      // Also ensure any distinct booths present in voter roll are registered into state.booths
+      if (scopedVoters.length > 0) {
+        const existingBoothKeys = new Set(newBooths.map(b => `${b.WardNo}_${(b.CenterName || '').toLowerCase().trim()}`));
+        scopedVoters.forEach(v => {
+          const bName = (v.BoothNo || '').trim();
+          const wNo = Number(v.Ward || v.WardNo || 1);
+          if (bName && wNo > 0) {
+            const key = `${wNo}_${bName.toLowerCase()}`;
+            if (!existingBoothKeys.has(key)) {
+              existingBoothKeys.add(key);
+              newBooths.push({
+                BoothID: `BTH_VOT_W${wNo}_${newBooths.length + 1}`,
+                WardNo: wNo,
+                BoothCode: String.fromCharCode(65 + (newBooths.length % 26)),
+                CenterName: bName,
+                Location: bName,
+                AssignedLead: '',
+                Status: 'Active'
+              });
+            }
+          }
+        });
+      }
+
       if (newBooths.length > 0) {
         state.booths = newBooths;
       }
@@ -15263,8 +15297,25 @@
       if (!state.wards || state.wards.length === 0) {
         syncActivePalikaHierarchyToState();
       }
-      const nums = (state.wards || []).map(w => Number(w.WardNo)).filter(n => !isNaN(n) && n > 0);
-      return nums.length > 0 ? nums : [1, 2, 3, 4, 5, 6, 7];
+      const wardSet = new Set();
+      (state.wards || []).forEach(w => {
+        const n = Number(w.WardNo);
+        if (!isNaN(n) && n > 0 && n <= 50) wardSet.add(n);
+      });
+      // Dynamic Data-Driven: scan scoped voters for any wards present (e.g. Ward 8, 9, etc.)
+      const scopedVoters = (typeof getScopedVoters === 'function') ? getScopedVoters() : (state.voters || []);
+      scopedVoters.forEach(v => {
+        const w = Number(v.Ward || v.WardNo);
+        if (!isNaN(w) && w > 0 && w <= 50) wardSet.add(w);
+      });
+      if (wardSet.size === 0 && currentUser && currentUser.TenantID) {
+        const t = (state.tenants || []).find(x => x.TenantID === currentUser.TenantID);
+        if (t && t.TotalWards) {
+          for (let i = 1; i <= Number(t.TotalWards); i++) wardSet.add(i);
+        }
+      }
+      const sorted = Array.from(wardSet).sort((a, b) => a - b);
+      return sorted.length > 0 ? sorted : [1, 2, 3, 4, 5, 6, 7];
     }
 
     function getFilteredVoters() {
