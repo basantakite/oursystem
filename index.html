@@ -3885,9 +3885,14 @@
         <p id="invalidLinkMsg" style="font-size: 12.5px; color: #475569; line-height: 1.5; margin-bottom: 16px;">
           तपाईंले खोलेको लिङ्क प्रणालीमा फेला परेन वा निष्क्रिय गरिएको छ।
         </p>
-        <button type="button" class="btn btn-secondary" onclick="window.location.href = window.location.origin + window.location.pathname;" style="font-size: 12px; font-weight: 700; padding: 8px 16px;">
-          🏠 मुख्य पृष्ठमा जानुहोस् (Central HQ)
-        </button>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-width: 280px; margin-left: auto; margin-right: auto;">
+          <button type="button" class="btn btn-primary" onclick="switchToTenantLoginSelection()" style="font-size: 13px; font-weight: 700; padding: 10px 16px; background: #0284c7; border: none; border-radius: 10px; box-shadow: 0 2px 6px rgba(2,132,199,0.3); color: #ffffff; cursor: pointer;">
+            🏛️ पालिका / Tenant लगइनमा जानुहोस्
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="window.location.href = window.location.origin + window.location.pathname;" style="font-size: 12px; font-weight: 700; padding: 8px 16px; border-radius: 10px; cursor: pointer;">
+            🏠 मुख्य पृष्ठमा जानुहोस् (Central HQ)
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -3934,9 +3939,9 @@
         <button class="nav-item palika-only active" data-view="dashboard" onclick="switchView('dashboard')">
           <span class="icon">📊</span> <span>Dashboard</span>
         </button>
-        <button class="nav-item palika-only" data-view="warRoom" onclick="switchView('warRoom')">
-          <span class="icon">🎯</span> <span>WarRoom</span>
-          <span class="nav-badge" style="background: var(--mui-secondary); color: #0f172a; font-weight: 800;">LIVE</span>
+        <button class="nav-item palika-only" data-view="warRoom" id="navItemWarRoom" onclick="switchView('warRoom')">
+          <span class="icon">🎯</span> <span>चुनावी रणनीति र जित सिमुलेटर</span>
+          <span class="nav-badge" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; font-weight: 800;">LIVE</span>
         </button>
         <button class="nav-item palika-only" data-view="voters" onclick="switchView('voters')">
           <span class="icon">👥</span> <span>Voters</span>
@@ -4165,71 +4170,185 @@
             </div>
           </div>
 
-          <!-- WIN METER & MAGIC NUMBER HERO DASHBOARD -->
-          <div class="card" style="margin-bottom: 24px; padding: 24px; border-radius: var(--radius-lg); background: #ffffff; border: 1.5px solid #e2e8f0; box-shadow: 0 10px 30px rgba(15,23,42,0.06);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+          <!-- WIN MARGIN & PLURALITY SIMULATOR CONTROLS -->
+          <div class="card" style="margin-bottom: 24px; padding: 22px; border-radius: var(--radius-lg); background: #ffffff; border: 1.5px solid #cbd5e1; box-shadow: 0 4px 18px rgba(15,23,42,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
               <div>
-                <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: var(--navy-900); display: flex; align-items: center; gap: 8px;">
-                  🏆 जितको जादुई नम्बर (The Magic Win Target Meter)
+                <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                  <span>🎛️</span> चुनावी समीकरण तथा जित सिमुलेटर (Interactive Election Simulation)
                 </h3>
-                <p style="margin: 3px 0 0; font-size: 12.5px; color: var(--slate-600);">
-                  विदेश र अनुपस्थित मतदाता कटाएर वास्तविक खस्ने मत र ५०%+१ जित अनुपातको लाइभ हिसाब।
+                <p style="margin: 3px 0 0; font-size: 12px; color: #64748b;">
+                  मतदान दर, बदर मत र प्रतिस्पर्धी दलको मत प्रतिशत सारेर वास्तविक जितको मार्जिन लाइभ हेर्नुहोस्।
                 </p>
               </div>
-              <div id="warRoomStatusBadge">
-                <span class="badge" style="background: #ecfdf5; color: #047857; font-weight: 800; font-size: 13px; padding: 6px 14px; border: 1.5px solid #a7f3d0;">
-                  🟢 सुरक्षित जित (Safe Zone)
-                </span>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="resetWarRoomSliders()" style="font-size: 11.5px; font-weight: 700;">🔄 रिसेट</button>
               </div>
             </div>
 
-            <!-- Big Math Equation Cards -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 18px;">
-              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 12px;">
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--slate-600);">कुल दर्ता मतदाता</div>
-                <div style="font-size: 24px; font-weight: 900; color: #0f172a;" id="wrTotalVoters">0</div>
-                <div style="font-size: 11px; color: var(--slate-600);">निर्वाचन नामावली</div>
+            <!-- Interactive Sliders Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 18px;">
+              <!-- 1. Expected Turnout Slider -->
+              <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label style="font-size: 12px; font-weight: 800; color: #1e3a8a;">🗳️ अपेक्षित मतदान दर (Turnout %):</label>
+                  <span id="wrTurnoutSliderVal" style="font-size: 13px; font-weight: 900; color: #1d4ed8; background: #dbeafe; padding: 2px 8px; border-radius: 6px;">68%</span>
+                </div>
+                <input type="range" id="wrTurnoutSlider" min="40" max="95" value="68" step="1" oninput="onWarRoomSimulatorSliderChanged()" style="width: 100%; cursor: pointer;">
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #64748b; margin-top: 3px;">
+                  <span>४०% (न्यून)</span>
+                  <span>६८% (औसत)</span>
+                  <span>९५% (उच्च)</span>
+                </div>
               </div>
 
-              <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: var(--radius-sm); padding: 12px;">
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #e11d48;">विदेश / अनुपस्थित (-)</div>
-                <div style="font-size: 24px; font-weight: 900; color: #be123c;" id="wrAbroadAbsent">0</div>
-                <div style="font-size: 11px; color: var(--slate-600);">खाडी, भारत, युरोप, अशक्त</div>
+              <!-- 2. Badar / Invalid Votes Dual Linked Input -->
+              <div style="background: #ffffff; border: 1.5px solid #fecaca; border-radius: 10px; padding: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label style="font-size: 12px; font-weight: 800; color: #991b1b;">❌ अनुमानित बदर मत (Invalid):</label>
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <input type="number" id="wrBadarPctInput" min="0" max="25" step="0.1" value="4.2" oninput="onWarRoomBadarPctInput(this.value)" style="width: 52px; padding: 2px 4px; font-size: 12px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; color: #b91c1c;">
+                    <span style="font-size: 11.5px; font-weight: 800; color: #991b1b;">%</span>
+                    <span style="font-size: 11px; color: #64748b; margin: 0 2px;">=</span>
+                    <input type="number" id="wrBadarCountInput" min="0" value="0" oninput="onWarRoomBadarCountInput(this.value)" style="width: 60px; padding: 2px 4px; font-size: 12px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; color: #b91c1c;">
+                    <span style="font-size: 11px; color: #64748b;">मत</span>
+                  </div>
+                </div>
+                <input type="range" id="wrBadarSlider" min="0" max="15" value="4.2" step="0.1" oninput="onWarRoomBadarSliderChanged(this.value)" style="width: 100%; cursor: pointer;">
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #64748b; margin-top: 3px;">
+                  <span>०% (उत्कृष्ट)</span>
+                  <span>४.२% (सामान्य)</span>
+                  <span>१५% (अत्यधिक)</span>
+                </div>
               </div>
 
-              <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 12px;">
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #1d4ed8;">अपेक्षित खस्ने मत (=)</div>
-                <div style="font-size: 24px; font-weight: 900; color: #1e40af;" id="wrProjectedTurnout">0</div>
-                <div style="font-size: 11px; color: var(--slate-600);">वास्तविक मतदान दर</div>
+              <!-- 3. Top Opponent Share Slider -->
+              <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label style="font-size: 12px; font-weight: 800; color: #c2410c;">⚔️ मुख्य प्रतिस्पर्धीको मत (%):</label>
+                  <span id="wrOpponentSliderVal" style="font-size: 13px; font-weight: 900; color: #c2410c; background: #ffedd5; padding: 2px 8px; border-radius: 6px;">34%</span>
+                </div>
+                <input type="range" id="wrOpponentSlider" min="20" max="60" value="34" step="1" oninput="onWarRoomSimulatorSliderChanged()" style="width: 100%; cursor: pointer;">
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #64748b; margin-top: 3px;">
+                  <span>२०% (कमजोर)</span>
+                  <span>३४% (औसत)</span>
+                  <span>६०% (बलियो)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Big Math Equation Cards (Plurality Margin Engine) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 18px;">
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px;">
+                <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: #64748b;">कुल मतदाता</div>
+                <div style="font-size: 20px; font-weight: 900; color: #0f172a;" id="wrTotalVoters">0</div>
+                <div style="font-size: 10px; color: #64748b;">नामावली सूची</div>
               </div>
 
-              <div style="background: #fefce8; border: 2px solid #facc15; border-radius: var(--radius-sm); padding: 12px;">
-                <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #854d0e;">🎯 जादुई जित लक्ष्य (50%+1)</div>
-                <div style="font-size: 24px; font-weight: 900; color: #a16207;" id="wrMagicTarget">0</div>
-                <div style="font-size: 11px; color: var(--slate-600);">जित्न चाहिने न्यूनतम मत</div>
+              <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 10px;">
+                <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: #e11d48;">विदेश / बाहिर (-)</div>
+                <div style="font-size: 20px; font-weight: 900; color: #be123c;" id="wrAbroadAbsent">0</div>
+                <div style="font-size: 10px; color: #64748b;">अनुपस्थित वर्ग</div>
               </div>
 
-              <div style="background: #f0fdf4; border: 2px solid #86efac; border-radius: var(--radius-sm); padding: 12px;">
-                <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #166534;">🟢 हालको सुरक्षित भोट</div>
-                <div style="font-size: 24px; font-weight: 900; color: #15803d;" id="wrCurrentTotalVotes">0</div>
-                <div style="font-size: 11px; color: var(--slate-600);" id="wrTargetPctText">0% जित लक्ष्य हासिल</div>
+              <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px;">
+                <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: #1d4ed8;">अपेक्षित खस्ने (=)</div>
+                <div style="font-size: 20px; font-weight: 900; color: #1e40af;" id="wrProjectedTurnout">0</div>
+                <div style="font-size: 10px; color: #64748b;" id="wrProjectedTurnoutSub">मतदान अनुमान</div>
+              </div>
+
+              <div style="background: #fff5f5; border: 1.5px solid #fed7d7; border-radius: 10px; padding: 10px;">
+                <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: #c53030;">बदर मत (-)</div>
+                <div style="font-size: 20px; font-weight: 900; color: #9b2c2c;" id="wrBadarCalcDisplay">0</div>
+                <div style="font-size: 10px; color: #64748b;" id="wrBadarCalcSub">खेर जाने मत</div>
+              </div>
+
+              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px;">
+                <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: #15803d;">सदर मत (=)</div>
+                <div style="font-size: 20px; font-weight: 900; color: #166534;" id="wrValidVotesDisplay">0</div>
+                <div style="font-size: 10px; color: #64748b;">दलहरूले पाउने</div>
+              </div>
+
+              <div style="background: #fefce8; border: 2px solid #facc15; border-radius: 10px; padding: 10px; box-shadow: 0 2px 8px rgba(234,179,8,0.15);">
+                <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: #854d0e;">🎯 जितको रेखा (+१)</div>
+                <div style="font-size: 20px; font-weight: 900; color: #a16207;" id="wrMagicTarget">0</div>
+                <div style="font-size: 10px; color: #854d0e; font-weight: 700;">विपक्षीभन्दा १ बढी</div>
+              </div>
+
+              <div style="background: #ecfdf5; border: 2px solid #86efac; border-radius: 10px; padding: 10px;">
+                <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: #166534;">🟢 हाम्रो सुरक्षित मत</div>
+                <div style="font-size: 20px; font-weight: 900; color: #15803d;" id="wrCurrentTotalVotes">0</div>
+                <div style="font-size: 10px; color: #15803d; font-weight: 700;" id="wrTargetPctText">0% जित हासिल</div>
               </div>
             </div>
 
             <!-- Visual Progress Bar to Victory -->
             <div style="margin-bottom: 14px;">
-              <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 6px;">
+              <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; margin-bottom: 6px;">
                 <span>जित तर्फको प्रगति (Progress to Victory)</span>
                 <span id="wrWinProgressRatio">0 / 0 Votes</span>
               </div>
-              <div style="background: #e2e8f0; height: 14px; border-radius: 999px; overflow: hidden; position: relative;">
+              <div style="background: #e2e8f0; height: 16px; border-radius: 999px; overflow: hidden; position: relative;">
                 <div id="wrProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); transition: width 0.5s ease;"></div>
               </div>
+            </div>
+
+            <!-- Status Banner & Fast Action Hub -->
+            <div id="warRoomStatusBadge" style="margin-bottom: 12px;"></div>
+
+            <!-- ACTION BUTTONS: Swing Voter Access, Target SMS, Voter Education -->
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;">
+              <button type="button" id="wrBtnFilterSwing" class="btn btn-primary" onclick="openWarRoomSwingVotersList()" style="font-size: 13px; font-weight: 800; padding: 10px 18px; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(37,99,235,0.25);">
+                <span>👉</span> <span id="wrBtnFilterSwingText">दोधार (Swing) मतदाता सूची खोल्नुहोस्</span>
+              </button>
+
+              <button type="button" class="btn btn-secondary" onclick="openWarRoomSwingSmsModal()" style="font-size: 12.5px; font-weight: 700; padding: 10px 16px; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; border: none;">
+                <span>📲</span> <span>Swing मतदातालाई लक्षित SMS/अपील</span>
+              </button>
+
+              <button type="button" class="btn btn-secondary" onclick="openWarRoomVoterEducationList()" style="font-size: 12.5px; font-weight: 700; padding: 10px 16px; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px; background: #fff1f2; color: #991b1b; border: 1.5px solid #fecdd3;">
+                <span>⚠️</span> <span>बदर मत रोकथाम (मतदाता शिक्षा) सूची</span>
+              </button>
             </div>
 
             <!-- AI / Tactical Win Advisory Box -->
             <div id="wrTacticalAdvisory" style="background: #f8fafc; border-left: 4px solid #4f46e5; padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13px; color: var(--slate-700); line-height: 1.6;">
               <!-- Tactical advice inserted here -->
+            </div>
+          </div>
+
+          <!-- WARD BY WARD STRATEGY ROLL-UP TABLE -->
+          <div class="card" style="margin-bottom: 24px; padding: 20px; border-radius: var(--radius-lg); background: #ffffff; border: 1.5px solid #e2e8f0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                  <span>📊</span> वडागत रणनीति तथा जित-हार रोल-अप (Ward-by-Ward Tactical Roll-Up)
+                </h4>
+                <p style="margin: 2px 0 0; font-size: 12px; color: #64748b;">
+                  प्रत्येक वडाको खस्ने मत, बदर मत, र अग्रता/घाटाको समष्टिगत विश्लेषण।
+                </p>
+              </div>
+              <button class="btn btn-sm btn-secondary" onclick="renderCandidateWarRoom()" style="font-weight: 700;">🔄 अपडेट</button>
+            </div>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;" id="wrWardRollupTable">
+                <thead>
+                  <tr style="background: #f1f5f9; color: #334155; font-weight: 800; border-bottom: 2px solid #cbd5e1;">
+                    <th style="padding: 10px 12px;">वडा नं.</th>
+                    <th style="padding: 10px 12px;">कुल मतदाता</th>
+                    <th style="padding: 10px 12px;">अपेक्षित खस्ने</th>
+                    <th style="padding: 10px 12px;">बदर मत (-)</th>
+                    <th style="padding: 10px 12px;">सदर मत (=)</th>
+                    <th style="padding: 10px 12px;">जितको रेखा (+१)</th>
+                    <th style="padding: 10px 12px;">हाम्रो सुरक्षित मत</th>
+                    <th style="padding: 10px 12px;">अग्रता / अपुग (Margin)</th>
+                    <th style="padding: 10px 12px;">अवस्था</th>
+                  </tr>
+                </thead>
+                <tbody id="wrWardRollupTbody">
+                  <!-- Generated dynamically in renderCandidateWarRoom -->
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -7802,7 +7921,8 @@
       locations: [],
       booths: [],
       users: [
-        { UserID: 'USR_SUPER_OWNER', Name: 'Super Admin HQ', Phone: '9851170967', Role: 'Super Admin', Password: 'admin123', PIN: '1234', AccessToken: 'TOKEN_ADMIN', Ward: 'All', Tole: '', BoothNo: '', Active: true }
+        { UserID: 'USR_SUPER_OWNER', Name: 'Super Admin HQ', Phone: '9851170967', Role: 'Super Admin', Password: 'admin123', PIN: '1234', AccessToken: 'TOKEN_ADMIN', Ward: 'All', Tole: '', BoothNo: '', Active: true },
+        { UserID: 'USR_TNT_MVF9LYO3', Name: 'राष्ट्रिय स्वतन्त्र पार्टी हेलम्बु गाउँपालिका निर्वाचन अभियान समिति Admin', Phone: '9851170567', Role: 'Palika Admin', Password: 'pass@123', PIN: 'pass@123', AccessToken: 'TOKEN_MVF9LYO3', Ward: 'All', Tole: '', BoothNo: '', Active: true, TenantID: 'TNT_MVF9LYO3' }
       ],
       households: [],
       voters: [],
@@ -7818,6 +7938,42 @@
       // Multi-Tenant SaaS Subscriptions & Palikas (Super Admin Management)
       tenants: [
         {
+          TenantID: 'TNT_MVF9LYO3',
+          Province: 'बागमती प्रदेश',
+          District: 'सिन्धुपाल्चोक',
+          PalikaName: 'हेलम्बु गाउँपालिका',
+          TenantName: 'राष्ट्रिय स्वतन्त्र पार्टी हेलम्बु गाउँपालिका निर्वाचन अभियान समिति',
+          TotalWards: 7,
+          TotalPollingLocations: 10,
+          WardsConfig: [
+            { number: 1, locations: [{ id: "PL05497", name: "गोल्मादेवी मा.वि., तिम्बु" }, { id: "PL05498", name: "ककनी आधारभूत विद्यालय, मेलम्चीघ्याङ" }] },
+            { number: 2, locations: [{ id: "PL05499", name: "ज्योति माध्यमिक विद्यालय, किउल" }, { id: "PL05500", name: "भुमेश्वरी मा.वि., किउल" }] },
+            { number: 3, locations: [{ id: "PL05501", name: "जय बागेश्वरी मा.वि., पाल्चोक" }] },
+            { number: 4, locations: [{ id: "PL05502", name: "सरस्वती मा.वि., ग्याल्थुम" }] },
+            { number: 5, locations: [{ id: "PL05503", name: "सर्वोदय आधारभूत विद्यालय, महाँकाल" }] },
+            { number: 6, locations: [{ id: "PL05504", name: "नारायण माध्यमिक विद्यालय, इचोक" }] },
+            { number: 7, locations: [{ id: "PL05505", name: "महेन्द्र मा.वि., महाँकाल" }, { id: "PL05506", name: "पातिङ माध्यमिक विद्यालय, इचोक" }] }
+          ],
+          Party: 'RSP',
+          Slug: 'helambu_rsp_2',
+          AdminUsername: 'helambu',
+          AdminPassword: 'pass@123',
+          ContactPerson: 'dhruba',
+          Phone: '9851170567',
+          Status: 'Active',
+          PlanType: 'Full Palika Suite',
+          FeeMonthly: 'Rs. 25,000',
+          BillingStatus: 'Paid',
+          ContractAmount: 25000,
+          PaymentMethod: 'Bank Transfer',
+          InvoiceNo: 'INV-2026-HELA-01',
+          Features: { sms: true, familyTree: true, reports: true, voterSlips: true },
+          SmsCredits: 5100,
+          SmsUsed: 0,
+          ExpiresAt: '2027-01-17',
+          CreatedAt: '2026-10-19'
+        },
+        {
           TenantID: 'TNT_HELAMBU',
           TenantName: 'नेपाली कांग्रेस हेलाम्बु गाउँ कार्यसमिति',
           PalikaName: 'हेलाम्बु गाउँपालिका',
@@ -7827,7 +7983,7 @@
           AdminPassword: 'admin123',
           ContactPerson: 'Basu Dev (Election Head)',
           Phone: '9851170967',
-          Status: 'Active',
+          Status: 'Suspended',
           PlanType: 'Unlimited Palika Pro',
           FeeMonthly: 'Rs. 25,000',
           SmsCredits: 5000,
@@ -7845,7 +8001,7 @@
           AdminPassword: 'admin123',
           ContactPerson: 'Melamchi Head',
           Phone: '984904462',
-          Status: 'Active',
+          Status: 'Suspended',
           PlanType: 'Unlimited Palika Pro',
           FeeMonthly: 'Rs. 25,000',
           SmsCredits: 5000,
@@ -7879,25 +8035,64 @@
           if (!state.settings.AAKASH_SMS_SENDER_ID) state.settings.AAKASH_SMS_SENDER_ID = DEFAULT_CONFIG.AAKASH_SMS_SENDER_ID;
           if (!state.settings.MASTER_SMS_CREDITS) state.settings.MASTER_SMS_CREDITS = DEFAULT_CONFIG.MASTER_SMS_CREDITS;
           if (!state.tenants || !state.tenants.length) {
-            state.tenants = [
-              {
-                TenantID: 'TNT_HELAMBU',
-                TenantName: 'नेपाली कांग्रेस हेलाम्बु गाउँ कार्यसमिति',
-                PalikaName: 'हेलाम्बु गाउँपालिका',
-                Slug: 'helambu',
-                AdminUsername: 'helambu_admin',
-                AdminPassword: 'admin123',
-                ContactPerson: 'Basu Dev (Election Head)',
-                Phone: '9851170967',
-                Status: 'Active',
-                PlanType: 'Unlimited Palika Pro',
-                FeeMonthly: 'Rs. 25,000',
-                SmsCredits: 4850,
-                SmsUsed: 150,
-                ExpiresAt: '2027-01-01',
-                CreatedAt: '2026-10-01'
-              }
-            ];
+            state.tenants = [];
+          }
+          // Ensure RSP Helambu Campaign Tenant TNT_MVF9LYO3 is always available in state
+          const hasRspTenant = state.tenants.some(t => t.TenantID === 'TNT_MVF9LYO3');
+          if (!hasRspTenant) {
+            state.tenants.unshift({
+              TenantID: 'TNT_MVF9LYO3',
+              Province: 'बागमती प्रदेश',
+              District: 'सिन्धुपाल्चोक',
+              PalikaName: 'हेलम्बु गाउँपालिका',
+              TenantName: 'राष्ट्रिय स्वतन्त्र पार्टी हेलम्बु गाउँपालिका निर्वाचन अभियान समिति',
+              TotalWards: 7,
+              TotalPollingLocations: 10,
+              WardsConfig: [
+                { number: 1, locations: [{ id: "PL05497", name: "गोल्मादेवी मा.वि., तिम्बु" }, { id: "PL05498", name: "ककनी आधारभूत विद्यालय, मेलम्चीघ्याङ" }] },
+                { number: 2, locations: [{ id: "PL05499", name: "ज्योति माध्यमिक विद्यालय, किउल" }, { id: "PL05500", name: "भुमेश्वरी मा.वि., किउल" }] },
+                { number: 3, locations: [{ id: "PL05501", name: "जय बागेश्वरी मा.वि., पाल्चोक" }] },
+                { number: 4, locations: [{ id: "PL05502", name: "सरस्वती मा.वि., ग्याल्थुम" }] },
+                { number: 5, locations: [{ id: "PL05503", name: "सर्वोदय आधारभूत विद्यालय, महाँकाल" }] },
+                { number: 6, locations: [{ id: "PL05504", name: "नारायण माध्यमिक विद्यालय, इचोक" }] },
+                { number: 7, locations: [{ id: "PL05505", name: "महेन्द्र मा.वि., महाँकाल" }, { id: "PL05506", name: "पातिङ माध्यमिक विद्यालय, इचोक" }] }
+              ],
+              Party: 'RSP',
+              Slug: 'helambu_rsp_2',
+              AdminUsername: 'helambu',
+              AdminPassword: 'pass@123',
+              ContactPerson: 'dhruba',
+              Phone: '9851170567',
+              Status: 'Active',
+              PlanType: 'Full Palika Suite',
+              FeeMonthly: 'Rs. 25,000',
+              BillingStatus: 'Paid',
+              ContractAmount: 25000,
+              PaymentMethod: 'Bank Transfer',
+              InvoiceNo: 'INV-2026-HELA-01',
+              Features: { sms: true, familyTree: true, reports: true, voterSlips: true },
+              SmsCredits: 5100,
+              SmsUsed: 0,
+              ExpiresAt: '2027-01-17',
+              CreatedAt: '2026-10-19'
+            });
+          }
+          if (!state.users) state.users = [];
+          if (!state.users.some(u => u.UserID === 'USR_TNT_MVF9LYO3')) {
+            state.users.push({
+              UserID: 'USR_TNT_MVF9LYO3',
+              Name: 'राष्ट्रिय स्वतन्त्र पार्टी हेलम्बु गाउँपालिका निर्वाचन अभियान समिति Admin',
+              Phone: '9851170567',
+              Role: 'Palika Admin',
+              Password: 'pass@123',
+              PIN: 'pass@123',
+              AccessToken: 'TOKEN_MVF9LYO3',
+              Ward: 'All',
+              Tole: '',
+              BoothNo: '',
+              Active: true,
+              TenantID: 'TNT_MVF9LYO3'
+            });
           }
           // Strictly purge any legacy Gokarneshwor demo tenant from LocalStorage
           state.tenants = (state.tenants || []).filter(t => 
@@ -8786,13 +8981,58 @@
 
     function findTenantBySlugOrId(slugParam) {
       if (!slugParam) return null;
-      const s = slugParam.trim().toLowerCase();
-      return (state.tenants || []).find(t =>
+      const s = String(slugParam).trim().toLowerCase();
+      const norm = s.replace(/[-_\s]/g, '');
+      const tenants = state.tenants || [];
+      if (!tenants.length) return null;
+
+      // 1. Exact match on Slug, TenantID, AdminUsername, or Phone
+      let match = tenants.find(t =>
         (t.Slug && t.Slug.toLowerCase() === s) ||
         (t.TenantID && t.TenantID.toLowerCase() === s) ||
-        (t.AdminUsername && t.AdminUsername.toLowerCase() === s)
-      ) || (s === 'helambu' ? (state.tenants && state.tenants[0]) : null);
+        (t.AdminUsername && t.AdminUsername.toLowerCase() === s) ||
+        (t.Phone && t.Phone === s)
+      );
+      if (match) return match;
+
+      // 2. Normalized match (ignoring dashes/underscores, e.g. helambu-rsp-2 == helambu_rsp_2)
+      match = tenants.find(t => {
+        const tSlugNorm = (t.Slug || '').toLowerCase().replace(/[-_\s]/g, '');
+        const tIdNorm = (t.TenantID || '').toLowerCase().replace(/[-_\s]/g, '');
+        const tUserNorm = (t.AdminUsername || '').toLowerCase().replace(/[-_\s]/g, '');
+        return (tSlugNorm && tSlugNorm === norm) || (tIdNorm && tIdNorm === norm) || (tUserNorm && tUserNorm === norm);
+      });
+      if (match) return match;
+
+      // 3. Partial keyword matching for RSP / Helambu
+      if (norm.includes('rsp') || norm === 'bell' || norm === 'ghanti') {
+        const rspTenant = tenants.find(t => (t.Party === 'RSP' || (t.TenantName && t.TenantName.includes('स्वतन्त्र'))) && t.Status !== 'Suspended')
+          || tenants.find(t => t.Party === 'RSP');
+        if (rspTenant) return rspTenant;
+      }
+
+      // 4. If query is simply 'helambu', return the ACTIVE Helambu tenant (prioritizing Active over Suspended)
+      if (norm === 'helambu') {
+        const activeHelambu = tenants.find(t => 
+          (t.PalikaName && t.PalikaName.includes('हेलम्बु')) && t.Status === 'Active'
+        );
+        if (activeHelambu) return activeHelambu;
+        const anyHelambu = tenants.find(t => 
+          (t.PalikaName && t.PalikaName.includes('हेलम्बु')) || (t.Slug && t.Slug.toLowerCase().includes('helambu'))
+        );
+        if (anyHelambu) return anyHelambu;
+      }
+
+      // 5. Fallback if single active tenant exists
+      const activeTenants = tenants.filter(t => t.Status !== 'Suspended');
+      if (activeTenants.length === 1 && (norm === 'admin' || norm === 'palika' || norm === 'app')) {
+        return activeTenants[0];
+      }
+
+      return null;
     }
+
+    let _isResolvingCloudTenant = false;
 
     // STRICT URL ROUTING ENGINE (SECTION 2: 3 PURE SCREENS)
     function handleUrlRouting(preserveInputs = false) {
@@ -8822,16 +9062,46 @@
 
       // SCREEN C: Staff & Candidate Personal PIN Login (?palika=slug&u=opaque-token)
       if (slugParam && tokenParam) {
-        const tenant = findTenantBySlugOrId(slugParam);
+        let tenant = findTenantBySlugOrId(slugParam);
 
         if (!tenant) {
+          const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+          const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+          if (url && key && !_isResolvingCloudTenant) {
+            _isResolvingCloudTenant = true;
+            fetch(`${url}/rest/v1/system_settings?key=eq.saas_tenants_registry`, {
+              headers: { 'apikey': key, 'Authorization': `Bearer ${key}` }
+            }).then(r => r.json()).then(data => {
+              _isResolvingCloudTenant = false;
+              if (Array.isArray(data) && data[0] && data[0].value) {
+                const cloudTenants = typeof data[0].value === 'string' ? JSON.parse(data[0].value) : data[0].value;
+                if (Array.isArray(cloudTenants) && cloudTenants.length > 0) {
+                  const localMap = new Map((state.tenants || []).map(t => [t.TenantID, t]));
+                  cloudTenants.forEach(ct => {
+                    if (ct && ct.TenantID) localMap.set(ct.TenantID, { ...(localMap.get(ct.TenantID) || {}), ...ct });
+                  });
+                  state.tenants = Array.from(localMap.values());
+                  saveState();
+                }
+              }
+              handleUrlRouting(preserveInputs);
+            }).catch(() => {
+              _isResolvingCloudTenant = false;
+              showInvalidLinkNotice('अमान्य पालिका/Tenant लिङ्क', 'यो लिङ्कमा तोकिएको पालिका वा Tenant प्रणालीमा फेला परेन। कृपया आफ्नो Admin लाई सम्पर्क गर्नुहोस्।');
+            });
+            return;
+          }
           showInvalidLinkNotice('अमान्य पालिका/Tenant लिङ्क', 'यो लिङ्कमा तोकिएको पालिका वा Tenant प्रणालीमा फेला परेन। कृपया आफ्नो Admin लाई सम्पर्क गर्नुहोस्।');
           return;
         }
 
         if (tenant.Status === 'Suspended') {
-          showInvalidLinkNotice('⛔ सेवा निलम्बन गरिएको छ', `${tenant.TenantName || tenant.PalikaName} को सेवा हाल Super Admin द्वारा अस्थायी रूपमा रोक्का गरिएको छ।`);
-          return;
+          const activeAlt = (state.tenants || []).find(t => t.Status === 'Active' && t.PalikaName === tenant.PalikaName && t.TenantID !== tenant.TenantID);
+          if (activeAlt) tenant = activeAlt;
+          else {
+            showInvalidLinkNotice('⛔ सेवा निलम्बन गरिएको छ', `${tenant.TenantName || tenant.PalikaName} को सेवा हाल Super Admin द्वारा अस्थायी रूपमा रोक्का गरिएको छ।`);
+            return;
+          }
         }
 
         activeTenantContext = tenant;
@@ -8867,16 +9137,54 @@
 
       // SCREEN B: Dedicated Tenant Admin Login (?palika=slug)
       if (slugParam) {
-        const tenant = findTenantBySlugOrId(slugParam);
+        let tenant = findTenantBySlugOrId(slugParam);
 
         if (!tenant) {
-          showInvalidLinkNotice('पालिका/Tenant लिङ्क फेला परेन', 'तपाईंले खोलेको Tenant लिङ्क अमान्य छ। कृपया सही लिङ्क प्रयोग गर्नुहोस् वा केन्द्रीय व्यवस्थापकसँग सम्पर्क गर्नुहोस्।');
+          const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+          const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+          if (url && key && !_isResolvingCloudTenant) {
+            _isResolvingCloudTenant = true;
+            showAuthScreen('invalid');
+            const titleEl = document.getElementById('invalidLinkTitle');
+            const msgEl = document.getElementById('invalidLinkMsg');
+            if (titleEl) titleEl.textContent = 'पालिका विवरण प्रमाणित गरिँदैछ...';
+            if (msgEl) msgEl.innerHTML = `<span style="font-size:24px;display:inline-block;animation:pulseDot 1s infinite;">⏳</span><br>क्लाउड सर्भरबाट <b>${escapeHtml(slugParam)}</b> पालिका लिङ्क लोड गरिँदैछ, कृपया १-२ सेकेन्ड पर्खनुहोस्...`;
+
+            fetch(`${url}/rest/v1/system_settings?key=eq.saas_tenants_registry`, {
+              headers: { 'apikey': key, 'Authorization': `Bearer ${key}` }
+            }).then(r => r.json()).then(data => {
+              _isResolvingCloudTenant = false;
+              if (Array.isArray(data) && data[0] && data[0].value) {
+                const cloudTenants = typeof data[0].value === 'string' ? JSON.parse(data[0].value) : data[0].value;
+                if (Array.isArray(cloudTenants) && cloudTenants.length > 0) {
+                  const localMap = new Map((state.tenants || []).map(t => [t.TenantID, t]));
+                  cloudTenants.forEach(ct => {
+                    if (ct && ct.TenantID) localMap.set(ct.TenantID, { ...(localMap.get(ct.TenantID) || {}), ...ct });
+                  });
+                  state.tenants = Array.from(localMap.values());
+                  saveState();
+                }
+              }
+              handleUrlRouting(preserveInputs);
+            }).catch(() => {
+              _isResolvingCloudTenant = false;
+              showInvalidLinkNotice('पालिका/Tenant लिङ्क फेला परेन', `तपाईंले खोलेको Tenant लिङ्क (${slugParam}) अमान्य छ। कृपया सही लिङ्क प्रयोग गर्नुहोस् वा तलबाट पालिका छनौट गर्नुहोस्।`);
+            });
+            return;
+          }
+
+          showInvalidLinkNotice('पालिका/Tenant लिङ्क फेला परेन', `तपाईंले खोलेको Tenant लिङ्क (${slugParam}) अमान्य छ। कृपया सही लिङ्क प्रयोग गर्नुहोस् वा तलबाट पालिका छनौट गर्नुहोस्।`);
           return;
         }
 
         if (tenant.Status === 'Suspended') {
-          showInvalidLinkNotice('⛔ सेवा निलम्बन गरिएको छ', `${tenant.TenantName || tenant.PalikaName} को सेवा हाल Super Admin द्वारा अस्थायी रूपमा रोक्का गरिएको छ।`);
-          return;
+          const activeAlt = (state.tenants || []).find(t => t.Status === 'Active' && t.PalikaName === tenant.PalikaName && t.TenantID !== tenant.TenantID);
+          if (activeAlt) {
+            tenant = activeAlt;
+          } else {
+            showInvalidLinkNotice('⛔ सेवा निलम्बन गरिएको छ', `${tenant.TenantName || tenant.PalikaName} को सेवा हाल Super Admin द्वारा अस्थायी रूपमा रोक्का गरिएको छ।`);
+            return;
+          }
         }
 
         activeTenantContext = tenant;
@@ -32491,6 +32799,124 @@
       }
     }
 
+    let _warRoomTurnoutPct = 68;
+    let _warRoomBadarPct = 4.2;
+    let _warRoomOpponentPct = 34;
+
+    function resetWarRoomSliders() {
+      _warRoomTurnoutPct = 68;
+      _warRoomBadarPct = 4.2;
+      _warRoomOpponentPct = 34;
+      renderCandidateWarRoom();
+      showToast('सिमुलेटर स्लाइडरहरू रिसेट गरियो।', 'info');
+    }
+
+    function onWarRoomSimulatorSliderChanged() {
+      const turnoutEl = document.getElementById('wrTurnoutSlider');
+      const oppEl = document.getElementById('wrOpponentSlider');
+      if (turnoutEl) _warRoomTurnoutPct = parseFloat(turnoutEl.value) || 68;
+      if (oppEl) _warRoomOpponentPct = parseFloat(oppEl.value) || 34;
+      renderCandidateWarRoom();
+    }
+
+    function onWarRoomBadarSliderChanged(val) {
+      _warRoomBadarPct = Math.round(parseFloat(val || 0) * 10) / 10;
+      renderCandidateWarRoom();
+    }
+
+    function onWarRoomBadarPctInput(val) {
+      const p = parseFloat(val);
+      if (!isNaN(p) && p >= 0 && p <= 30) {
+        _warRoomBadarPct = Math.round(p * 10) / 10;
+        const slider = document.getElementById('wrBadarSlider');
+        if (slider) slider.value = _warRoomBadarPct;
+        renderCandidateWarRoom();
+      }
+    }
+
+    function onWarRoomBadarCountInput(val) {
+      const cnt = parseInt(val, 10);
+      const cand = getSelectedCandidate();
+      if (!cand || isNaN(cnt) || cnt < 0) return;
+      const candidateVoters = getScopedVoters().filter(v => cand.Ward === 'All' || String(v.Ward) === String(cand.Ward));
+      const totalVoters = candidateVoters.length;
+      let abroad = 0;
+      candidateVoters.forEach(v => {
+        const loc = String(v.CurrentLocation || '');
+        if (loc.includes('खाडी') || loc.includes('भारत') || loc.includes('विदेश') || loc.includes('West')) abroad++;
+      });
+      const projected = Math.round((totalVoters - abroad) * (_warRoomTurnoutPct / 100));
+      if (projected > 0) {
+        _warRoomBadarPct = Math.round((cnt / projected) * 1000) / 10;
+        const pctInp = document.getElementById('wrBadarPctInput');
+        const slider = document.getElementById('wrBadarSlider');
+        if (pctInp) pctInp.value = _warRoomBadarPct;
+        if (slider) slider.value = _warRoomBadarPct;
+        renderCandidateWarRoom();
+      }
+    }
+
+    function openWarRoomSwingVotersList() {
+      const cand = getSelectedCandidate();
+      const ward = cand ? cand.Ward : 'All';
+      switchView('voters');
+      const wFilter = document.getElementById('voterWardFilter');
+      const sFilter = document.getElementById('voterSupportFilter');
+      if (wFilter && ward !== 'All') wFilter.value = ward;
+      if (sFilter) sFilter.value = 'swing';
+      renderVotersList();
+      showToast(`🎯 वडा ${ward === 'All' ? 'समग्र' : ward} का दोधार (Swing) मतदाताहरू फिल्टर गरियो।`, 'info');
+    }
+
+    function openWarRoomVoterEducationList() {
+      const cand = getSelectedCandidate();
+      const ward = cand ? cand.Ward : 'All';
+      switchView('voters');
+      const wFilter = document.getElementById('voterWardFilter');
+      if (wFilter && ward !== 'All') wFilter.value = ward;
+      const sFilter = document.getElementById('voterSupportFilter');
+      if (sFilter) sFilter.value = 'All';
+      renderVotersList();
+      showToast(`⚠️ बदर मत जोखिम घटाउन ज्येष्ठ नागरिक तथा नयाँ मतदाताहरू हेर्नुहोस्।`, 'info');
+    }
+
+    function openWarRoomSwingSmsModal() {
+      const cand = getSelectedCandidate();
+      const candName = cand ? cand.Name : 'हाम्रो उम्मेदवार';
+      const candPost = cand ? cand.Post : 'जनप्रतिनिधि';
+      const candSymbol = cand ? cand.Symbol : '🗳️';
+      openModal(
+        '📲 Swing (दोधार) मतदाता लक्षित SMS / WhatsApp अपील',
+        `
+        <div style="padding: 10px 4px;">
+          <p style="font-size: 13px; color: #475569; margin-bottom: 12px; line-height: 1.5;">
+            दोधार (Swing) मतदाताहरूलाई आफ्नो पक्षमा ल्याउन आधिकारिक तथा प्रेरणादायी चुनावी सन्देश:
+          </p>
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label" style="font-weight: 800;">अपील सन्देश (Campaign Appeal Template):</label>
+            <textarea id="wrSwingSmsText" class="form-control" rows="5" style="font-size: 13.5px; line-height: 1.5;">नमस्ते आदरणीय मतदाता ज्यू! आगामी स्थानीय निर्वाचनमा हेलम्बुको मुहार फेर्न, भ्रष्टाचारमुक्त पारदर्शी नेतृत्वका लागि ${candPost} पदका उम्मेदवार ${candName} (चुनाव चिन्ह ${candSymbol}) लाई आफ्नो अमूल्य मत दिई विजयी गराउनुहुन हार्दिक अपिल गर्दछौं। - निर्वाचन परिचालन समिति</textarea>
+          </div>
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px; font-size: 12px; color: #1e40af; margin-bottom: 14px;">
+            💡 <b>रणनीतिक टिप:</b> यो सन्देश वडाका दोधार मतदाताहरूलाई एसएमएस वा ह्वाट्सएप मार्फत पठाउन सकिन्छ।
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button class="btn btn-secondary" onclick="closeModal()">रद्द गर्नुहोस्</button>
+            <button class="btn btn-primary" onclick="copyWarRoomAppealText()" style="font-weight: 800;">📋 सन्देश कपी गर्नुहोस्</button>
+          </div>
+        </div>
+        `
+      );
+    }
+
+    function copyWarRoomAppealText() {
+      const t = document.getElementById('wrSwingSmsText');
+      if (t) {
+        navigator.clipboard.writeText(t.value);
+        showToast('सन्देश क्लिपबोर्डमा कपी भयो!', 'success');
+        closeModal();
+      }
+    }
+
     function onWarRoomCandidateSelected(candId) {
       state.selectedCandidateId = candId;
       const topSelect = document.getElementById('topbarCandidateSelect');
@@ -32542,7 +32968,8 @@
       }
 
       const isAllWard = cand.Ward === 'All';
-      const activePalikaLabel = (state.settings && state.settings.MUNICIPALITY) || 'हेलम्बु गाउँपालिका'; const wardScopeText = isAllWard ? `${activePalikaLabel} (समग्र वडा १–${getActivePalikaWardNumbers().length})` : `${activePalikaLabel} वडा नं. ${cand.Ward} कार्यक्षेत्र`;
+      const activePalikaLabel = (state.settings && state.settings.MUNICIPALITY) || 'हेलम्बु गाउँपालिका';
+      const wardScopeText = isAllWard ? `${activePalikaLabel} (समग्र वडा १–${getActivePalikaWardNumbers().length})` : `${activePalikaLabel} वडा नं. ${cand.Ward} कार्यक्षेत्र`;
       if (scopeEl) {
         scopeEl.textContent = `📍 कार्यक्षेत्र: ${wardScopeText} • चुनाव चिन्ह: ${cand.Symbol} | 🎯 लक्षित मत: ${(cand.TargetVotes || 0).toLocaleString()} मत`;
       }
@@ -32555,7 +32982,7 @@
 
       const totalVoters = candidateVoters.length;
 
-      // Helper for consistent location classification
+      // Helper for location classification
       function classifyWarRoomLocation(locRaw) {
         const loc = String(locRaw || 'गाउँमै उपस्थित (On-Ground)').trim();
         if (!loc || loc.includes('गाउँ') || loc.includes('On-Ground')) return 'onGround';
@@ -32594,7 +33021,6 @@
       let indiaCount = 0;
       let westCount = 0;
 
-      // Calculate candidate's current votes (only among present + city voters):
       let sureVotes = 0;
       let softVotes = 0;
       let oppVotes = 0;
@@ -32623,15 +33049,43 @@
         }
       });
 
-      // Deduction Math
+      // Deduction & Plurality Math
       const abroadAbsent = gulfCount + indiaCount + westCount;
-      const projectedTurnout = totalVoters - abroadAbsent;
-      const magicTarget = Math.floor(projectedTurnout / 2) + 1;
+      const presentEligible = Math.max(0, totalVoters - abroadAbsent);
+      const projectedTurnout = Math.round(presentEligible * (_warRoomTurnoutPct / 100));
+      const badarVotes = Math.round(projectedTurnout * (_warRoomBadarPct / 100));
+      const validVotes = Math.max(0, projectedTurnout - badarVotes);
+      const opponentEstimatedVotes = Math.round(validVotes * (_warRoomOpponentPct / 100));
+      // Plurality Winning Target: Top Opponent + 1 vote!
+      const magicTarget = opponentEstimatedVotes + 1;
+      const shortfall = Math.max(0, magicTarget - sureVotes);
+      const leadMargin = sureVotes - magicTarget;
 
-      // Update Win Meter DOM elements
+      // Update Slider Controls DOM values
+      const sTurnout = document.getElementById('wrTurnoutSlider');
+      const sTurnoutVal = document.getElementById('wrTurnoutSliderVal');
+      const sOpp = document.getElementById('wrOpponentSlider');
+      const sOppVal = document.getElementById('wrOpponentSliderVal');
+      const inBadarPct = document.getElementById('wrBadarPctInput');
+      const inBadarCount = document.getElementById('wrBadarCountInput');
+      const sBadar = document.getElementById('wrBadarSlider');
+
+      if (sTurnout) sTurnout.value = _warRoomTurnoutPct;
+      if (sTurnoutVal) sTurnoutVal.textContent = _warRoomTurnoutPct + '%';
+      if (sOpp) sOpp.value = _warRoomOpponentPct;
+      if (sOppVal) sOppVal.textContent = _warRoomOpponentPct + '%';
+      if (inBadarPct) inBadarPct.value = _warRoomBadarPct;
+      if (inBadarCount) inBadarCount.value = badarVotes;
+      if (sBadar) sBadar.value = _warRoomBadarPct;
+
+      // Update Math Cards DOM elements
       const elTot = document.getElementById('wrTotalVoters');
       const elAbs = document.getElementById('wrAbroadAbsent');
       const elTurn = document.getElementById('wrProjectedTurnout');
+      const elTurnSub = document.getElementById('wrProjectedTurnoutSub');
+      const elBadar = document.getElementById('wrBadarCalcDisplay');
+      const elBadarSub = document.getElementById('wrBadarCalcSub');
+      const elValid = document.getElementById('wrValidVotesDisplay');
       const elMag = document.getElementById('wrMagicTarget');
       const elSure = document.getElementById('wrCurrentTotalVotes');
       const elPctText = document.getElementById('wrTargetPctText');
@@ -32639,15 +33093,28 @@
       const elProgBar = document.getElementById('wrProgressBar');
       const elBadge = document.getElementById('warRoomStatusBadge');
       const elAdvice = document.getElementById('wrTacticalAdvisory');
+      const elSwingBtnText = document.getElementById('wrBtnFilterSwingText');
 
       if (elTot) elTot.textContent = totalVoters.toLocaleString();
       if (elAbs) elAbs.textContent = abroadAbsent.toLocaleString();
       if (elTurn) elTurn.textContent = projectedTurnout.toLocaleString();
+      if (elTurnSub) elTurnSub.textContent = `${_warRoomTurnoutPct}% खस्ने दर`;
+      if (elBadar) elBadar.textContent = badarVotes.toLocaleString();
+      if (elBadarSub) elBadarSub.textContent = `${_warRoomBadarPct}% बदर दर`;
+      if (elValid) elValid.textContent = validVotes.toLocaleString();
       if (elMag) elMag.textContent = magicTarget.toLocaleString();
       if (elSure) elSure.textContent = sureVotes.toLocaleString();
 
+      if (elSwingBtnText) {
+        if (shortfall > 0) {
+          elSwingBtnText.textContent = `👉 अपुग ${shortfall.toLocaleString()} मत जुटाउन ${softVotes.toLocaleString()} दोधार (Swing) मतदाता हेर्नुहोस्`;
+        } else {
+          elSwingBtnText.textContent = `👉 सबै ${softVotes.toLocaleString()} दोधार (Swing) मतदाता सूची खोल्नुहोस्`;
+        }
+      }
+
       const pctAchieved = magicTarget > 0 ? Math.min(100, Math.round((sureVotes / magicTarget) * 100)) : 0;
-      if (elPctText) elPctText.textContent = `${pctAchieved}% जादुई जित लक्ष्य हासिल`;
+      if (elPctText) elPctText.textContent = `${pctAchieved}% जित लक्ष्य हासिल`;
       if (elRatio) elRatio.textContent = `${sureVotes.toLocaleString()} / ${magicTarget.toLocaleString()} जित लक्ष्य मत`;
       if (elProgBar) {
         elProgBar.style.width = `${pctAchieved}%`;
@@ -32661,22 +33128,44 @@
       }
 
       if (elBadge) {
-        if (pctAchieved >= 100) {
-          elBadge.innerHTML = `<span class="badge" style="background: #ecfdf5; color: #047857; font-weight: 800; font-size: 13px; padding: 6px 14px; border: 1.5px solid #a7f3d0;">🟢 सुरक्षित जित (Safe Zone: +${(sureVotes - magicTarget).toLocaleString()} मत अग्रता)</span>`;
-        } else if (pctAchieved >= 85) {
-          elBadge.innerHTML = `<span class="badge" style="background: #eff6ff; color: #1d4ed8; font-weight: 800; font-size: 13px; padding: 6px 14px; border: 1.5px solid #bfdbfe;">🔵 कडा प्रतिस्पर्धा (Tough Fight: ${(magicTarget - sureVotes).toLocaleString()} मत अपुग)</span>`;
+        if (shortfall === 0) {
+          elBadge.innerHTML = `
+            <div style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 26px;">🟢</span>
+                <div>
+                  <div style="font-weight: 800; color: #047857; font-size: 14.5px;">सुरक्षित जित क्षेत्र (Safe Victory Zone)</div>
+                  <div style="font-size: 12px; color: #065f46;">मुख्य प्रतिस्पर्धी भन्दा <b>+${leadMargin.toLocaleString()} मत</b> को अग्रता छ।</div>
+                </div>
+              </div>
+              <span class="badge" style="background: #059669; color: #ffffff; font-weight: 800; font-size: 13px; padding: 6px 14px; border-radius: 8px;">
+                +${leadMargin.toLocaleString()} अग्रता (Lead)
+              </span>
+            </div>`;
         } else {
-          elBadge.innerHTML = `<span class="badge" style="background: #fef2f2; color: #b91c1c; font-weight: 800; font-size: 13px; padding: 6px 14px; border: 1.5px solid #fecaca;">🔴 उच्च जोखिम (Action Required: ${(magicTarget - sureVotes).toLocaleString()} मत अपुग)</span>`;
+          elBadge.innerHTML = `
+            <div style="background: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 26px;">🎯</span>
+                <div>
+                  <div style="font-weight: 800; color: #be123c; font-size: 14.5px;">जित्न अझै ${shortfall.toLocaleString()} मत अपुग (Target Gap)</div>
+                  <div style="font-size: 12px; color: #881337;">क्षेत्रमा रहेका <b>${softVotes.toLocaleString()} जना दोधार (Swing) मतदाता</b> बाट ${shortfall.toLocaleString()} जना ताने जित सुनिश्चित हुन्छ।</div>
+                </div>
+              </div>
+              <span class="badge" style="background: #e11d48; color: #ffffff; font-weight: 800; font-size: 13px; padding: 6px 14px; border-radius: 8px;">
+                -${shortfall.toLocaleString()} अपुग (Gap)
+              </span>
+            </div>`;
         }
       }
 
       // Tactical Advisory Formulation
-      const shortfall = Math.max(0, magicTarget - sureVotes);
       let adviceHtml = '';
       if (shortfall === 0) {
-        adviceHtml = `<b>🏆 विजय विश्लेषण:</b> बधाई छ! ${cand.Name} को हालको सुरक्षित भोट (${sureVotes.toLocaleString()}) जितको जादुई सीमा (${magicTarget.toLocaleString()}) भन्दा <b>${(sureVotes - magicTarget).toLocaleString()} मत</b> बढी छ। अबको रणनीति भनेको आफ्ना मतदातालाई मतदान केन्द्रसम्म ल्याउने (Get Out The Vote) र काठमाडौंबाट आउने गाडी व्यवस्थापन सुरक्षित राख्नु हो।`;
+        adviceHtml = `<b>🏆 विजय रणनीति विश्लेषण:</b> बधाई छ! ${cand.Name} को हालको सुरक्षित भोट (${sureVotes.toLocaleString()}) जितको लागि आवश्यक सीमा (${magicTarget.toLocaleString()}) भन्दा <b>+${leadMargin.toLocaleString()} मत बढी</b> छ। <br>• <b>अबको रणनीति:</b> बदर मत घटाउन ज्येष्ठ नागरिकलाई मतदान शिक्षा दिनुहोस् र मतदानको दिन आफ्ना सबै मतदातालाई बुथसम्म पुर्‍याउने (Get Out The Vote) गाडी व्यवस्थापन चुस्त राख्नुहोस्।`;
       } else {
-        adviceHtml = `<b>🎯 विजय रणनीति सुझाव (Tactical Advisory):</b> जित्न अझै <b>${shortfall.toLocaleString()} मत</b> चाहिन्छ। <br>• <b>काठमाडौं भोट बैंक:</b> काठमाडौंमा रहेका ${cityCount} मतदाता मध्येबाट कम्तीमा ${Math.min(cityCount, Math.ceil(shortfall * 0.7))} जनालाई गाडी रिजर्भ गरेर ल्याउनुहोस्।<br>• <b>दोधार मतदाता:</b> फिल्डमा रहेका ${softVotes} जना दोधार मतदातामा उम्मेदवारको प्रत्यक्ष घरदैलो गर्नुहोस्।<br>• <b>खाडी सम्पर्क:</b> विदेशमा रहेका ${gulfCount} जनालाई WhatsApp कल गराई उनीहरूको परिवारको ${Math.round(gulfCount * 2.2)} भोट सुरक्षित गर्नुहोस्।`;
+        const swingConversionPct = softVotes > 0 ? Math.min(100, Math.round((shortfall / softVotes) * 100)) : 0;
+        adviceHtml = `<b>🎯 विजय रणनीति सुझाव (Actionable Win Plan):</b> जित्नका लागि अझै <b>${shortfall.toLocaleString()} मत</b> आवश्यक छ। <br>• <b>दोधार मतदाता लक्ष्य:</b> कुल ${softVotes} जना Swing मतदाता मध्येबाट <b>${swingConversionPct}% (${shortfall} जना)</b> लाई आफ्नो पक्षमा ल्याउन उम्मेदवार र प्रभावशाली अगुवाहरू (Stars) ले प्रत्यक्ष घरदैलो गर्नुहोस्।<br>• <b>बदर मत रोकथाम:</b> यस क्षेत्रमा करिब ${badarVotes} मत बदर हुने जोखिम छ। बदर मत रोकथाम टोली खटाई आफ्ना मतदातालाई नमुना मतपत्रमा अभ्यास गराउनुहोस्।<br>• <b>काठमाडौं भोट बैंक:</b> काठमाडौंमा रहेका ${cityCount} मतदातालाई निर्वाचनको अघिल्लो दिन गाडी व्यवस्था गरी गाउँ ल्याउनुहोस्।`;
       }
       if (elAdvice) elAdvice.innerHTML = adviceHtml;
 
@@ -32698,6 +33187,110 @@
       if (wrIndiaPct) wrIndiaPct.textContent = totalVoters > 0 ? `${Math.round((indiaCount / totalVoters) * 100)}%` : '0%';
       if (wrWest) wrWest.textContent = westCount;
       if (wrWestPct) wrWestPct.textContent = totalVoters > 0 ? `${Math.round((westCount / totalVoters) * 100)}%` : '0%';
+
+      // 4. Render Ward-by-Ward Strategy Roll-Up Table
+      renderWardByWardRollupTable(cand);
+
+      // 5. Render Area Live Timeline & Tole Breakdown
+      renderWarRoomLiveTimeline(cand);
+      renderWarRoomToleBreakdown(candidateVoters, cand);
+    }
+
+    function renderWardByWardRollupTable(cand) {
+      const tbody = document.getElementById('wrWardRollupTbody');
+      if (!tbody) return;
+
+      const allScopedVoters = getScopedVoters();
+      const wards = getActivePalikaWardNumbers();
+      const candPartyKey = (cand && cand.Party) ? (cand.Party.toUpperCase().includes('RSP') ? 'RSP' : (cand.Party.toUpperCase().includes('NC') ? 'NC' : 'UML')) : 'RSP';
+
+      let totRoll = 0, totTurnout = 0, totBadar = 0, totValid = 0, totTarget = 0, totSure = 0;
+      let rowsHtml = '';
+
+      wards.forEach(wNum => {
+        const wVoters = allScopedVoters.filter(v => String(v.Ward) === String(wNum));
+        const wRoll = wVoters.length;
+        if (wRoll === 0) return;
+
+        let wAbroad = 0, wSure = 0;
+        wVoters.forEach(v => {
+          const loc = String(v.CurrentLocation || '');
+          if (loc.includes('खाडी') || loc.includes('भारत') || loc.includes('विदेश') || loc.includes('West')) {
+            wAbroad++;
+            return;
+          }
+          const tier = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
+          const p = String(v.PartyLeaning || '').toUpperCase();
+          if (tier === 'solid' || tier === 'lean' || p.includes(candPartyKey) || v.SelfReportedResponse === 'Support') {
+            wSure++;
+          }
+        });
+
+        const wTurnout = Math.round((wRoll - wAbroad) * (_warRoomTurnoutPct / 100));
+        const wBadar = Math.round(wTurnout * (_warRoomBadarPct / 100));
+        const wValid = Math.max(0, wTurnout - wBadar);
+        const wOpponent = Math.round(wValid * (_warRoomOpponentPct / 100));
+        const wTarget = wOpponent + 1;
+        const wMargin = wSure - wTarget;
+
+        totRoll += wRoll;
+        totTurnout += wTurnout;
+        totBadar += wBadar;
+        totValid += wValid;
+        totTarget += wTarget;
+        totSure += wSure;
+
+        const isLead = wMargin >= 0;
+        const badgeStyle = isLead
+          ? 'background: #dcfce7; color: #166534; border: 1px solid #86efac;'
+          : 'background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;';
+
+        rowsHtml += `
+          <tr style="border-bottom: 1px solid #e2e8f0; hover: background #f8fafc;">
+            <td style="padding: 10px 12px; font-weight: 800; color: #1e3a8a;">वडा नं. ${wNum}</td>
+            <td style="padding: 10px 12px; font-weight: 600;">${wRoll.toLocaleString()}</td>
+            <td style="padding: 10px 12px;">${wTurnout.toLocaleString()}</td>
+            <td style="padding: 10px 12px; color: #b91c1c;">${wBadar.toLocaleString()}</td>
+            <td style="padding: 10px 12px; font-weight: 600;">${wValid.toLocaleString()}</td>
+            <td style="padding: 10px 12px; font-weight: 700; color: #854d0e;">${wTarget.toLocaleString()}</td>
+            <td style="padding: 10px 12px; font-weight: 800; color: #15803d;">${wSure.toLocaleString()}</td>
+            <td style="padding: 10px 12px; font-weight: 900; color: ${isLead ? '#15803d' : '#b91c1c'};">
+              ${isLead ? '+' : ''}${wMargin.toLocaleString()}
+            </td>
+            <td style="padding: 10px 12px;">
+              <span class="badge" style="${badgeStyle} font-size: 11px; padding: 2px 7px; border-radius: 6px; font-weight: 800;">
+                ${isLead ? '🟢 अग्रता' : '🔴 अपुग'}
+              </span>
+            </td>
+          </tr>
+        `;
+      });
+
+      const netMargin = totSure - totTarget;
+      const isNetLead = netMargin >= 0;
+
+      rowsHtml += `
+        <tr style="background: #f8fafc; font-weight: 900; border-top: 2px solid #cbd5e1; border-bottom: 2px solid #cbd5e1;">
+          <td style="padding: 12px; color: #0f172a; font-size: 13.5px;">👑 कुल योग (Palika Roll-Up)</td>
+          <td style="padding: 12px;">${totRoll.toLocaleString()}</td>
+          <td style="padding: 12px;">${totTurnout.toLocaleString()}</td>
+          <td style="padding: 12px; color: #b91c1c;">${totBadar.toLocaleString()}</td>
+          <td style="padding: 12px;">${totValid.toLocaleString()}</td>
+          <td style="padding: 12px; color: #854d0e;">${totTarget.toLocaleString()}</td>
+          <td style="padding: 12px; color: #15803d;">${totSure.toLocaleString()}</td>
+          <td style="padding: 12px; font-size: 14px; color: ${isNetLead ? '#15803d' : '#b91c1c'};">
+            ${isNetLead ? '+' : ''}${netMargin.toLocaleString()}
+          </td>
+          <td style="padding: 12px;">
+            <span class="badge" style="background: ${isNetLead ? '#15803d' : '#b91c1c'}; color: #ffffff; font-size: 12px; padding: 4px 10px; border-radius: 6px; font-weight: 900;">
+              ${isNetLead ? '🏆 जित अग्रता' : '⚠️ अपुग'}
+            </span>
+          </td>
+        </tr>
+      `;
+
+      tbody.innerHTML = rowsHtml;
+    }
 
       // 3. Render Area Live Timeline & Tole Breakdown
       renderWarRoomLiveTimeline(cand);
