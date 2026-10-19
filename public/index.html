@@ -8382,13 +8382,28 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261014-v13';
+      const CURRENT_APP_BUILD = '20261019-v26-clean';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
         if ('caches' in window) {
           caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
         }
+        // Purge old local voters & cached tenant totals so client browser starts completely fresh
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const st = JSON.parse(raw);
+            st.voters = [];
+            st.households = [];
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(st));
+          }
+          Object.keys(localStorage).forEach(k => {
+            if (k.startsWith('EMS_TENANT_TOTAL_') || k.startsWith('EMS_SUPABASE_FULL_SYNC_DONE')) {
+              localStorage.removeItem(k);
+            }
+          });
+        } catch(e) {}
       } else {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
       }
@@ -8420,9 +8435,9 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261013-v16')
+        navigator.serviceWorker.register('sw.js?v=20261019-v26-clean')
           .then((reg) => {
-            console.log('Election Ops PWA Service Worker Registered (v16.0.0)');
+            console.log('Election Ops PWA Service Worker Registered (v26-clean)');
             reg.update();
           })
           .catch(err => console.log('SW registration error:', err));
