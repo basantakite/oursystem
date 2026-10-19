@@ -8382,7 +8382,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261014-v13';
+      const CURRENT_APP_BUILD = '20261019-v19';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8420,9 +8420,9 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261013-v16')
+        navigator.serviceWorker.register('sw.js?v=20261019-v19')
           .then((reg) => {
-            console.log('Election Ops PWA Service Worker Registered (v16.0.0)');
+            console.log('Election Ops PWA Service Worker Registered (v19.0.0)');
             reg.update();
           })
           .catch(err => console.log('SW registration error:', err));
@@ -10101,12 +10101,16 @@
 
         const localVoterCount = (state.voters && Array.isArray(state.voters)) ? state.voters.length : 0;
         const scopedVoterCount = (typeof getScopedVoters === 'function' && currentUser) ? getScopedVoters().length : localVoterCount;
-        const isTenantMissingData = currentUser && currentUser.Role !== 'Super Admin' && currentUser.TenantID && currentUser.TenantID !== 'ALL' && scopedVoterCount === 0;
+        const isTenantMissingData = currentUser && currentUser.Role !== 'Super Admin' && currentUser.TenantID && currentUser.TenantID !== 'ALL' && scopedVoterCount < 50;
         const hasLargeCloudGap = cloudTotalVoters > 0 && (cloudTotalVoters - localVoterCount > 100);
 
-        // Delta sync by default when local cache already has complete voter roll; Full download if fresh browser, missing tenant data, or large gap
+        // Force full download if: button clicked by user (interactive), tenant roll has <50 voters, large gap, fresh browser, or missing sync
         const hasFullSynced = !!localStorage.getItem('EMS_SUPABASE_FULL_SYNC_DONE');
-        const shouldFullFetch = forceFull || localVoterCount < 500 || !hasFullSynced || hasLargeCloudGap || isTenantMissingData;
+        const shouldFullFetch = forceFull || interactive || localVoterCount < 500 || !hasFullSynced || hasLargeCloudGap || isTenantMissingData;
+
+        if (interactive) {
+          showToast('🔄 Supabase Cloud बाट सम्पूर्ण मतदाता रोल लोड गरिँदैछ...', 'info');
+        }
 
         if (interactive || shouldFullFetch) {
           if (badge) {
@@ -11235,7 +11239,7 @@
       // Automatic live Cloud Sync from Supabase on every login (forces full if local roll is incomplete or tenant is empty)
       if (typeof syncSupabaseData === 'function') {
         const scopedCount = (typeof getScopedVoters === 'function' && currentUser) ? getScopedVoters().length : (state.voters ? state.voters.length : 0);
-        const needsFull = !state.voters || state.voters.length < 500 || (currentUser && currentUser.Role !== 'Super Admin' && currentUser.TenantID && currentUser.TenantID !== 'ALL' && scopedCount === 0);
+        const needsFull = !state.voters || state.voters.length < 500 || (currentUser && currentUser.Role !== 'Super Admin' && currentUser.TenantID && currentUser.TenantID !== 'ALL' && scopedCount < 50);
         syncSupabaseData(false, needsFull).then(() => {
           refreshDashboardMetrics();
           const activeSec = document.querySelector('.view-section.active');

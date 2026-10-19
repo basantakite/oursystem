@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v18 - Minimal status dot & 18k voter performance boost)
-const CACHE_NAME = 'election-ops-v18';
+// Service Worker for Offline & Installable App Experience (v19 - Force sync and cache bust)
+const CACHE_NAME = 'election-ops-v19';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
