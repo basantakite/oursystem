@@ -3704,7 +3704,15 @@
       padding: 2px 7px;
       border-radius: 999px;
     }
-
+    .presence-basket-card {
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      cursor: pointer;
+    }
+    .presence-basket-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+      border-color: #3b82f6 !important;
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3940,7 +3948,7 @@
           <span class="icon">📊</span> <span>Dashboard</span>
         </button>
         <button class="nav-item palika-only" data-view="warRoom" id="navItemWarRoom" onclick="switchView('warRoom')">
-          <span class="icon">🎯</span> <span>चुनावी रणनीति र जित सिमुलेटर</span>
+          <span class="icon">🎯</span> <span>चुनावी रणनीति</span>
           <span class="nav-badge" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; font-weight: 800;">LIVE</span>
         </button>
         <button class="nav-item palika-only" data-view="voters" onclick="switchView('voters')">
@@ -4384,7 +4392,7 @@
             
             <!-- COLUMN A: REAL FIELD PRESENCE & MIGRATION BASKETS -->
             <div class="card" style="padding: 18px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
                 <div>
                   <h4 style="margin: 0; font-size: 15.5px; font-weight: 800; color: var(--navy-900);">
                     📍 स्थलगत बसोबास वर्गीकरण (Field Presence Baskets)
@@ -4393,12 +4401,15 @@
                     मतदानको दिन को कहाँ हुन्छन्? र कसलाई कसरी परिचालन गर्ने?
                   </p>
                 </div>
+                <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px;">
+                  👆 कुनै पनि वर्गमा क्लिक गरी सूची हेर्नुहोस्
+                </span>
               </div>
 
               <!-- Location Baskets List -->
               <div style="display: flex; flex-direction: column; gap: 10px;">
                 <!-- 1. On-Ground -->
-                <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
+                <div class="presence-basket-card" onclick="openOnGroundVotersModal()" style="border: 1.5px solid #bbf7d0; border-radius: 8px; padding: 12px; background: #f0fdf4; display: flex; justify-content: space-between; align-items: center;">
                   <div>
                     <div style="font-weight: 800; color: #0f172a; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
                       <span>🟢 गाउँमै उपस्थित (On-Ground)</span>
@@ -4408,12 +4419,17 @@
                   </div>
                   <div style="text-align: right;">
                     <div style="font-size: 18px; font-weight: 900; color: #15803d;" id="wrLocOnGroundCount">0</div>
-                    <div style="font-size: 11px; color: var(--slate-600);" id="wrLocOnGroundPct">0%</div>
+                    <div style="display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 2px;">
+                      <span style="font-size: 11px; color: var(--slate-600);" id="wrLocOnGroundPct">0%</span>
+                      <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openOnGroundVotersModal()" style="padding: 2px 8px; font-size: 11px; font-weight: 700; background: #16a34a; border-color: #16a34a;">
+                        📋 सूची हेर्नुहोस्
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 <!-- 2. Kathmandu / City (Needs Transport) -->
-                <div style="border: 1.5px solid #f59e0b; border-radius: 8px; padding: 12px; background: #fffbeb; display: flex; justify-content: space-between; align-items: center;">
+                <div class="presence-basket-card" onclick="openKathmanduTransportModal()" style="border: 1.5px solid #f59e0b; border-radius: 8px; padding: 12px; background: #fffbeb; display: flex; justify-content: space-between; align-items: center;">
                   <div>
                     <div style="font-weight: 800; color: #92400e; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
                       <span>🚗 काठमाडौं / शहरमा रहेका (Needs Transport)</span>
@@ -4423,14 +4439,14 @@
                   </div>
                   <div style="text-align: right;">
                     <div style="font-size: 18px; font-weight: 900; color: #b45309;" id="wrLocCityCount">0</div>
-                    <button class="btn btn-sm btn-primary" onclick="openKathmanduTransportModal()" style="padding: 2px 8px; font-size: 11px; font-weight: 700; background: #d97706; border-color: #d97706; margin-top: 2px;">
+                    <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openKathmanduTransportModal()" style="padding: 2px 8px; font-size: 11px; font-weight: 700; background: #d97706; border-color: #d97706; margin-top: 2px;">
                       🚗 सूची हेर्नुहोस्
                     </button>
                   </div>
                 </div>
 
                 <!-- 3. Gulf & Malaysia -->
-                <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
+                <div class="presence-basket-card" onclick="openDiasporaAppealModal()" style="border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
                   <div>
                     <div style="font-weight: 800; color: #0f172a; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
                       <span>🏜️ खाडी मुलुक / मलेसिया (Gulf Diaspora)</span>
@@ -4440,37 +4456,49 @@
                   </div>
                   <div style="text-align: right;">
                     <div style="font-size: 18px; font-weight: 900; color: #475569;" id="wrLocGulfCount">0</div>
-                    <button class="btn btn-sm btn-secondary" onclick="openDiasporaAppealModal()" style="padding: 2px 8px; font-size: 11px; font-weight: 700; margin-top: 2px;">
+                    <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); openDiasporaAppealModal()" style="padding: 2px 8px; font-size: 11px; font-weight: 700; margin-top: 2px;">
                       📲 WhatsApp अपिल
                     </button>
                   </div>
                 </div>
 
                 <!-- 4. India Migrants -->
-                <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
+                <div class="presence-basket-card" onclick="openIndiaMigrantsModal()" style="border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
                   <div>
-                    <div style="font-weight: 800; color: #0f172a; font-size: 13.5px;">
-                      🇮🇳 भारतमा रहेका मौसमी कामदार (India)
+                    <div style="font-weight: 800; color: #0f172a; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
+                      <span>🇮🇳 भारतमा रहेका मौसमी कामदार (India)</span>
+                      <span class="badge" style="background: #ffedd5; color: #9a3412; font-size: 11px;">सीमा सम्पर्क</span>
                     </div>
                     <div style="font-size: 11.5px; color: var(--slate-600); margin-top: 2px;">सीमा सम्पर्क वा घरपरिवार मार्फत बोलाउने</div>
                   </div>
                   <div style="text-align: right;">
                     <div style="font-size: 18px; font-weight: 900; color: #475569;" id="wrLocIndiaCount">0</div>
-                    <div style="font-size: 11px; color: var(--slate-600);" id="wrLocIndiaPct">0%</div>
+                    <div style="display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 2px;">
+                      <span style="font-size: 11px; color: var(--slate-600);" id="wrLocIndiaPct">0%</span>
+                      <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); openIndiaMigrantsModal()" style="padding: 2px 8px; font-size: 11px; font-weight: 700;">
+                        📋 सूची हेर्नुहोस्
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 <!-- 5. Western / Other Abroad -->
-                <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
+                <div class="presence-basket-card" onclick="openWestDiasporaModal()" style="border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
                   <div>
-                    <div style="font-weight: 800; color: #0f172a; font-size: 13.5px;">
-                      ✈️ युरोप, अमेरिका, अस्ट्रेलिया (West / Others)
+                    <div style="font-weight: 800; color: #0f172a; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
+                      <span>✈️ युरोप, अमेरिका, अस्ट्रेलिया (West / Others)</span>
+                      <span class="badge" style="background: #ede9fe; color: #5b21b6; font-size: 11px;">विदेश प्रभाव</span>
                     </div>
                     <div style="font-size: 11.5px; color: var(--slate-600); margin-top: 2px;">मतदानमा अनुपस्थित रहने वर्ग (Non-Turnout)</div>
                   </div>
                   <div style="text-align: right;">
                     <div style="font-size: 18px; font-weight: 900; color: #94a3b8;" id="wrLocWestCount">0</div>
-                    <div style="font-size: 11px; color: var(--slate-600);" id="wrLocWestPct">0%</div>
+                    <div style="display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 2px;">
+                      <span style="font-size: 11px; color: var(--slate-600);" id="wrLocWestPct">0%</span>
+                      <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); openWestDiasporaModal()" style="padding: 2px 8px; font-size: 11px; font-weight: 700;">
+                        📋 सूची हेर्नुहोस्
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -33162,6 +33190,15 @@
       }
     }
 
+    function classifyWarRoomLocation(locRaw) {
+      const loc = String(locRaw || 'गाउँमै उपस्थित (On-Ground)').trim();
+      if (!loc || loc.includes('गाउँ') || loc.includes('On-Ground')) return 'onGround';
+      if (loc.includes('काठमाडौं') || loc.includes('Kathmandu') || loc.includes('City') || loc.includes('शहर')) return 'city';
+      if (loc.includes('खाडी') || loc.includes('Gulf') || loc.includes('कतार') || loc.includes('मलेसिया') || loc.includes('दुबई') || loc.includes('साउदी') || loc.includes('कुवेत') || loc.includes('युएई')) return 'gulf';
+      if (loc.includes('भारत') || loc.includes('India')) return 'india';
+      return 'west';
+    }
+
     function renderCandidateWarRoom() {
       populateCandidateDropdowns();
       const cand = getSelectedCandidate();
@@ -33775,19 +33812,175 @@
       }).join('');
     }
 
-    // Modal 1: Mobilize Kathmandu Transport
+    // Helper to open Voters tab filtered by location category
+    function viewLocationInVotersTab(cat) {
+      closeModal();
+      switchView('voters');
+      const cand = getSelectedCandidate();
+      const ward = cand ? cand.Ward : 'All';
+      const wFilter = document.getElementById('voterWardFilter');
+      const wFilterMobile = document.getElementById('voterWardFilterMobile');
+      if (wFilter && ward !== 'All') wFilter.value = ward;
+      if (wFilterMobile && ward !== 'All') wFilterMobile.value = ward;
+
+      const searchInput = document.getElementById('voterSearch');
+      if (searchInput) {
+        if (cat === 'city') searchInput.value = 'काठमाडौं';
+        else if (cat === 'gulf') searchInput.value = 'खाडी';
+        else if (cat === 'india') searchInput.value = 'भारत';
+        else if (cat === 'west') searchInput.value = 'विदेश';
+        else searchInput.value = '';
+      }
+      if (typeof renderVotersList === 'function') {
+        renderVotersList();
+      }
+    }
+
+    // Modal 1: On-Ground Voters (गाउँमै उपस्थित)
+    function openOnGroundVotersModal() {
+      const cand = getSelectedCandidate();
+      const isAll = !cand || cand.Ward === 'All';
+
+      const onGroundVoters = getScopedVoters().filter(v => {
+        if (!isAll && String(v.Ward) !== String(cand.Ward)) return false;
+        return classifyWarRoomLocation(v.CurrentLocation) === 'onGround';
+      });
+
+      window._activeModalOnGroundVoters = onGroundVoters;
+      const total = onGroundVoters.length;
+      const initialSlice = onGroundVoters.slice(0, 100);
+
+      openModal(
+        `🟢 गाउँमै उपस्थित (On-Ground) मतदाता (${total.toLocaleString()} जना)`,
+        `
+        <div style="font-size: 13px; color: var(--slate-700); margin-bottom: 12px; line-height: 1.5;">
+          यी मतदाताहरू निर्वाचनको दिन गाउँमै हुने भएकाले <b>१००% प्रत्यक्ष मतदान</b> गर्ने मुख्य आधार हुन्। घरदैलो र बुथ परिचालनका लागि निम्न सूची प्रयोग गर्नुहोस्:
+        </div>
+
+        <!-- Quick Filter / Search Bar in Modal -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+          <div style="flex: 1; min-width: 220px; position: relative;">
+            <input type="text" id="wrOgvModalSearchInput" class="form-control" placeholder="🔍 नाम, फोन वा टोलबाट खोज्नुहोस्..." oninput="onFilterOnGroundModalVoters(this.value)" style="padding-left: 32px; font-size: 13px;">
+            <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px;">🔍</span>
+          </div>
+          <button class="btn btn-sm btn-secondary" onclick="copyOnGroundVoterPhones()">
+            📋 फोन नम्बर कपी
+          </button>
+          <button class="btn btn-sm btn-primary" onclick="viewLocationInVotersTab('onGround')" style="background: #16a34a; border-color: #16a34a;">
+            👥 पूर्ण मतदाता पृष्ठमा हेर्नुहोस्
+          </button>
+        </div>
+
+        <div style="font-size: 11.5px; color: #64748b; margin-bottom: 8px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
+          <span id="wrOgvCountLabel">देखाउँदै: पहिलो ${Math.min(100, total).toLocaleString()} जना (कुल ${total.toLocaleString()} मध्ये)</span>
+          <span>💡 खोज्न माथिको बक्समा टाइप गर्नुहोस्</span>
+        </div>
+
+        <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;">क्र.सं.</th>
+                <th>मतदाता नाम</th>
+                <th>वडा र टोल</th>
+                <th>सम्पर्क फोन</th>
+                <th>समर्थन अवस्था</th>
+                <th>परिचालन</th>
+              </tr>
+            </thead>
+            <tbody id="wrOgvModalTableBody">
+              ${renderOnGroundVoterRows(initialSlice)}
+            </tbody>
+          </table>
+        </div>
+        `,
+        `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`,
+        'modal-lg'
+      );
+    }
+
+    function renderOnGroundVoterRows(voters) {
+      if (!voters || voters.length === 0) {
+        return `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 20px;">कुनै मतदाता फेला परेन।</td></tr>`;
+      }
+      return voters.map((v, i) => {
+        const tier = (typeof getSupportTier === 'function') ? getSupportTier(v) : { label: 'दोधार', color: '#f59e0b', bg: '#fef3c7' };
+        const pClean = cleanPhone(v.Phone);
+        return `
+          <tr>
+            <td style="text-align: center; font-weight: 700;">${i + 1}</td>
+            <td>
+              <b>${esc(v.Name)}</b>
+              ${v.IsInfluencer ? '<span class="badge" style="background:#fef3c7; color:#b45309; font-size:10px; margin-left:4px;">🌟 अगुवा</span>' : ''}
+            </td>
+            <td>वडा ${v.Ward} ${v.Tole ? `(${esc(v.Tole)})` : ''}</td>
+            <td>
+              ${pClean ? `
+                <a href="tel:${pClean}" style="color:#059669; font-weight:700; text-decoration:none;">📞 ${esc(v.Phone)}</a>
+              ` : '<span style="color:#94a3b8;">-</span>'}
+            </td>
+            <td>
+              <span class="badge" style="background:${tier.bg || '#f1f5f9'}; color:${tier.color || '#475569'}; font-size:11px;">
+                ${tier.label || 'दोधार'}
+              </span>
+            </td>
+            <td>
+              ${pClean ? `
+                <a href="https://wa.me/977${pClean}" target="_blank" class="btn btn-sm btn-secondary" style="padding: 2px 6px; font-size: 11px; color: #25D366; text-decoration: none;">
+                  🟢 WhatsApp
+                </a>
+              ` : '-'}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function onFilterOnGroundModalVoters(qRaw) {
+      const q = String(qRaw || '').trim().toLowerCase();
+      const all = window._activeModalOnGroundVoters || [];
+      const tbody = document.getElementById('wrOgvModalTableBody');
+      const label = document.getElementById('wrOgvCountLabel');
+      if (!tbody) return;
+
+      const filtered = !q ? all.slice(0, 100) : all.filter(v => {
+        return (v.Name && v.Name.toLowerCase().includes(q)) ||
+               (v.Phone && v.Phone.includes(q)) ||
+               (v.Tole && v.Tole.toLowerCase().includes(q)) ||
+               (String(v.Ward) === q);
+      }).slice(0, 100);
+
+      tbody.innerHTML = renderOnGroundVoterRows(filtered);
+      if (label) {
+        label.textContent = q ? `खोज नतिजा: ${filtered.length} जना (अधिकतम १००)` : `देखाउँदै: पहिलो ${Math.min(100, all.length).toLocaleString()} जना (कुल ${all.length.toLocaleString()} मध्ये)`;
+      }
+    }
+
+    function copyOnGroundVoterPhones() {
+      const voters = window._activeModalOnGroundVoters || [];
+      const phones = voters.map(v => cleanPhone(v.Phone)).filter(Boolean).join(',');
+      if (!phones) {
+        showToast('कुनै फोन नम्बर फेला परेन।', 'warning');
+        return;
+      }
+      navigator.clipboard.writeText(phones);
+      showToast(`${voters.filter(v => v.Phone).length} जना मतदाताका फोन नम्बरहरू कपी भयो!`, 'success');
+    }
+
+    // Modal 2: Mobilize Kathmandu Transport (काठमाडौं / शहरमा रहेका)
     function openKathmanduTransportModal() {
       const cand = getSelectedCandidate();
       const isAll = !cand || cand.Ward === 'All';
 
       const cityVoters = getScopedVoters().filter(v => {
         if (!isAll && String(v.Ward) !== String(cand.Ward)) return false;
-        const loc = v.CurrentLocation || '';
-        return loc.includes('काठमाडौं') || loc.includes('Kathmandu') || loc.includes('City') || loc.includes('शहर');
+        return classifyWarRoomLocation(v.CurrentLocation) === 'city';
       });
 
+      window._activeModalCityVoters = cityVoters;
+
       openModal(
-        `🚗 काठमाडौं / शहरमा रहेका मतदाता परिचालन (${cityVoters.length} जना)`,
+        `🚗 काठमाडौं / शहरमा रहेका मतदाता परिचालन (${cityVoters.length.toLocaleString()} जना)`,
         `
         <div style="font-size: 13px; color: var(--slate-700); margin-bottom: 14px;">
           यी मतदाताहरू मतदानका लागि पालिका बाहिर छन्। गाडी रिजर्भ वा यात्रा समन्वय गरेर मात्र भोट खसाल्न सकिन्छ:
@@ -33798,6 +33991,9 @@
           </button>
           <button class="btn btn-sm btn-secondary" onclick="copyCityVoterPhones()">
             📋 फोन नम्बरहरू कपी गर्नुहोस्
+          </button>
+          <button class="btn btn-sm btn-primary" onclick="viewLocationInVotersTab('city')" style="background: #d97706; border-color: #d97706;">
+            👥 पूर्ण मतदाता पृष्ठमा हेर्नुहोस्
           </button>
         </div>
         <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
@@ -33814,23 +34010,28 @@
               </tr>
             </thead>
             <tbody>
-              ${cityVoters.map((v, i) => `
-                <tr>
-                  <td style="text-align: center; font-weight: 700;">${i + 1}</td>
-                  <td><b>${esc(v.Name)}</b></td>
-                  <td>वडा ${v.Ward} (${esc(v.Tole || '-')})</td>
-                  <td>${v.Phone ? `<a href="tel:${cleanPhone(v.Phone)}" style="color:#059669; font-weight:700;">📞 ${esc(v.Phone)}</a>` : '-'}</td>
-                  <td><span class="badge" style="background:#fef3c7; color:#92400e;">${esc(v.CityAddress || 'काठमाडौं उपत्यका')}</span></td>
-                  <td>${esc(v.ElectionDayTurnout || 'गाडी पठाए आउने')}</td>
-                  <td>
-                    ${v.Phone ? `
-                      <a href="https://wa.me/977${cleanPhone(v.Phone)}?text=${encodeURIComponent('आदरणीय ' + v.Name + ' ज्यू, निर्वाचनका लागि काठमाडौंबाट गाडी प्रस्थानको समय र स्थानबारे समन्वय गर्न हामी सम्पर्कमा छौं।')}" target="_blank" class="btn btn-sm btn-secondary" style="color: #25D366; text-decoration: none;">
-                        🟢 WhatsApp
-                      </a>
-                    ` : '-'}
-                  </td>
-                </tr>
-              `).join('')}
+              ${cityVoters.length === 0 ? `
+                <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 20px;">कुनै काठमाडौं शहरका मतदाता फेला परेन।</td></tr>
+              ` : cityVoters.map((v, i) => {
+                const pClean = cleanPhone(v.Phone);
+                return `
+                  <tr>
+                    <td style="text-align: center; font-weight: 700;">${i + 1}</td>
+                    <td><b>${esc(v.Name)}</b></td>
+                    <td>वडा ${v.Ward} (${esc(v.Tole || '-')})</td>
+                    <td>${pClean ? `<a href="tel:${pClean}" style="color:#059669; font-weight:700;">📞 ${esc(v.Phone)}</a>` : '-'}</td>
+                    <td><span class="badge" style="background:#fef3c7; color:#92400e;">${esc(v.CityAddress || 'काठमाडौं उपत्यका')}</span></td>
+                    <td>${esc(v.ElectionDayTurnout || 'गाडी पठाए आउने')}</td>
+                    <td>
+                      ${pClean ? `
+                        <a href="https://wa.me/977${pClean}?text=${encodeURIComponent('आदरणीय ' + v.Name + ' ज्यू, निर्वाचनका लागि काठमाडौंबाट गाडी प्रस्थानको समय र स्थानबारे समन्वय गर्न हामी सम्पर्कमा छौं।')}" target="_blank" class="btn btn-sm btn-secondary" style="color: #25D366; text-decoration: none;">
+                          🟢 WhatsApp
+                        </a>
+                      ` : '-'}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
         </div>
@@ -33849,29 +34050,41 @@
       const isAll = !cand || cand.Ward === 'All';
       const cityVoters = getScopedVoters().filter(v => {
         if (!isAll && String(v.Ward) !== String(cand.Ward)) return false;
-        const loc = v.CurrentLocation || '';
-        return (loc.includes('काठमाडौं') || loc.includes('Kathmandu') || loc.includes('City') || loc.includes('शहर')) && v.Phone;
+        return classifyWarRoomLocation(v.CurrentLocation) === 'city' && v.Phone;
       });
       const phones = cityVoters.map(v => cleanPhone(v.Phone)).filter(Boolean).join(',');
+      if (!phones) {
+        showToast('कुनै फोन नम्बर फेला परेन।', 'warning');
+        return;
+      }
       navigator.clipboard.writeText(phones);
       showToast(`${cityVoters.length} काठमाडौं मतदाताका फोन नम्बरहरू कपी भयो!`, 'success');
     }
 
-    // Modal 2: Diaspora / Gulf Appeal
+    // Modal 3: Diaspora / Gulf Appeal (खाडी मुलुक / मलेसिया)
     function openDiasporaAppealModal() {
       const cand = getSelectedCandidate();
       const isAll = !cand || cand.Ward === 'All';
       const gulfVoters = getScopedVoters().filter(v => {
         if (!isAll && String(v.Ward) !== String(cand.Ward)) return false;
-        const loc = v.CurrentLocation || '';
-        return loc.includes('खाडी') || loc.includes('Gulf') || loc.includes('कतार') || loc.includes('मलेसिया') || loc.includes('दुबई') || loc.includes('साउदी');
+        return classifyWarRoomLocation(v.CurrentLocation) === 'gulf';
       });
 
+      window._activeModalGulfVoters = gulfVoters;
+
       openModal(
-        `🏜️ खाडी मुलुक / मलेसिया डायस्पोरा अपिल (${gulfVoters.length} जना)`,
+        `🏜️ खाडी मुलुक / मलेसिया डायस्पोरा अपिल (${gulfVoters.length.toLocaleString()} जना)`,
         `
         <div style="font-size: 13.5px; color: var(--slate-700); margin-bottom: 14px; line-height: 1.6;">
           खाडीमा रहेका युवाहरू मतदानको दिन स्वदेश आउन नसके पनि उनीहरूको <b>पारिवारिक भोट प्रभाव</b> अत्यधिक हुन्छ। कतार, साउदी वा युएईमा रहेका यी मतदाताहरूलाई आफ्नो घरपरिवारलाई ${cand ? cand.Name : 'उम्मेदवार'} का लागि भोट हाल्न भन्न WhatsApp अपिल पठाउनुहोस्।
+        </div>
+        <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
+          <button class="btn btn-sm btn-secondary" onclick="copyGulfVoterPhones()">
+            📋 फोन नम्बरहरू कपी गर्नुहोस्
+          </button>
+          <button class="btn btn-sm btn-primary" onclick="viewLocationInVotersTab('gulf')" style="background: #2563eb; border-color: #2563eb;">
+            👥 पूर्ण मतदाता पृष्ठमा हेर्नुहोस्
+          </button>
         </div>
         <div class="table-responsive" style="max-height: 340px; overflow-y: auto;">
           <table>
@@ -33886,22 +34099,27 @@
               </tr>
             </thead>
             <tbody>
-              ${gulfVoters.map((v, i) => `
-                <tr>
-                  <td style="text-align: center; font-weight: 700;">${i + 1}</td>
-                  <td><b>${esc(v.Name)}</b></td>
-                  <td>वडा ${v.Ward}</td>
-                  <td><span class="badge" style="background:#e0e7ff; color:#3730a3;">${esc(v.CityAddress || v.CurrentLocation || 'खाडी मुलुक')}</span></td>
-                  <td><b style="color: #059669;">~ ${v.FamilyVotesCount || 2} मत (घरपरिवार)</b></td>
-                  <td>
-                    ${v.Phone ? `
-                      <a href="https://wa.me/977${cleanPhone(v.Phone)}?text=${encodeURIComponent('नमस्ते ' + v.Name + ' जी! परदेशबाट पनि आफ्नो गाउँ ठाउँको विकासका लागि आफ्नो परिवारलाई ' + (cand ? cand.Name + ' (' + cand.Symbol + ')' : 'हाम्रो उम्मेदवार') + ' लाई मतदान गर्न हौसला प्रदान गरिदिनुहुन हार्दिक अनुरोध गर्दछौं।')}" target="_blank" class="btn btn-sm btn-primary" style="background: #25D366; border-color: #25D366; text-decoration: none;">
-                        📲 WhatsApp अपिल
-                      </a>
-                    ` : '-'}
-                  </td>
-                </tr>
-              `).join('')}
+              ${gulfVoters.length === 0 ? `
+                <tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 20px;">कुनै खाडी/मलेसिया प्रवासी मतदाता फेला परेन।</td></tr>
+              ` : gulfVoters.map((v, i) => {
+                const pClean = cleanPhone(v.Phone);
+                return `
+                  <tr>
+                    <td style="text-align: center; font-weight: 700;">${i + 1}</td>
+                    <td><b>${esc(v.Name)}</b></td>
+                    <td>वडा ${v.Ward}</td>
+                    <td><span class="badge" style="background:#e0e7ff; color:#3730a3;">${esc(v.CityAddress || v.CurrentLocation || 'खाडी मुलुक')}</span></td>
+                    <td><b style="color: #059669;">~ ${v.FamilyVotesCount || 2} मत (घरपरिवार)</b></td>
+                    <td>
+                      ${pClean ? `
+                        <a href="https://wa.me/977${pClean}?text=${encodeURIComponent('नमस्ते ' + v.Name + ' जी! परदेशबाट पनि आफ्नो गाउँ ठाउँको विकासका लागि आफ्नो परिवारलाई ' + (cand ? cand.Name + ' (' + cand.Symbol + ')' : 'हाम्रो उम्मेदवार') + ' लाई मतदान गर्न हौसला प्रदान गरिदिनुहुन हार्दिक अनुरोध गर्दछौं।')}" target="_blank" class="btn btn-sm btn-primary" style="background: #25D366; border-color: #25D366; text-decoration: none;">
+                          📲 WhatsApp अपिल
+                        </a>
+                      ` : '-'}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
         </div>
@@ -33909,6 +34127,189 @@
         `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`,
         'modal-lg'
       );
+    }
+
+    function copyGulfVoterPhones() {
+      const voters = window._activeModalGulfVoters || [];
+      const phones = voters.map(v => cleanPhone(v.Phone)).filter(Boolean).join(',');
+      if (!phones) {
+        showToast('कुनै फोन नम्बर फेला परेन।', 'warning');
+        return;
+      }
+      navigator.clipboard.writeText(phones);
+      showToast(`${voters.filter(v => v.Phone).length} खाडी प्रवासी मतदाताका फोन नम्बरहरू कपी भयो!`, 'success');
+    }
+
+    // Modal 4: India Seasonal Migrants (भारतमा रहेका मौसमी कामदार)
+    function openIndiaMigrantsModal() {
+      const cand = getSelectedCandidate();
+      const isAll = !cand || cand.Ward === 'All';
+
+      const indiaVoters = getScopedVoters().filter(v => {
+        if (!isAll && String(v.Ward) !== String(cand.Ward)) return false;
+        return classifyWarRoomLocation(v.CurrentLocation) === 'india';
+      });
+
+      window._activeModalIndiaVoters = indiaVoters;
+
+      openModal(
+        `🇮🇳 भारतमा रहेका मौसमी कामदार (${indiaVoters.length.toLocaleString()} जना)`,
+        `
+        <div style="font-size: 13px; color: var(--slate-700); margin-bottom: 12px; line-height: 1.5;">
+          यी मतदाताहरू कामको सिलसिलामा भारतमा रहेका छन्। सीमा नाकाबाट मतदानको दिन आउन सक्ने वा स्थानीय घरपरिवारलाई भोट हाल्न भन्न निम्न अनुसार समन्वय गर्नुहोस्:
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+          <button class="btn btn-sm btn-secondary" onclick="copyIndiaVoterPhones()">
+            📋 फोन नम्बर कपी गर्नुहोस्
+          </button>
+          <button class="btn btn-sm btn-primary" onclick="viewLocationInVotersTab('india')" style="background: #ea580c; border-color: #ea580c;">
+            👥 पूर्ण मतदाता पृष्ठमा हेर्नुहोस्
+          </button>
+        </div>
+
+        <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;">क्र.सं.</th>
+                <th>मतदाता नाम</th>
+                <th>वडा र टोल</th>
+                <th>सम्पर्क फोन</th>
+                <th>भारत ठेगाना / स्थान</th>
+                <th>घरपरिवार मत प्रभाव</th>
+                <th>सम्पर्क</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${indiaVoters.length === 0 ? `
+                <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 20px;">कुनै भारतीय मौसमी कामदार रेकर्ड छैन।</td></tr>
+              ` : indiaVoters.map((v, i) => {
+                const pClean = cleanPhone(v.Phone);
+                return `
+                  <tr>
+                    <td style="text-align: center; font-weight: 700;">${i + 1}</td>
+                    <td><b>${esc(v.Name)}</b></td>
+                    <td>वडा ${v.Ward} ${v.Tole ? `(${esc(v.Tole)})` : ''}</td>
+                    <td>
+                      ${pClean ? `<a href="tel:${pClean}" style="color:#059669; font-weight:700;">📞 ${esc(v.Phone)}</a>` : '-'}
+                    </td>
+                    <td><span class="badge" style="background:#ffedd5; color:#9a3412;">${esc(v.CityAddress || v.CurrentLocation || 'भारत')}</span></td>
+                    <td><b style="color: #059669;">~ ${v.FamilyVotesCount || 2} मत (परिवार)</b></td>
+                    <td>
+                      ${pClean ? `
+                        <a href="https://wa.me/977${pClean}?text=${encodeURIComponent('नमस्ते ' + v.Name + ' जी! निर्वाचनको अवसरमा गाउँ आउने वा परिवारलाई मतदानका लागि समन्वय गर्न हार्दिक अनुरोध छ।')}" target="_blank" class="btn btn-sm btn-secondary" style="color: #25D366; text-decoration: none;">
+                          🟢 WhatsApp
+                        </a>
+                      ` : '-'}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        `,
+        `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`,
+        'modal-lg'
+      );
+    }
+
+    function copyIndiaVoterPhones() {
+      const voters = window._activeModalIndiaVoters || [];
+      const phones = voters.map(v => cleanPhone(v.Phone)).filter(Boolean).join(',');
+      if (!phones) {
+        showToast('कुनै फोन नम्बर फेला परेन।', 'warning');
+        return;
+      }
+      navigator.clipboard.writeText(phones);
+      showToast(`${voters.filter(v => v.Phone).length} भारत मतदाताका फोन नम्बरहरू कपी भयो!`, 'success');
+    }
+
+    // Modal 5: Western / Global Diaspora (युरोप, अमेरिका, अस्ट्रेलिया)
+    function openWestDiasporaModal() {
+      const cand = getSelectedCandidate();
+      const isAll = !cand || cand.Ward === 'All';
+
+      const westVoters = getScopedVoters().filter(v => {
+        if (!isAll && String(v.Ward) !== String(cand.Ward)) return false;
+        return classifyWarRoomLocation(v.CurrentLocation) === 'west';
+      });
+
+      window._activeModalWestVoters = westVoters;
+
+      openModal(
+        `✈️ युरोप, अमेरिका, अस्ट्रेलिया (West / Others) (${westVoters.length.toLocaleString()} जना)`,
+        `
+        <div style="font-size: 13px; color: var(--slate-700); margin-bottom: 12px; line-height: 1.5;">
+          यी मतदाताहरू भौतिक रूपमा मतदानमा उपस्थित हुन नसके पनि विदेशबाट परिवार र गाउँका नातेदारलाई मतदान गर्न प्रेरित गर्न सक्ने प्रभावशाली व्यक्तिहरू हुन्:
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+          <button class="btn btn-sm btn-secondary" onclick="copyWestVoterPhones()">
+            📋 फोन नम्बर कपी गर्नुहोस्
+          </button>
+          <button class="btn btn-sm btn-primary" onclick="viewLocationInVotersTab('west')" style="background: #6366f1; border-color: #6366f1;">
+            👥 पूर्ण मतदाता पृष्ठमा हेर्नुहोस्
+          </button>
+        </div>
+
+        <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;">क्र.सं.</th>
+                <th>मतदाता नाम</th>
+                <th>वडा र टोल</th>
+                <th>सम्पर्क</th>
+                <th>देश / ठेगाना</th>
+                <th>परिवार मत प्रभाव</th>
+                <th>अपील</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${westVoters.length === 0 ? `
+                <tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 20px;">कुनै पश्चिमी मुलुकको रेकर्ड छैन।</td></tr>
+              ` : westVoters.map((v, i) => {
+                const pClean = cleanPhone(v.Phone);
+                return `
+                  <tr>
+                    <td style="text-align: center; font-weight: 700;">${i + 1}</td>
+                    <td><b>${esc(v.Name)}</b></td>
+                    <td>वडा ${v.Ward} ${v.Tole ? `(${esc(v.Tole)})` : ''}</td>
+                    <td>
+                      ${pClean ? `<a href="tel:${pClean}" style="color:#059669; font-weight:700;">📞 ${esc(v.Phone)}</a>` : '-'}
+                    </td>
+                    <td><span class="badge" style="background:#ede9fe; color:#5b21b6;">${esc(v.CityAddress || v.CurrentLocation || 'तेस्रो मुलुक')}</span></td>
+                    <td><b style="color: #059669;">~ ${v.FamilyVotesCount || 2} मत (परिवार)</b></td>
+                    <td>
+                      ${pClean ? `
+                        <a href="https://wa.me/977${pClean}?text=${encodeURIComponent('नमस्ते ' + v.Name + ' जी! प्रवासबाट पनि आफ्नो गाउँको विकास र सही नेतृत्वका लागि परिवारलाई मतदान गर्न प्रेरित गरिदिनुहुन हार्दिक अनुरोध गर्दछौं।')}" target="_blank" class="btn btn-sm btn-secondary" style="color: #25D366; text-decoration: none;">
+                          🟢 WhatsApp
+                        </a>
+                      ` : '-'}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        `,
+        `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`,
+        'modal-lg'
+      );
+    }
+
+    function copyWestVoterPhones() {
+      const voters = window._activeModalWestVoters || [];
+      const phones = voters.map(v => cleanPhone(v.Phone)).filter(Boolean).join(',');
+      if (!phones) {
+        showToast('कुनै फोन नम्बर फेला परेन।', 'warning');
+        return;
+      }
+      navigator.clipboard.writeText(phones);
+      showToast(`${voters.filter(v => v.Phone).length} विदेश मतदाताका फोन नम्बरहरू कपी भयो!`, 'success');
     }
 
     const populateWarRoomCandidateSelector = populateCandidateDropdowns;
