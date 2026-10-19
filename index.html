@@ -8382,7 +8382,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261019-v26-clean';
+      const CURRENT_APP_BUILD = '20261019-v27-sync18907';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8435,9 +8435,9 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261019-v26-clean')
+        navigator.serviceWorker.register('sw.js?v=20261019-v27-sync18907')
           .then((reg) => {
-            console.log('Election Ops PWA Service Worker Registered (v26-clean)');
+            console.log('Election Ops PWA Service Worker Registered (v27-sync18907)');
             reg.update();
           })
           .catch(err => console.log('SW registration error:', err));
@@ -10038,15 +10038,27 @@
             const wavePromises = [];
             for (let p = from; p < Math.min(from + pageSize * waveConcurrency, total); p += pageSize) {
               const to = Math.min(p + pageSize - 1, total - 1);
-              wavePromises.push(
-                cloudFetch(`${url}/rest/v1/voters?select=*`, {
-                  headers: {
-                    'apikey': key,
-                    'Authorization': `Bearer ${key}`,
-                    'Range': `${p}-${to}`
+              const fetchChunkWithRetry = async (attempt = 0) => {
+                try {
+                  const r = await cloudFetch(`${url}/rest/v1/voters?select=*`, {
+                    headers: {
+                      'apikey': key,
+                      'Authorization': `Bearer ${key}`,
+                      'Range': `${p}-${to}`
+                    }
+                  });
+                  if (r && r.ok) {
+                    const data = await r.json().catch(() => []);
+                    if (Array.isArray(data)) return data;
                   }
-                }).then(r => r.ok ? r.json() : []).catch(() => [])
-              );
+                } catch(e) {}
+                if (attempt < 3) {
+                  await new Promise(res => setTimeout(res, 400 * (attempt + 1)));
+                  return fetchChunkWithRetry(attempt + 1);
+                }
+                return [];
+              };
+              wavePromises.push(fetchChunkWithRetry());
             }
             const waveResults = await Promise.all(wavePromises);
             waveResults.forEach(batch => {
@@ -10057,10 +10069,16 @@
             }
           }
         }
+        if (allVoters.length >= total) {
+          try {
+            localStorage.setItem('EMS_SUPABASE_FULL_SYNC_DONE', String(Date.now()));
+          } catch(e) {}
+        } else {
+          try {
+            localStorage.removeItem('EMS_SUPABASE_FULL_SYNC_DONE');
+          } catch(e) {}
+        }
       }
-      try {
-        localStorage.setItem('EMS_SUPABASE_FULL_SYNC_DONE', String(Date.now()));
-      } catch(e) {}
       return allVoters;
     }
 
@@ -10093,9 +10111,10 @@
       try {
         const headers = { 'apikey': key, 'Authorization': `Bearer ${key}` };
 
-        // Delta sync by default when local cache already has complete voter roll; Full download if fresh browser or seed dummy (<500 voters)
+        // Delta sync by default when local cache already has complete voter roll; Full download if fresh browser or seed dummy (<18900 voters)
         const hasFullSynced = !!localStorage.getItem('EMS_SUPABASE_FULL_SYNC_DONE');
-        const shouldFullFetch = forceFull || !state.voters || state.voters.length < 500 || !hasFullSynced;
+        const localCount = (state.voters && Array.isArray(state.voters)) ? state.voters.length : 0;
+        const shouldFullFetch = forceFull || !state.voters || localCount < 18900 || !hasFullSynced;
 
         if (interactive || shouldFullFetch) {
           if (badge) {
@@ -10250,7 +10269,7 @@
 
         // 3. Process Voters with O(1) Map lookup & tenant-partitioned reconciliation
         if (Array.isArray(vData) && vData.length > 0) {
-          if (shouldFullFetch || (state.voters && state.voters.length < 500)) {
+          if (shouldFullFetch || (state.voters && state.voters.length < 18900)) {
             // Fresh clean slate replacing dummy seed items with pure Supabase cloud voters
             const voterIdxMap = new Map();
             const realVoters = [];
@@ -11185,7 +11204,8 @@
 
       // Automatic live Cloud Sync from Supabase on every login (forces full if local roll is incomplete)
       if (typeof syncSupabaseData === 'function') {
-        const needsFull = !state.voters || state.voters.length < 500;
+        const localCount = (state.voters && Array.isArray(state.voters)) ? state.voters.length : 0;
+        const needsFull = !state.voters || localCount < 18900;
         syncSupabaseData(false, needsFull).then(() => {
           refreshDashboardMetrics();
           const activeSec = document.querySelector('.view-section.active');

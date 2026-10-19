@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v26-clean - Complete Fresh Wipe & Reset)
-const CACHE_NAME = 'election-ops-v26-clean';
+// Service Worker for Offline & Installable App Experience (v27-sync18907 - Full 18907 Roll Fetch)
+const CACHE_NAME = 'election-ops-v27-sync18907';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
