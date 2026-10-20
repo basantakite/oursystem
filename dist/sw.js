@@ -1,5 +1,5 @@
 // Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v41-zeroerror-family-strict';
+const CACHE_NAME = 'election-ops-v42-zeroerror-family-bulletproof';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
