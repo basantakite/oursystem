@@ -8836,7 +8836,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261020-v42-zeroerror-family-bulletproof';
+      const CURRENT_APP_BUILD = '20261020-v43-cleanfirst-fixed';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8890,7 +8890,7 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261020-v42-zeroerror-family-bulletproof')
+        navigator.serviceWorker.register('sw.js?v=20261020-v43-cleanfirst-fixed')
           .then((reg) => {
             console.log('Election Ops PWA Service Worker Registered (v28-winmargin)');
             reg.update();
@@ -22615,7 +22615,7 @@
 
         // 2. Build safe PostgREST query to fetch potential family candidates
         let orParts = ['voter_id.eq.' + encodeURIComponent(sId)];
-        const hFirst = cleanQueryTerm(hName.split(' ')[0]);
+        const cleanFirst = cleanQueryTerm(hName.split(' ')[0]);
 
         const cleanF = cleanQueryTerm(hFather);
         if (cleanF.length > 2) {
@@ -22702,17 +22702,32 @@
           }
         }
 
-        // Rule 4: Spouse (Opposite gender + Age difference <= 25)
+        // Parse ignored_family_ids from notes
+        let ignoredIds = new Set();
+        try {
+          const n = JSON.parse(head.notes || '{}');
+          if (Array.isArray(n.ignored_family_ids)) n.ignored_family_ids.forEach(id => ignoredIds.add(String(id)));
+        } catch(e) {}
+
+        // Rule 4: Spouse (Opposite gender + realistic age gap)
         const sCand = pool.find(c => {
-          const cId = c.voter_id || c.VoterID;
-          if (seen.has(cId)) return false;
+          const cId = String(c.voter_id || c.VoterID);
+          if (seen.has(cId) || ignoredIds.has(cId)) return false;
           const cGender = c.gender || c.Gender;
           if (hGender && cGender && hGender === cGender) return false;
           const cAge = Number(c.age || c.Age) || 0;
-          if (hAge > 0 && cAge > 0 && Math.abs(cAge - hAge) > 25) return false;
+          if (hAge > 0 && cAge > 0) {
+            if (Math.abs(cAge - hAge) > 20) return false;
+            if ((hGender === 'Male' || hGender === 'पुरुष') && (cAge - hAge) > 8) return false;
+          }
           if (cleanS && cleanStr(c.full_name || c.Name).includes(cleanStr(cleanS))) return true;
           const cSp = c.spouse_name || c.SpouseName;
-          if (cSp && cleanStr(cSp).includes(cleanStr(hFirst))) return true;
+          if (cSp) {
+            const cSpClean = cleanStr(cSp);
+            const hNameClean = cleanStr(hName);
+            if (cSpClean === hNameClean) return true;
+            if (hSur && cSpClean.includes(cleanStr(cleanFirst)) && cSpClean.includes(cleanStr(hSur))) return true;
+          }
           return false;
         });
         if (sCand) {
@@ -22749,8 +22764,8 @@
           if (!hSur || !cSur || cSur !== hSur) return; // STRICT SURNAME CHECK
           const cAge = Number(c.age || c.Age) || 0;
           if (hAge > 0 && cAge > 0 && ((hAge - cAge) < 14 || (hAge - cAge) > 65)) return;
-          const isFather = (hGender === 'Male' || hGender === 'पुरुष') && (c.father_name || c.FatherName) && cleanStr(c.father_name || c.FatherName).includes(cleanStr(hFirst));
-          const isMother = (hGender === 'Female' || hGender === 'महिला') && (c.mother_name || c.MotherName) && cleanStr(c.mother_name || c.MotherName).includes(cleanStr(hFirst));
+          const isFather = (hGender === 'Male' || hGender === 'पुरुष') && (c.father_name || c.FatherName) && cleanStr(c.father_name || c.FatherName).includes(cleanStr(cleanFirst));
+          const isMother = (hGender === 'Female' || hGender === 'महिला') && (c.mother_name || c.MotherName) && cleanStr(c.mother_name || c.MotherName).includes(cleanStr(cleanFirst));
           if (isFather || isMother) {
             const chGender = c.gender || c.Gender;
             const childRel = (chGender === 'Female' || chGender === 'महिला') ? 'छोरी (Daughter)' : 'छोरा (Son)';
