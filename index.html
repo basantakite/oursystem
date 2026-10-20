@@ -269,7 +269,7 @@
       background: transparent;
       width: 100%;
       text-align: left;
-      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
       position: relative;
     }
 
@@ -1527,7 +1527,7 @@
       border-radius: 16px;
       padding: 13px 12px;
       box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
-      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
       margin-bottom: 10px;
       width: 100%;
       max-width: 100%;
@@ -10281,6 +10281,22 @@
       };
     }
 
+    // High-Contrast Support Stance Visual Helper (Instant 0ms, Zero Fadeout)
+    function getSupportStanceDisplay(tierKey) {
+      if (tierKey === 'solid') {
+        return { bg: '#16a34a', color: '#ffffff', glow: 'rgba(22, 163, 74, 0.28)', label: '✓ पक्का समर्थक (Sure Vote)' };
+      } else if (tierKey === 'lean') {
+        return { bg: '#059669', color: '#ffffff', glow: 'rgba(5, 150, 105, 0.28)', label: '👍 सकारात्मक (Lean Vote)' };
+      } else if (tierKey === 'swing') {
+        return { bg: '#f59e0b', color: '#ffffff', glow: 'rgba(245, 158, 11, 0.28)', label: '👥 तटस्थ / दोधार (Swing)' };
+      } else if (tierKey === 'opponent_lean') {
+        return { bg: '#ea580c', color: '#ffffff', glow: 'rgba(234, 88, 12, 0.28)', label: '⚠️ विपक्षी झुकाव (Lean Opponent)' };
+      } else if (tierKey === 'hard_opponent') {
+        return { bg: '#dc2626', color: '#ffffff', glow: 'rgba(220, 38, 38, 0.28)', label: '⛔ कडा विरोधी (Opponent)' };
+      }
+      return { bg: '#f59e0b', color: '#ffffff', glow: 'rgba(245, 158, 11, 0.28)', label: '👥 तटस्थ / दोधार (Swing)' };
+    }
+
     // Instant In-Place DOM Updater (Zero Page Rebuild, Zero Flicker)
     function updateVoterInPlaceInDom(v) {
       if (!v || !v.VoterID) return;
@@ -10310,13 +10326,17 @@
           `;
         }
 
-        // 4th Row: Support Stance Bar
+        // 4th Row: Support Stance Bar (High-Contrast, Instant 0ms response, zero fadeout)
         const bar = document.getElementById('voterCardSupportBar_' + vId) || card.querySelector('div[onclick*="quickCycleSupportTier"]');
         if (bar) {
-          bar.style.background = tier.bg;
-          bar.style.boxShadow = `0 1px 5px ${tier.glow || 'rgba(0,0,0,0.2)'}`;
-          bar.innerHTML = `<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${tier.icon} ${tier.label}</span><span style="font-size: 10px; opacity: 0.85; margin-left: 6px; flex-shrink: 0;">∨</span>`;
+          const sDisp = getSupportStanceDisplay(v.SupportTier);
+          bar.style.background = sDisp.bg;
+          bar.style.color = sDisp.color;
+          bar.style.boxShadow = `0 1px 5px ${sDisp.glow}`;
+          bar.innerHTML = `<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${sDisp.label}</span><span style="font-size: 10px; opacity: 0.85; margin-left: 6px; flex-shrink: 0;">∨</span>`;
         }
+        const avatar = card.querySelector('div[onclick*="viewVoterProfile"]');
+        if (avatar) avatar.style.background = isSure ? '#10b981' : '#2563eb';
 
         // 5th Row: Contact Status Button
         const contactWrap = document.getElementById('voterCardContactWrap_' + vId);
@@ -10595,6 +10615,29 @@
                   }
                 } catch(e) {
                   console.warn('Error reading custom_caste_rules:', e);
+                }
+              }
+              if (row.key === 'custom_parties') {
+                try {
+                  const cloudParties = typeof row.value === 'string' ? JSON.parse(row.value) : (row.value || []);
+                  if (Array.isArray(cloudParties) && cloudParties.length > 0) {
+                    if (!state.customParties) state.customParties = [];
+                    const localMap = new Map(state.customParties.map(p => [p.id, p]));
+                    let added = false;
+                    cloudParties.forEach(cp => {
+                      if (cp && cp.id && !localMap.has(cp.id)) {
+                        state.customParties.push(cp);
+                        localMap.set(cp.id, cp);
+                        added = true;
+                      }
+                    });
+                    if (added) {
+                      saveState();
+                      refreshAllPartySelectors();
+                    }
+                  }
+                } catch(e) {
+                  console.warn('Error reading custom_parties from system_settings:', e);
                 }
               }
               if (row.key === 'saas_tenants_registry') {
@@ -11000,6 +11043,10 @@
             console.log('⚡ [Realtime Broadcast Received] tenants_updated:', payload);
             handleBroadcastTenantsUpdated(payload?.payload || payload);
           })
+          .on('broadcast', { event: 'custom_parties_updated' }, (payload) => {
+            console.log('⚡ [Realtime Broadcast Received] custom_parties_updated:', payload);
+            handleBroadcastCustomParties(payload?.payload || payload);
+          })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'voters' }, (payload) => {
             handleRealtimeVoterChange(payload);
           })
@@ -11009,6 +11056,14 @@
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'system_settings' }, (payload) => {
             console.log('⚡ [Realtime WebSocket] Settings updated on cloud:', payload.eventType, payload.new?.key);
+            if (payload && payload.new && payload.new.key === 'custom_parties') {
+              try {
+                const cloudParties = typeof payload.new.value === 'string' ? JSON.parse(payload.new.value) : (payload.new.value || []);
+                handleBroadcastCustomParties(cloudParties);
+              } catch(e) {
+                console.warn('Realtime custom_parties sync error:', e);
+              }
+            }
             if (payload && payload.new && payload.new.key === 'custom_caste_rules') {
               try {
                 const cloudRules = typeof payload.new.value === 'string' ? JSON.parse(payload.new.value) : (payload.new.value || {});
@@ -11040,6 +11095,14 @@
                     pushCustomCasteRulesToCloud(myRules);
                   }
                 }, 600);
+              }
+              if (state && Array.isArray(state.customParties) && state.customParties.length > 0) {
+                setTimeout(() => {
+                  try {
+                    broadcastCustomParties(state.customParties);
+                    pushCustomPartiesToCloud(state.customParties);
+                  } catch(e) {}
+                }, 800);
               }
             }
           });
@@ -32956,19 +33019,227 @@
       renderCandidateWarRoom();
     }
 
+    let _wrSliderRafId = null;
+    let _wrRollupDebounceTimer = null;
+
     function onWarRoomPartyShareSliderChanged(partyCode, val) {
       const p = parseFloat(val);
-      if (!isNaN(p)) {
-        _warRoomPartyShares[partyCode] = Math.round(p * 10) / 10;
-        renderCandidateWarRoom();
+      if (isNaN(p)) return;
+      const cleanVal = Math.round(p * 10) / 10;
+      _warRoomPartyShares[partyCode] = cleanVal;
+
+      // Update input box next to slider immediately
+      const numInput = document.getElementById('wrPartyInput_' + partyCode);
+      if (numInput && parseFloat(numInput.value) !== cleanVal) {
+        numInput.value = cleanVal;
       }
+
+      // Smooth in-place calculation without destroying the slider element
+      if (_wrSliderRafId) cancelAnimationFrame(_wrSliderRafId);
+      _wrSliderRafId = requestAnimationFrame(() => {
+        updateWarRoomRealtimeCalculations(partyCode, cleanVal);
+      });
+
+      // Debounce the heavy ward roll-up table update
+      if (_wrRollupDebounceTimer) clearTimeout(_wrRollupDebounceTimer);
+      _wrRollupDebounceTimer = setTimeout(() => {
+        const cand = getSelectedCandidate();
+        const allPalettes = getAllPartyPalettes();
+        const candPartyKey = (cand && cand.Party) ? normalizePartyCode(cand.Party) : 'RSP';
+        const rivalKeys = Object.keys(allPalettes).filter(k => k !== candPartyKey);
+        let topK = rivalKeys[0] || 'NC', topP = 0;
+        rivalKeys.forEach(k => {
+          const pct = _warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 5;
+          if (pct > topP) { topP = pct; topK = k; }
+        });
+        renderWardByWardRollupTable(cand, topP, allPalettes[topK]);
+      }, 350);
     }
 
     function onWarRoomPartyShareInputChanged(partyCode, val) {
       const p = parseFloat(val);
-      if (!isNaN(p) && p >= 0 && p <= 100) {
-        _warRoomPartyShares[partyCode] = Math.round(p * 10) / 10;
-        renderCandidateWarRoom();
+      if (isNaN(p) || p < 0 || p > 100) return;
+      const cleanVal = Math.round(p * 10) / 10;
+      _warRoomPartyShares[partyCode] = cleanVal;
+
+      const slider = document.getElementById('wrPartySlider_' + partyCode);
+      if (slider && parseFloat(slider.value) !== cleanVal) {
+        slider.value = cleanVal;
+      }
+
+      updateWarRoomRealtimeCalculations(partyCode, cleanVal);
+      if (_wrRollupDebounceTimer) clearTimeout(_wrRollupDebounceTimer);
+      _wrRollupDebounceTimer = setTimeout(() => {
+        const cand = getSelectedCandidate();
+        const allPalettes = getAllPartyPalettes();
+        const candPartyKey = (cand && cand.Party) ? normalizePartyCode(cand.Party) : 'RSP';
+        const rivalKeys = Object.keys(allPalettes).filter(k => k !== candPartyKey);
+        let topK = rivalKeys[0] || 'NC', topP = 0;
+        rivalKeys.forEach(k => {
+          const pct = _warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 5;
+          if (pct > topP) { topP = pct; topK = k; }
+        });
+        renderWardByWardRollupTable(cand, topP, allPalettes[topK]);
+      }, 350);
+    }
+
+    // 60fps/120fps Real-Time Physics Updater for War Room (Zero DOM Re-mount)
+    function updateWarRoomRealtimeCalculations(activePartyCode, activeVal) {
+      const cand = getSelectedCandidate();
+      if (!cand) return;
+      const isAllWard = cand.Ward === 'All';
+      const candidateVoters = getScopedVoters().filter(v => {
+        if (!isAllWard && String(v.Ward) !== String(cand.Ward)) return false;
+        return true;
+      });
+      const totalVoters = candidateVoters.length;
+
+      let sureVotes = 0, softVotes = 0, oppVotes = 0;
+      let abroadAbsent = 0;
+      const candPartyKey = (cand && cand.Party) ? normalizePartyCode(cand.Party) : 'RSP';
+
+      candidateVoters.forEach(v => {
+        const bucket = classifyWarRoomLocation(v.CurrentLocation);
+        if (bucket === 'gulf' || bucket === 'india' || bucket === 'west') {
+          abroadAbsent++;
+          return;
+        }
+        const tierKey = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
+        const voterPartyKey = normalizePartyCode(v.PartyLeaning);
+        if (tierKey === 'solid' || tierKey === 'lean' || (voterPartyKey && voterPartyKey === candPartyKey) || v.SelfReportedResponse === 'Support') {
+          sureVotes += 1;
+        } else if (tierKey === 'swing' || !voterPartyKey || v.SelfReportedResponse === 'Undecided') {
+          softVotes += 1;
+        } else {
+          oppVotes += 1;
+        }
+      });
+
+      const presentEligible = Math.max(0, totalVoters - abroadAbsent);
+      const projectedTurnout = Math.round(presentEligible * (_warRoomTurnoutPct / 100));
+      const badarVotes = Math.round(projectedTurnout * (_warRoomBadarPct / 100));
+      const validVotes = Math.max(0, projectedTurnout - badarVotes);
+
+      const allPalettes = getAllPartyPalettes();
+      const ourVotePct = validVotes > 0 ? (sureVotes / validVotes) * 100 : 0;
+      const rivalKeys = Object.keys(allPalettes).filter(k => k !== candPartyKey);
+
+      let topRivalKey = rivalKeys[0] || 'NC';
+      let topRivalPct = 0;
+      rivalKeys.forEach(k => {
+        const pct = _warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 5;
+        if (pct > topRivalPct) {
+          topRivalPct = pct;
+          topRivalKey = k;
+        }
+      });
+
+      const topRivalInfo = allPalettes[topRivalKey] || allPalettes.NC || PARTY_PALETTES.NC;
+      const opponentEstimatedVotes = Math.round(validVotes * (topRivalPct / 100));
+      const magicTarget = opponentEstimatedVotes + 1;
+      const shortfall = Math.max(0, magicTarget - sureVotes);
+      const leadMargin = sureVotes - magicTarget;
+
+      // Update text in each party slider card in place
+      rivalKeys.forEach(k => {
+        const pct = _warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 5;
+        const rVotes = Math.round(validVotes * (pct / 100));
+        const vEl = document.getElementById('wrPartyVotesText_' + k);
+        const pEl = document.getElementById('wrPartyPctText_' + k);
+        if (vEl) vEl.textContent = rVotes.toLocaleString() + ' मत';
+        if (pEl) pEl.textContent = pct + '% हिस्सा';
+
+        const cardEl = document.getElementById('wrPartyCard_' + k);
+        const badgeEl = document.getElementById('wrPartyTopBadge_' + k);
+        const isTop = (k === topRivalKey);
+        if (cardEl) {
+          cardEl.style.background = isTop ? '#fffbeb' : '#ffffff';
+          cardEl.style.borderColor = isTop ? '#f59e0b' : '#cbd5e1';
+          cardEl.style.boxShadow = isTop ? '0 2px 8px rgba(245, 158, 11, 0.18)' : 'none';
+        }
+        if (badgeEl) {
+          badgeEl.style.display = isTop ? 'block' : 'none';
+        }
+      });
+
+      // Update Stacked Bar
+      const totalShareSum = ourVotePct + rivalKeys.reduce((acc, k) => acc + (_warRoomPartyShares[k] || 0), 0);
+      const stackedBarEl = document.getElementById('wrStackedVoteShareBar');
+      if (stackedBarEl) {
+        let stackedHtml = '';
+        const candPalette = allPalettes[candPartyKey] || allPalettes.RSP || PARTY_PALETTES.RSP;
+        const ourWidth = totalShareSum > 0 ? Math.max(8, (ourVotePct / totalShareSum) * 100) : 25;
+        stackedHtml += `
+          <div style="width: ${ourWidth}%; background: ${candPalette.primary || '#059669'}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; overflow: hidden; white-space: nowrap; padding: 0 4px; border-right: 1.5px solid #ffffff; transition: width 0.15s ease;" title="हाम्रो सुरक्षित मत: ${sureVotes.toLocaleString()} मत (${Math.round(ourVotePct)}%)">
+            ${candPalette.symbol} हाम्रो ${Math.round(ourVotePct)}%
+          </div>
+        `;
+        rivalKeys.forEach(k => {
+          const pInfo = allPalettes[k] || { id: k, name: k, symbol: '🚩', primary: '#64748b' };
+          const rPct = _warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 5;
+          if (rPct <= 0) return;
+          const rWidth = totalShareSum > 0 ? (rPct / totalShareSum) * 100 : 15;
+          stackedHtml += `
+            <div style="width: ${rWidth}%; background: ${pInfo.primary || '#64748b'}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; overflow: hidden; white-space: nowrap; padding: 0 4px; border-right: 1.5px solid #ffffff; transition: width 0.15s ease;" title="${pInfo.name}: ${Math.round(validVotes * (rPct / 100)).toLocaleString()} मत (${rPct}%)">
+              ${pInfo.symbol} ${pInfo.id} ${rPct}%
+            </div>
+          `;
+        });
+        stackedBarEl.innerHTML = stackedHtml;
+      }
+
+      const barTotalEl = document.getElementById('wrStackedBarTotalPct');
+      if (barTotalEl) {
+        barTotalEl.textContent = `कुल सदर मत: ${validVotes.toLocaleString()} मत (हाम्रो + विपक्षी योग: ${Math.round(totalShareSum)}%)`;
+      }
+
+      // Update Top Rival Banner
+      const topRivalBannerEl = document.getElementById('wrTopRivalBanner');
+      if (topRivalBannerEl) {
+        topRivalBannerEl.innerHTML = `
+          <div style="background: ${leadMargin >= 0 ? '#f0fdf4' : '#fff7ed'}; border: 1.5px solid ${leadMargin >= 0 ? '#86efac' : '#fed7aa'}; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 26px;">${topRivalInfo.symbol || '⚔️'}</span>
+              <div>
+                <div style="font-size: 13.5px; font-weight: 800; color: #0f172a;">
+                  हालको मुख्य प्रतिस्पर्धी (Top Rival): <span style="color: ${topRivalInfo.primary || '#c2410c'}; font-size: 14.5px;">${topRivalInfo.symbol} ${topRivalInfo.name}</span> (${topRivalPct}% — ${opponentEstimatedVotes.toLocaleString()} मत)
+                </div>
+                <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">
+                  नेपालको निर्वाचन नियम: मुख्य प्रतिद्वन्द्वी भन्दा १ मत बढी (<b>${magicTarget.toLocaleString()} मत</b>) ल्याए जित सुनिश्चित हुन्छ (५१% चाहिँदैन)।
+                </div>
+              </div>
+            </div>
+            <div>
+              <span class="badge" style="background: ${leadMargin >= 0 ? '#15803d' : '#b91c1c'}; color: #ffffff; font-weight: 800; font-size: 12.5px; padding: 6px 14px; border-radius: 8px;">
+                ${leadMargin >= 0 ? `🏆 +${leadMargin.toLocaleString()} मत जित अग्रता` : `⚠️ जित्न -${shortfall.toLocaleString()} मत अपुग`}
+              </span>
+            </div>
+          </div>
+        `;
+      }
+
+      // Update Top Math Numbers
+      const elMag = document.getElementById('wrMagicTarget');
+      const elSure = document.getElementById('wrCurrentTotalVotes');
+      const elValid = document.getElementById('wrValidVotesDisplay');
+      const elTurn = document.getElementById('wrProjectedTurnout');
+      const elBadar = document.getElementById('wrBadarCalcDisplay');
+      const elPctText = document.getElementById('wrTargetPctText');
+      const elRatio = document.getElementById('wrWinProgressRatio');
+      const elProgBar = document.getElementById('wrProgressBar');
+
+      if (elMag) elMag.textContent = magicTarget.toLocaleString();
+      if (elSure) elSure.textContent = sureVotes.toLocaleString();
+      if (elValid) elValid.textContent = validVotes.toLocaleString();
+      if (elTurn) elTurn.textContent = projectedTurnout.toLocaleString();
+      if (elBadar) elBadar.textContent = badarVotes.toLocaleString();
+
+      const pctAchieved = magicTarget > 0 ? Math.min(100, Math.round((sureVotes / magicTarget) * 100)) : 0;
+      if (elPctText) elPctText.textContent = `${pctAchieved}% जित लक्ष्य हासिल`;
+      if (elRatio) elRatio.textContent = `${sureVotes.toLocaleString()} / ${magicTarget.toLocaleString()} जित लक्ष्य मत`;
+      if (elProgBar) {
+        elProgBar.style.width = `${pctAchieved}%`;
+        elProgBar.style.background = pctAchieved >= 100 ? 'linear-gradient(90deg, #10b981, #059669)' : (pctAchieved >= 80 ? 'linear-gradient(90deg, #3b82f6, #2563eb)' : 'linear-gradient(90deg, #f59e0b, #d97706)');
       }
     }
 
@@ -33014,6 +33285,90 @@
       );
     }
 
+    
+    let _partiesPushTimer = null;
+    function pushCustomPartiesToCloud(parties) {
+      if (!parties) parties = state.customParties || [];
+      if (_partiesPushTimer) clearTimeout(_partiesPushTimer);
+      _partiesPushTimer = setTimeout(async () => {
+        try {
+          const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+          const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+          if (!url || !key) return;
+          const headers = {
+            'apikey': key,
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          };
+          await cloudFetch(`${url}/rest/v1/system_settings`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+              key: 'custom_parties',
+              value: JSON.stringify(parties),
+              updated_at: new Date().toISOString()
+            })
+          });
+          console.log('⚡ [Cloud Sync] Custom parties synced to Supabase system_settings');
+          broadcastCustomParties(parties);
+        } catch(e) {
+          console.warn('Failed to push custom parties to cloud:', e);
+        }
+      }, 300);
+    }
+
+    function broadcastCustomParties(parties) {
+      try {
+        if (_realtimeChannel) {
+          _realtimeChannel.send({
+            type: 'broadcast',
+            event: 'custom_parties_updated',
+            payload: parties
+          });
+        }
+      } catch(e) {}
+    }
+
+    function handleBroadcastCustomParties(incomingParties) {
+      if (!Array.isArray(incomingParties)) return;
+      if (!state.customParties) state.customParties = [];
+      const localMap = new Map(state.customParties.map(p => [p.id, p]));
+      let added = false;
+      incomingParties.forEach(ip => {
+        if (ip && ip.id) {
+          if (!localMap.has(ip.id)) {
+            state.customParties.push(ip);
+            localMap.set(ip.id, ip);
+            added = true;
+          } else {
+            const idx = state.customParties.findIndex(p => p.id === ip.id);
+            if (idx >= 0) state.customParties[idx] = ip;
+          }
+        }
+      });
+      if (added) {
+        saveState();
+        refreshAllPartySelectors();
+        const slidersEl = document.getElementById('wrPartySlidersGrid');
+        if (slidersEl) delete slidersEl.dataset.renderedKeys;
+        renderCandidateWarRoom();
+      }
+    }
+
+    function refreshAllPartySelectors() {
+      const pals = getAllPartyPalettes();
+      const optionsHtml = Object.values(pals).map(p => `<option value="${p.id}">${p.symbol} ${p.name} (${p.nameEn || p.id})</option>`).join('');
+      ['superTenantPartySelect', 'candidatePartySelect'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (sel) {
+          const prev = sel.value;
+          sel.innerHTML = optionsHtml;
+          if (prev) sel.value = prev;
+        }
+      });
+    }
+
     function handleSaveNewParty(e) {
       if (e) e.preventDefault();
       const name = (document.getElementById('newPartyName').value || '').trim();
@@ -33051,8 +33406,12 @@
 
       _warRoomPartyShares[code] = 5;
       saveState();
+      pushCustomPartiesToCloud(state.customParties);
+      refreshAllPartySelectors();
+      const slidersEl = document.getElementById('wrPartySlidersGrid');
+      if (slidersEl) delete slidersEl.dataset.renderedKeys;
       closeModal();
-      showToast(`✅ नयाँ दल "${name} (${symbol})" सफलतापूर्वक दर्ता गरियो!`, 'success');
+      showToast(`✅ नयाँ दल "${name} (${symbol})" सफलतापूर्वक दर्ता गरियो! क्लाउडमा सुरक्षित भयो।`, 'success');
 
       const sel = document.getElementById('superTenantPartySelect');
       if (sel) {
@@ -33403,38 +33762,68 @@
         `;
       }
 
-      // Render Party Sliders Dynamic Grid
+      // Render Party Sliders Dynamic Grid (Touch-Responsive & Stable DOM)
       const slidersGridEl = document.getElementById('wrPartySlidersGrid');
       if (slidersGridEl) {
-        let gridHtml = '';
-        rivalKeys.forEach(k => {
-          const pInfo = allPalettes[k] || { name: k, symbol: '🚩', primary: '#64748b' };
-          const isTop = (k === topRivalKey);
-          const rPct = _warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 5;
-          const rVotes = Math.round(validVotes * (rPct / 100));
+        const currentKeysKey = rivalKeys.join(',');
+        if (slidersGridEl.dataset.renderedKeys !== currentKeysKey) {
+          slidersGridEl.dataset.renderedKeys = currentKeysKey;
+          let gridHtml = '';
+          rivalKeys.forEach(k => {
+            const pInfo = allPalettes[k] || { name: k, symbol: '🚩', primary: '#64748b' };
+            const isTop = (k === topRivalKey);
+            const rPct = _warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 5;
+            const rVotes = Math.round(validVotes * (rPct / 100));
 
-          gridHtml += `
-            <div style="background: ${isTop ? '#fffbeb' : '#ffffff'}; border: 1.5px solid ${isTop ? '#f59e0b' : '#cbd5e1'}; border-radius: 10px; padding: 12px; position: relative; box-shadow: ${isTop ? '0 2px 8px rgba(245, 158, 11, 0.15)' : 'none'};">
-              ${isTop ? `<div style="position: absolute; top: -10px; right: 10px; background: #ea580c; color: #ffffff; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.15);">⚔️ #१ मुख्य प्रतिस्पर्धी</div>` : ''}
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <label style="font-size: 12px; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 6px;">
-                  <span style="font-size: 16px;">${pInfo.symbol || '🚩'}</span>
-                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;" title="${pInfo.name}">${pInfo.name}</span>
-                </label>
-                <div style="display: flex; align-items: center; gap: 3px;">
-                  <input type="number" min="0" max="60" step="0.5" value="${rPct}" oninput="onWarRoomPartyShareInputChanged('${k}', this.value)" style="width: 48px; padding: 2px 4px; font-size: 12px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; color: ${pInfo.primary || '#0f172a'};">
-                  <span style="font-size: 11px; font-weight: 800; color: #475569;">%</span>
+            gridHtml += `
+              <div id="wrPartyCard_${k}" style="background: ${isTop ? '#fffbeb' : '#ffffff'}; border: 1.5px solid ${isTop ? '#f59e0b' : '#cbd5e1'}; border-radius: 10px; padding: 12px; position: relative; box-shadow: ${isTop ? '0 2px 8px rgba(245, 158, 11, 0.18)' : 'none'}; touch-action: pan-y; transition: border-color 0.15s ease, background-color 0.15s ease;">
+                <div id="wrPartyTopBadge_${k}" style="display: ${isTop ? 'block' : 'none'}; position: absolute; top: -10px; right: 10px; background: #ea580c; color: #ffffff; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.15);">⚔️ #१ मुख्य प्रतिस्पर्धी</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label style="font-size: 12px; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 16px;">${pInfo.symbol || '🚩'}</span>
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;" title="${pInfo.name}">${pInfo.name}</span>
+                  </label>
+                  <div style="display: flex; align-items: center; gap: 3px;">
+                    <input type="number" id="wrPartyInput_${k}" min="0" max="60" step="0.5" value="${rPct}" oninput="onWarRoomPartyShareInputChanged('${k}', this.value)" style="width: 48px; padding: 2px 4px; font-size: 12px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; color: ${pInfo.primary || '#0f172a'};">
+                    <span style="font-size: 11px; font-weight: 800; color: #475569;">%</span>
+                  </div>
+                </div>
+                <input type="range" id="wrPartySlider_${k}" min="0" max="60" step="0.5" value="${rPct}" oninput="onWarRoomPartyShareSliderChanged('${k}', this.value)" style="width: 100%; cursor: pointer; accent-color: ${pInfo.primary || '#3b82f6'}; touch-action: pan-y;">
+                <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b; margin-top: 3px;">
+                  <span id="wrPartyVotesText_${k}" style="font-weight: 700; color: ${pInfo.primary || '#334155'};">${rVotes.toLocaleString()} मत</span>
+                  <span id="wrPartyPctText_${k}">${rPct}% हिस्सा</span>
                 </div>
               </div>
-              <input type="range" min="0" max="60" step="0.5" value="${rPct}" oninput="onWarRoomPartyShareSliderChanged('${k}', this.value)" style="width: 100%; cursor: pointer; accent-color: ${pInfo.primary || '#3b82f6'};">
-              <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b; margin-top: 3px;">
-                <span style="font-weight: 700; color: ${pInfo.primary || '#334155'};">${rVotes.toLocaleString()} मत</span>
-                <span>${rPct}% हिस्सा</span>
-              </div>
-            </div>
-          `;
-        });
-        slidersGridEl.innerHTML = gridHtml;
+            `;
+          });
+          slidersGridEl.innerHTML = gridHtml;
+        } else {
+          // In-place update without rebuilding elements (keeps touch drag 100% smooth)
+          rivalKeys.forEach(k => {
+            const pInfo = allPalettes[k] || { primary: '#64748b' };
+            const isTop = (k === topRivalKey);
+            const rPct = _warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 5;
+            const rVotes = Math.round(validVotes * (rPct / 100));
+
+            const inEl = document.getElementById('wrPartyInput_' + k);
+            const slEl = document.getElementById('wrPartySlider_' + k);
+            const vtEl = document.getElementById('wrPartyVotesText_' + k);
+            const ptEl = document.getElementById('wrPartyPctText_' + k);
+            const cdEl = document.getElementById('wrPartyCard_' + k);
+            const bgEl = document.getElementById('wrPartyTopBadge_' + k);
+
+            if (inEl && parseFloat(inEl.value) !== rPct) inEl.value = rPct;
+            if (slEl && parseFloat(slEl.value) !== rPct) slEl.value = rPct;
+            if (vtEl) vtEl.textContent = rVotes.toLocaleString() + ' मत';
+            if (ptEl) ptEl.textContent = rPct + '% हिस्सा';
+            if (cdEl) {
+              cdEl.style.background = isTop ? '#fffbeb' : '#ffffff';
+              cdEl.style.borderColor = isTop ? '#f59e0b' : '#cbd5e1';
+              cdEl.style.boxShadow = isTop ? '0 2px 8px rgba(245, 158, 11, 0.18)' : 'none';
+            }
+            if (bgEl) bgEl.style.display = isTop ? 'block' : 'none';
+          });
+        }
       }
 
       // Update Math Cards DOM elements
