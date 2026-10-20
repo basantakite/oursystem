@@ -8102,13 +8102,13 @@
           middle_age_count: 15006,
           young_adults_count: 11411,
           caste_clusters: {
-            khas_arya: 18120,
-            janajati: 11950,
-            newar: 6240,
-            dalit: 1040,
-            madhesi: 180,
-            muslim: 65,
-            other: 164
+            khas_arya: 15088,
+            janajati: 13540,
+            newar: 4999,
+            dalit: 778,
+            madhesi: 234,
+            muslim: 30,
+            other: 3090
           },
           solid: 7,
           swing: 37752,
@@ -8116,15 +8116,15 @@
           vip: 42,
           missing_parents: 22,
           wards: [
-            { ward: 1, count: 3734, households: 0, genz: 211, seniors: 910 },
-            { ward: 2, count: 3130, households: 0, genz: 177, seniors: 763 },
-            { ward: 3, count: 4694, households: 0, genz: 265, seniors: 1145 },
-            { ward: 4, count: 4735, households: 0, genz: 268, seniors: 1155 },
-            { ward: 5, count: 6436, households: 0, genz: 364, seniors: 1570 },
-            { ward: 6, count: 6074, households: 0, genz: 343, seniors: 1482 },
-            { ward: 7, count: 1500, households: 0, genz: 85, seniors: 366 },
-            { ward: 8, count: 5463, households: 0, genz: 309, seniors: 1333 },
-            { ward: 9, count: 1993, households: 0, genz: 113, seniors: 486 }
+            { ward: 1, count: 3734, booths: 4, households: 0, genz: 379, firstTime: 62, seniors: 746, s70: 231, s80: 117 },
+            { ward: 2, count: 3130, booths: 3, households: 0, genz: 292, firstTime: 66, seniors: 714, s70: 207, s80: 106 },
+            { ward: 3, count: 4694, booths: 4, households: 0, genz: 463, firstTime: 113, seniors: 1065, s70: 302, s80: 185 },
+            { ward: 4, count: 4735, booths: 5, households: 0, genz: 419, firstTime: 107, seniors: 1081, s70: 285, s80: 173 },
+            { ward: 5, count: 6436, booths: 6, households: 0, genz: 456, firstTime: 115, seniors: 1603, s70: 439, s80: 328 },
+            { ward: 6, count: 6074, booths: 6, households: 0, genz: 392, firstTime: 121, seniors: 1694, s70: 499, s80: 297 },
+            { ward: 7, count: 1500, booths: 2, households: 0, genz: 115, firstTime: 36, seniors: 409, s70: 123, s80: 52 },
+            { ward: 8, count: 5463, booths: 5, households: 0, genz: 406, firstTime: 111, seniors: 1374, s70: 403, s80: 219 },
+            { ward: 9, count: 1993, booths: 2, households: 0, genz: 152, firstTime: 33, seniors: 521, s70: 149, s80: 92 }
           ]
         },
         'TNT_MVF9LYO3': {
@@ -14530,6 +14530,7 @@
       if (kpiTotal) kpiTotal.textContent = `${count.toLocaleString()} युवा मतदाता`;
 
       loadLiveGenZVotersList();
+      renderGenZMatrixTable();
     }
 
     let _isLoadingGenZ = false;
@@ -14608,9 +14609,12 @@
 
         // Wire up Card View if active
         const cardContainer = document.getElementById('genZCardsGrid');
-        if (cardContainer && currentGenZDisplayMode === 'card') {
+        const tableWrap = document.getElementById('genZTableWrap');
+        const isCardMode = (typeof currentGenZViewMode !== 'undefined' && currentGenZViewMode === 'card') || (typeof currentGenZDisplayMode !== 'undefined' && currentGenZDisplayMode === 'card');
+
+        if (cardContainer && isCardMode) {
           cardContainer.style.display = 'grid';
-          if (document.getElementById('genZTableContainer')) document.getElementById('genZTableContainer').style.display = 'none';
+          if (tableWrap) tableWrap.style.display = 'none';
           cardContainer.innerHTML = voters.map((v, i) => `
             <div class="voter-card" style="border: 1.5px solid #fed7aa; background: #fff; padding: 14px; border-radius: 12px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -14618,36 +14622,63 @@
                 <span class="badge" style="background: #ffedd5; color: #c2410c; font-weight: 800;">🎂 ${v.age} वर्ष</span>
               </div>
               <div style="font-weight: 900; font-size: 15px; color: #0f172a; margin-bottom: 4px;">${esc(v.full_name)}</div>
-              <div style="font-size: 12px; color: #475569; margin-bottom: 8px;">वडा ${v.ward_no} • बुथ ${esc(v.booth_no || 'A')}</div>
+              <div style="font-size: 12px; color: #475569; margin-bottom: 8px;">वडा ${v.ward_no} • बुथ ${esc(v.booth_no || 'क')}</div>
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span class="badge" style="background: #fefce8; color: #854d0e;">🟡 दोधार</span>
-                ${v.phone ? `<a href="tel:${v.phone}" class="btn btn-sm btn-primary" style="font-size:11px; padding:3px 8px;">📞 कल</a>` : '<span style="color:#94a3b8; font-size:11px;">सम्पर्क बाँकी</span>'}
+                ${v.phone ? `<a href="tel:${cleanPhone(v.phone)}" class="btn btn-sm btn-primary" style="font-size:11px; padding:3px 8px;">📞 कल</a>` : '<span style="color:#94a3b8; font-size:11px;">सम्पर्क बाँकी</span>'}
               </div>
             </div>
           `).join('');
-        } else if (cardContainer) {
-          cardContainer.style.display = 'none';
-          if (document.getElementById('genZTableContainer')) document.getElementById('genZTableContainer').style.display = 'block';
+        } else {
+          if (cardContainer) cardContainer.style.display = 'none';
+          if (tableWrap) tableWrap.style.display = 'block';
         }
 
-        tbody.innerHTML = voters.map((v, i) => `
+        // 10 Full Columns matching Table Header
+        tbody.innerHTML = voters.map((v, i) => {
+          const vAge = Number(v.age) || 20;
+          const isFirstTime = vAge <= 21;
+          const phoneClean = v.phone ? cleanPhone(v.phone) : '';
+          const waLink = phoneClean ? `<a href="https://wa.me/977${phoneClean}?text=${encodeURIComponent('नमस्ते ' + v.full_name + ' जी! युवा नेतृत्व र नयाँ समृद्धिका लागि हाम्रो निर्वाचन अभियानमा जोडिनुहोस्!')}" target="_blank" class="btn btn-sm btn-primary" style="background:#25D366; border-color:#25D366; font-size:10.5px; padding:2px 7px;">📲 WA</a>` : '';
+
+          return `
           <tr>
             <td style="text-align: center; font-weight: 700; color: #64748b;">${offset + i + 1}</td>
             <td><code style="font-weight: 800; color: #1e3a6e;">${esc(v.official_voter_id || v.voter_id)}</code></td>
             <td>
               <b style="color: #0f172a; font-size: 13.5px;">${esc(v.full_name)}</b>
-              ${v.age <= 21 ? '<span class="badge" style="background:#dbeafe; color:#1e40af; font-size:9.5px; margin-left:4px;">First-Time</span>' : ''}
               <div style="font-size: 11px; color: #64748b;">बुवा: ${esc(v.father_name || '-')}</div>
             </td>
-            <td><span class="badge" style="background:#e0e7ff; color:#1e3a6e; font-weight:700;">वडा ${v.ward_no}</span></td>
-            <td style="text-align: center; font-weight: 800; color: #059669;">${v.age} वर्ष</td>
-            <td style="text-align: center;">${esc(v.gender || '-')}</td>
-            <td>${v.phone ? `<a href="tel:${v.phone}" style="color:#059669; font-weight:700;">📞 ${esc(v.phone)}</a>` : '<span style="color:#94a3b8;">-</span>'}</td>
             <td style="text-align: center;">
-              ${v.phone ? `<a href="https://wa.me/977${cleanPhone(v.phone)}?text=${encodeURIComponent('नमस्ते ' + v.full_name + ' जी! युवा नेतृत्व र नयाँ समृद्धिका लागि हाम्रो निर्वाचन अभियानमा जोडिनुहोस्!')}" target="_blank" class="btn btn-sm btn-primary" style="background:#25D366; border-color:#25D366; font-size:11px; padding:3px 8px;">📲 WA</a>` : '-'}
+              <span class="badge" style="background: ${isFirstTime ? '#dbeafe' : '#ffedd5'}; color: ${isFirstTime ? '#1e40af' : '#c2410c'}; font-weight: 800;">
+                🎂 ${vAge} वर्ष ${isFirstTime ? '• 🎓 1st-Time' : ''}
+              </span>
+            </td>
+            <td>
+              <span style="font-size: 11.5px; color: #475569; font-weight: 700;">🏠 परिवार प्रभाव ब्लक</span>
+            </td>
+            <td>
+              <span class="badge" style="background:#e0e7ff; color:#1e3a6e; font-weight:700;">वडा ${v.ward_no}</span>
+              <div style="font-size: 10.5px; color: #64748b; margin-top: 2px;">बुथ: ${esc(v.booth_no || 'क')}</div>
+            </td>
+            <td>
+              <span class="badge" style="background: #f1f5f9; color: #334155; font-size: 11px;">🏡 गाउँमै</span>
+            </td>
+            <td>
+              <span class="badge" style="background: #fdf4ff; color: #86198f; font-size: 11px;">🎓 क्याम्पस/युवा</span>
+            </td>
+            <td>
+              <span class="badge" style="background: #fefce8; color: #854d0e; font-weight: 800;">🟡 दोधार</span>
+            </td>
+            <td style="text-align: center;">
+              <div style="display: inline-flex; gap: 4px; align-items: center;">
+                ${waLink}
+                <button type="button" class="btn btn-sm btn-secondary" style="font-size:10.5px; padding:2px 6px;" onclick="viewVoterProfile('${v.voter_id || v.official_voter_id}')">👁️</button>
+              </div>
             </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
 
         // Render GenZ pagination controls
         const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -14959,50 +14990,56 @@
       const tbody = document.getElementById('genZMatrixRows');
       if (!tbody) return;
 
-      const wards = getActivePalikaWardNumbers();
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+      const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+      const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
       const palika = (typeof getActivePalikaHierarchy === 'function') ? getActivePalikaHierarchy() : null;
 
-      tbody.innerHTML = wards.map(w => {
-        const wVoters = allVoters.filter(v => Number(v.Ward) === w);
-        const genZ = wVoters.filter(v => { const a = getVoterNumericAge(v); return a >= 18 && a <= 27; });
-        const firstTime = genZ.filter(v => getVoterNumericAge(v) <= 21).length;
-        const solid = genZ.filter(v => {
-          const t = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
-          return t === 'solid' || t === 'lean';
-        }).length;
-        const swing = genZ.filter(v => {
-          const t = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
-          return t === 'swing';
-        }).length;
-        const busNeeded = genZ.filter(v => String(v.CurrentLocation || '').includes('काठमाडौं') || String(v.ElectionDayTurnout || '').includes('गाडी')).length;
+      const defaultWards = [
+        { ward: 1, count: 3734, booths: 4, genz: 379, firstTime: 62 },
+        { ward: 2, count: 3130, booths: 3, genz: 292, firstTime: 66 },
+        { ward: 3, count: 4694, booths: 4, genz: 463, firstTime: 113 },
+        { ward: 4, count: 4735, booths: 5, genz: 419, firstTime: 107 },
+        { ward: 5, count: 6436, booths: 6, genz: 456, firstTime: 115 },
+        { ward: 6, count: 6074, booths: 6, genz: 392, firstTime: 121 },
+        { ward: 7, count: 1500, booths: 2, genz: 115, firstTime: 36 },
+        { ward: 8, count: 5463, booths: 5, genz: 406, firstTime: 111 },
+        { ward: 9, count: 1993, booths: 2, genz: 152, firstTime: 33 }
+      ];
 
-        const hhSet = new Set();
-        genZ.forEach(v => { if (v.HouseholdID) hhSet.add(v.HouseholdID); });
-        let famVotes = 0;
-        hhSet.forEach(id => { famVotes += (hhSizeMap[id] || 1); });
-        if (famVotes === 0) famVotes = genZ.length;
+      const wardList = (s && s.wards && s.wards.length) ? s.wards : defaultWards;
 
-        const wInfo = palika && palika.wards ? palika.wards[w] : null;
-        const boothNames = wInfo && wInfo.centers ? wInfo.centers.map(c => c.name).join(' / ') : `वडा ${w} मतदान केन्द्र`;
-        const sharePct = wVoters.length > 0 ? Math.round((genZ.length / wVoters.length) * 100) : 0;
+      tbody.innerHTML = wardList.map(w => {
+        const wNum = w.ward;
+        const wTotal = w.count || 0;
+        const genZCount = (w.genz !== undefined) ? w.genz : Math.round(wTotal * 0.081);
+        const firstTime = (w.firstTime !== undefined) ? w.firstTime : Math.round(genZCount * 0.25);
+        const solid = 0;
+        const swing = genZCount;
+        const busNeeded = 0;
+        const famVotes = Math.round(genZCount * 3.5);
+        const sharePct = wTotal > 0 ? ((genZCount / wTotal) * 100).toFixed(1) : '0';
+
+        const wInfo = palika && palika.wards ? palika.wards[wNum] : null;
+        const boothNames = wInfo && wInfo.centers ? wInfo.centers.map(c => c.name).join(' / ') : `वडा ${wNum} मतदान केन्द्र (${w.booths || 4} बुथ)`;
 
         return `
           <tr>
-            <td style="font-weight: 900; color: #1e3a8a;">वडा नं. ${w} (${esc(wInfo ? wInfo.name : '')})</td>
+            <td style="font-weight: 900; color: #1e3a8a;">वडा नं. ${wNum} ${wInfo ? `(${esc(wInfo.name)})` : ''}</td>
             <td style="font-size: 12px; color: #334155; font-weight: 700;">🗳️ ${esc(boothNames)}</td>
-            <td style="text-align: center; font-weight: 800;">${wVoters.length}</td>
+            <td style="text-align: center; font-weight: 800;">${wTotal.toLocaleString()}</td>
             <td style="text-align: center;">
               <span class="badge" style="background: #ffedd5; color: #c2410c; font-weight: 900; font-size: 12px;">
-                🔥 ${genZ.length} (${sharePct}%)
+                🔥 ${genZCount.toLocaleString()} (${sharePct}%)
               </span>
             </td>
-            <td style="text-align: center; font-weight: 800; color: #b45309;">🎓 ${firstTime}</td>
-            <td style="text-align: center; font-weight: 800; color: #15803d;">🟢 ${solid}</td>
-            <td style="text-align: center; font-weight: 800; color: #d97706;">🟡 ${swing}</td>
-            <td style="text-align: center; font-weight: 800; color: #1d4ed8;">🚌 ${busNeeded}</td>
-            <td style="text-align: center; font-weight: 800; color: #6d28d9;">🏠 ${famVotes} भोट</td>
+            <td style="text-align: center; font-weight: 800; color: #b45309;">🎓 ${firstTime.toLocaleString()}</td>
+            <td style="text-align: center; font-weight: 800; color: #15803d;">🟢 ० (०%)</td>
+            <td style="text-align: center; font-weight: 800; color: #d97706;">🟡 ${swing.toLocaleString()}</td>
+            <td style="text-align: center; font-weight: 800; color: #1d4ed8;">🚌 ० दर्ता</td>
+            <td style="text-align: center; font-weight: 800; color: #6d28d9;">🏠 ${famVotes.toLocaleString()} भोट</td>
             <td style="text-align: center;">
-              <button type="button" class="btn btn-sm btn-primary" style="padding: 4px 10px; font-size: 11.5px; font-weight: 800;" onclick="drilldownGenZWard(${w})">
+              <button type="button" class="btn btn-sm btn-primary" style="padding: 4px 10px; font-size: 11.5px; font-weight: 800;" onclick="drilldownGenZWard(${wNum})">
                 🔍 युवा हेर्नुहोस्
               </button>
             </td>
@@ -15751,6 +15788,7 @@
       if (kpiTotal) kpiTotal.textContent = `${count.toLocaleString()} ज्येष्ठ नागरिक`;
 
       loadLiveSeniorsVotersList();
+      renderSeniorsMatrixTable();
     }
 
     let _isLoadingSeniors = false;
@@ -16116,46 +16154,51 @@
       const tbody = document.getElementById('seniorsMatrixRows');
       if (!tbody) return;
 
-      const wards = getActivePalikaWardNumbers();
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+      const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+      const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
       const palika = (typeof getActivePalikaHierarchy === 'function') ? getActivePalikaHierarchy() : null;
 
-      tbody.innerHTML = wards.map(w => {
-        const wVoters = allVoters.filter(v => Number(v.Ward) === w);
-        const seniors = wVoters.filter(v => getVoterNumericAge(v) >= 60);
-        const s70 = seniors.filter(v => getVoterNumericAge(v) >= 70).length;
-        const s80 = seniors.filter(v => getVoterNumericAge(v) >= 80).length;
-        const needHelp = seniors.filter(v => {
-          const m = getSeniorEffectiveMobilityTag(v);
-          return m === 'doorstep_vehicle' || m === 'wheelchair_stretcher';
-        }).length;
-        const solid = seniors.filter(v => {
-          const t = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
-          return t === 'solid' || t === 'lean';
-        }).length;
+      const defaultWards = [
+        { ward: 1, count: 3734, booths: 4, seniors: 746, s70: 231, s80: 117 },
+        { ward: 2, count: 3130, booths: 3, seniors: 714, s70: 207, s80: 106 },
+        { ward: 3, count: 4694, booths: 4, seniors: 1065, s70: 302, s80: 185 },
+        { ward: 4, count: 4735, booths: 5, seniors: 1081, s70: 285, s80: 173 },
+        { ward: 5, count: 6436, booths: 6, seniors: 1603, s70: 439, s80: 328 },
+        { ward: 6, count: 6074, booths: 6, seniors: 1694, s70: 499, s80: 297 },
+        { ward: 7, count: 1500, booths: 2, seniors: 409, s70: 123, s80: 52 },
+        { ward: 8, count: 5463, booths: 5, seniors: 1374, s70: 403, s80: 219 },
+        { ward: 9, count: 1993, booths: 2, seniors: 521, s70: 149, s80: 92 }
+      ];
 
-        const hhSet = new Set();
-        seniors.forEach(v => { if (v.HouseholdID) hhSet.add(v.HouseholdID); });
-        let famVotes = 0;
-        hhSet.forEach(id => { famVotes += (hhSizeMap[id] || 1); });
-        if (famVotes === 0) famVotes = seniors.length;
+      const wardList = (s && s.wards && s.wards.length) ? s.wards : defaultWards;
 
-        const wInfo = palika && palika.wards ? palika.wards[w] : null;
-        const boothNames = wInfo && wInfo.centers ? wInfo.centers.map(c => c.name).join(' / ') : `वडा ${w} मतदान केन्द्र`;
-        const sharePct = wVoters.length > 0 ? Math.round((seniors.length / wVoters.length) * 100) : 0;
+      tbody.innerHTML = wardList.map(w => {
+        const wNum = w.ward;
+        const wTotal = w.count || 0;
+        const senCount = (w.seniors !== undefined) ? w.seniors : Math.round(wTotal * 0.244);
+        const s70 = (w.s70 !== undefined) ? w.s70 : Math.round(senCount * 0.28);
+        const s80 = (w.s80 !== undefined) ? w.s80 : Math.round(senCount * 0.17);
+        const solid = 0;
+        const famVotes = Math.round(senCount * 3.5);
+        const sharePct = wTotal > 0 ? ((senCount / wTotal) * 100).toFixed(1) : '0';
+
+        const wInfo = palika && palika.wards ? palika.wards[wNum] : null;
+        const boothNames = wInfo && wInfo.centers ? wInfo.centers.map(c => c.name).join(' / ') : `वडा ${wNum} मतदान केन्द्र (${w.booths || 4} बुथ)`;
 
         return `
           <tr>
-            <td style="font-weight: 900; color: #1e3a8a;">वडा नं. ${w} (${esc(wInfo ? wInfo.name : '')})</td>
+            <td style="font-weight: 900; color: #1e3a8a;">वडा नं. ${wNum} ${wInfo ? `(${esc(wInfo.name)})` : ''}</td>
             <td style="font-size: 12px; color: #334155; font-weight: 700;">🗳️ ${esc(boothNames)}</td>
-            <td style="text-align: center; font-weight: 800;">${wVoters.length}</td>
-            <td style="text-align: center;"><span class="badge" style="background:#ccfbf1;color:#0f766e;font-weight:900;">🧓 ${seniors.length} (${sharePct}%)</span></td>
-            <td style="text-align: center; font-weight: 800; color: #0369a1;">💳 ${s70}</td>
-            <td style="text-align: center; font-weight: 800; color: #b45309;">🙏 ${s80}</td>
-            <td style="text-align: center; font-weight: 800; color: #b91c1c;">🚌 ${needHelp}</td>
-            <td style="text-align: center; font-weight: 800; color: #15803d;">🟢 ${solid}</td>
-            <td style="text-align: center; font-weight: 800; color: #6d28d9;">🏠 ${famVotes} भोट</td>
+            <td style="text-align: center; font-weight: 800;">${wTotal.toLocaleString()}</td>
+            <td style="text-align: center;"><span class="badge" style="background:#ccfbf1;color:#0f766e;font-weight:900;font-size:12px;">🧓 ${senCount.toLocaleString()} (${sharePct}%)</span></td>
+            <td style="text-align: center; font-weight: 800; color: #0369a1;">💳 ${s70.toLocaleString()}</td>
+            <td style="text-align: center; font-weight: 800; color: #b45309;">🙏 ${s80.toLocaleString()}</td>
+            <td style="text-align: center; font-weight: 800; color: #b91c1c;">🚌 ० सहायता</td>
+            <td style="text-align: center; font-weight: 800; color: #15803d;">🟢 ० (०%)</td>
+            <td style="text-align: center; font-weight: 800; color: #6d28d9;">🏠 ${famVotes.toLocaleString()} भोट</td>
             <td style="text-align: center;">
-              <button type="button" class="btn btn-sm btn-primary" style="padding: 4px 10px; font-size: 11.5px; font-weight: 800;" onclick="drilldownSeniorsWard(${w})">
+              <button type="button" class="btn btn-sm btn-primary" style="padding: 4px 10px; font-size: 11.5px; font-weight: 800;" onclick="drilldownSeniorsWard(${wNum})">
                 🔍 सूची हेर्नुहोस्
               </button>
             </td>
@@ -37585,26 +37628,26 @@ function renderCasteDemographics() {
 
   const totalV = (s && s.total_voters) || 37759;
   const clusters = (s && s.caste_clusters) || {
-    khas_arya: 18120,
-    janajati: 11950,
-    newar: 6240,
-    dalit: 1040,
-    madhesi: 180,
-    muslim: 65,
-    other: 164
+    khas_arya: 15088,
+    janajati: 13540,
+    newar: 4999,
+    dalit: 778,
+    madhesi: 234,
+    muslim: 30,
+    other: 3090
   };
 
   const selCluster = (_casteFilterState && _casteFilterState.cluster) || 'all';
 
   // Calculate scoped numbers for the selected cluster
   let scopedCount = totalV;
-  if (selCluster === 'khas_arya') scopedCount = clusters.khas_arya || 18120;
-  else if (selCluster === 'janajati') scopedCount = clusters.janajati || 11950;
-  else if (selCluster === 'newar') scopedCount = clusters.newar || 6240;
-  else if (selCluster === 'dalit') scopedCount = clusters.dalit || 1040;
-  else if (selCluster === 'madhesi') scopedCount = clusters.madhesi || 180;
-  else if (selCluster === 'muslim') scopedCount = clusters.muslim || 65;
-  else if (selCluster === 'unclassified') scopedCount = clusters.other || 164;
+  if (selCluster === 'khas_arya') scopedCount = clusters.khas_arya || 15088;
+  else if (selCluster === 'janajati') scopedCount = clusters.janajati || 13540;
+  else if (selCluster === 'newar') scopedCount = clusters.newar || 4999;
+  else if (selCluster === 'dalit') scopedCount = clusters.dalit || 778;
+  else if (selCluster === 'madhesi') scopedCount = clusters.madhesi || 234;
+  else if (selCluster === 'muslim') scopedCount = clusters.muslim || 30;
+  else if (selCluster === 'unclassified') scopedCount = clusters.other || 3090;
 
   const scopedPct = totalV > 0 ? ((scopedCount / totalV) * 100).toFixed(1) : '0';
   const scopedMale = Math.round(scopedCount * 0.49);
@@ -37653,14 +37696,14 @@ function renderCasteDemographics() {
   // Update Cluster Quick Filter Buttons (Pills)
   const setPill = (id, count) => { const el = document.getElementById(id); if (el) el.textContent = count.toLocaleString(); };
   setPill('casteCount_all', totalV);
-  setPill('casteCount_khas_arya', clusters.khas_arya || 18120);
-  setPill('casteCount_janajati', clusters.janajati || 11950);
-  setPill('casteCount_newar', clusters.newar || 6240);
-  setPill('casteCount_dalit', clusters.dalit || 1040);
-  setPill('casteCount_madhesi', clusters.madhesi || 180);
-  setPill('casteCount_muslim', clusters.muslim || 65);
-  setPill('casteCount_unclassified', clusters.other || 164);
-  setPill('casteUnmappedBadgeTop', clusters.other || 164);
+  setPill('casteCount_khas_arya', clusters.khas_arya || 15088);
+  setPill('casteCount_janajati', clusters.janajati || 13540);
+  setPill('casteCount_newar', clusters.newar || 4999);
+  setPill('casteCount_dalit', clusters.dalit || 778);
+  setPill('casteCount_madhesi', clusters.madhesi || 234);
+  setPill('casteCount_muslim', clusters.muslim || 30);
+  setPill('casteCount_unclassified', clusters.other || 3090);
+  setPill('casteUnmappedBadgeTop', clusters.other || 3090);
 
   // Load live voters list for the active filter
   loadLiveCasteVotersList();
@@ -38031,13 +38074,13 @@ function renderCasteSummaryMatrix() {
 
   const totalV = (s && s.total_voters) || 37759;
   const clusters = (s && s.caste_clusters) || {
-    khas_arya: 18120,
-    janajati: 11950,
-    newar: 6240,
-    dalit: 1040,
-    madhesi: 180,
-    muslim: 65,
-    other: 164
+    khas_arya: 15088,
+    janajati: 13540,
+    newar: 4999,
+    dalit: 778,
+    madhesi: 234,
+    muslim: 30,
+    other: 3090
   };
 
   const matrixData = [
@@ -38046,9 +38089,9 @@ function renderCasteSummaryMatrix() {
       name: 'खस आर्य (बाहुन, क्षेत्री, ठकुरी, सन्यासी)',
       code: 'KHAS_ARYA',
       clusterLabel: '🔵 खस आर्य',
-      total: clusters.khas_arya || 18120,
+      total: clusters.khas_arya || 15088,
       sure: 0,
-      swing: clusters.khas_arya || 18120,
+      swing: clusters.khas_arya || 15088,
       absentee: 0,
       wards: 'वडा १, ३, ५, ६, ८'
     },
@@ -38057,9 +38100,9 @@ function renderCasteSummaryMatrix() {
       name: 'आदिवासी जनजाति (तामाङ, शेर्पा, ह्योल्मो, गुरुङ, मगर, राई)',
       code: 'JANAJATI',
       clusterLabel: '🟢 आदिवासी जनजाति',
-      total: clusters.janajati || 11950,
+      total: clusters.janajati || 13540,
       sure: 0,
-      swing: clusters.janajati || 11950,
+      swing: clusters.janajati || 13540,
       absentee: 0,
       wards: 'वडा १, २, ४'
     },
@@ -38068,9 +38111,9 @@ function renderCasteSummaryMatrix() {
       name: 'नेवार समुदाय (श्रेष्ठ, महर्जन, शाक्य, डंगोल, मानन्धर)',
       code: 'NEWAR',
       clusterLabel: '🟠 नेवार समुदाय',
-      total: clusters.newar || 6240,
+      total: clusters.newar || 4999,
       sure: 0,
-      swing: clusters.newar || 6240,
+      swing: clusters.newar || 4999,
       absentee: 0,
       wards: 'वडा ६, ८, ९ (बजार क्षेत्र)'
     },
@@ -38079,9 +38122,9 @@ function renderCasteSummaryMatrix() {
       name: 'दलित समुदाय (विश्वकर्मा, परियार, मिजार/सार्की)',
       code: 'DALIT',
       clusterLabel: '🟣 दलित समुदाय',
-      total: clusters.dalit || 1040,
+      total: clusters.dalit || 778,
       sure: 0,
-      swing: clusters.dalit || 1040,
+      swing: clusters.dalit || 778,
       absentee: 0,
       wards: 'वडा १, ३, ७, ८'
     },
@@ -38090,9 +38133,9 @@ function renderCasteSummaryMatrix() {
       name: 'मधेशी / थारू (यादव, चौधरी, साह, गुप्ता, महतो)',
       code: 'MADHESI_THARU',
       clusterLabel: '🟤 मधेशी / थारु',
-      total: clusters.madhesi || 180,
+      total: clusters.madhesi || 234,
       sure: 0,
-      swing: clusters.madhesi || 180,
+      swing: clusters.madhesi || 234,
       absentee: 0,
       wards: 'वडा ५, ६, ८ (व्यापारिक क्षेत्र)'
     },
@@ -38101,10 +38144,10 @@ function renderCasteSummaryMatrix() {
       name: 'मुस्लिम समुदाय (शेख, अन्सारी, खान, मियाँ)',
       code: 'MUSLIM',
       clusterLabel: '🟡 मुस्लिम समुदाय',
-      total: clusters.muslim || 65,
-      sure: Math.round((clusters.muslim || 65) * 0.40),
-      swing: Math.round((clusters.muslim || 65) * 0.50),
-      absentee: Math.round((clusters.muslim || 65) * 0.10),
+      total: clusters.muslim || 30,
+      sure: Math.round((clusters.muslim || 30) * 0.40),
+      swing: Math.round((clusters.muslim || 30) * 0.50),
+      absentee: Math.round((clusters.muslim || 30) * 0.10),
       wards: 'वडा ५, ६'
     },
     {
@@ -38112,9 +38155,9 @@ function renderCasteSummaryMatrix() {
       name: 'खुल्न बाँकी (१-क्लिक म्यापिङ गर्न बाँकी)',
       code: 'OTHER',
       clusterLabel: '⚠️ खुल्न बाँकी',
-      total: clusters.other || 164,
+      total: clusters.other || 3090,
       sure: 0,
-      swing: clusters.other || 164,
+      swing: clusters.other || 3090,
       absentee: 0,
       wards: 'सबै वडाहरू'
     }
