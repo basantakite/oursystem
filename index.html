@@ -8888,7 +8888,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261020-v47-dashboard-pure-reality';
+      const CURRENT_APP_BUILD = '20261020-v48-caste-pure-anchor';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8952,7 +8952,7 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261020-v47-dashboard-pure-reality')
+        navigator.serviceWorker.register('sw.js?v=20261020-v48-caste-pure-anchor')
           .then((reg) => {
             console.log('Election Ops PWA Service Worker Registered (v28-winmargin)');
             reg.update();
@@ -37509,9 +37509,10 @@ function renderCasteDemographics() {
   const scopedPct = totalV > 0 ? ((scopedCount / totalV) * 100).toFixed(1) : '0';
   const scopedMale = Math.round(scopedCount * 0.49);
   const scopedFemale = scopedCount - scopedMale;
-  const scopedSure = Math.max(0, Math.round(scopedCount * 0.42));
-  const scopedSwing = Math.max(0, Math.round(scopedCount * 0.48));
-  const scopedAbsent = Math.max(0, Math.round(scopedCount * 0.10));
+  // REAL FIELD REALITY: Until door-to-door ground verification logs arrive, sure votes default to 0 and all are pending/swing
+  const scopedSure = 0;
+  const scopedSwing = scopedCount;
+  const scopedAbsent = 0;
 
   // Render Top 4 KPI Cards (Proper HTML IDs)
   const elTot = document.getElementById('casteKpiTotalCount');
@@ -37531,11 +37532,11 @@ function renderCasteDemographics() {
   if (elMale) elMale.textContent = scopedMale.toLocaleString();
   if (elFem) elFem.textContent = scopedFemale.toLocaleString();
   if (elSure) elSure.textContent = scopedSure.toLocaleString();
-  if (elSurePct) elSurePct.textContent = '42%';
+  if (elSurePct) elSurePct.textContent = '०%';
   if (elSwing) elSwing.textContent = scopedSwing.toLocaleString();
-  if (elSwingPct) elSwingPct.textContent = '48%';
+  if (elSwingPct) elSwingPct.textContent = '१००%';
   if (elAbs) elAbs.textContent = scopedAbsent.toLocaleString();
-  if (elAbsPct) elAbsPct.textContent = '10%';
+  if (elAbsPct) elAbsPct.textContent = '०%';
 
   const clusterLabels = {
     all: 'सबै समुदाय',
@@ -37623,7 +37624,19 @@ async function loadLiveCasteVotersList() {
   } else if (selCluster === 'khas_arya') {
     orClauses.push('full_name.ilike.*bhandari*','full_name.ilike.*thapa*','full_name.ilike.*karki*','full_name.ilike.*khadka*','full_name.ilike.*ghimire*','full_name.ilike.*paudel*','full_name.ilike.*adhikari*','full_name.ilike.*pudasaini*','full_name.ilike.*gautam*','full_name.ilike.*pandit*','full_name.ilike.*giri*','full_name.ilike.*dahal*','full_name.ilike.*sapkota*','full_name.ilike.*basnet*','full_name.ilike.*chaulagain*','full_name.ilike.*subedi*','full_name.ilike.*aryal*','full_name.ilike.*khatiwada*','full_name.ilike.*khatri*','full_name.ilike.*pokharel*','full_name.ilike.*chhetri*','full_name.ilike.*bhattarai*','full_name.ilike.*dhakal*','full_name.ilike.*chalise*','full_name.ilike.*nepal*','full_name.ilike.*khanal*','full_name.ilike.*baral*','full_name.ilike.*sharma*','full_name.ilike.*nyaupane*','full_name.ilike.*budhathoki*','full_name.ilike.*upadhyay*','full_name.ilike.*thapaliya*','full_name.ilike.*thakuri*','full_name.ilike.*kafle*','full_name.ilike.*katuwal*','full_name.ilike.*kattel*','full_name.ilike.*kandel*','full_name.ilike.*kunwar*','full_name.ilike.*devkota*','full_name.ilike.*dulal*','full_name.ilike.*tiwari*','full_name.ilike.*tripathi*','full_name.ilike.*humagain*','full_name.ilike.*hamal*');
   } else if (selCluster === 'dalit') {
-    orClauses.push('full_name.ilike.*bishwokarma*','full_name.ilike.*bishwakarma*','full_name.ilike.*wishwakarma*','full_name.ilike.*kami*','full_name.ilike.*sunar*','full_name.ilike.*pariyar*','full_name.ilike.*damai*','full_name.ilike.*sarki*','full_name.ilike.*mijar*','full_name.ilike.*nepali*','full_name.ilike.*suchikar*','full_name.ilike.*gandharva*','full_name.ilike.*gaine*','full_name.ilike.*badi*','full_name.ilike.*tamta*','full_name.ilike.*chunara*','full_name.ilike.*parki*','full_name.ilike.*rasaili*','full_name.ilike.*musahar*','full_name.ilike.*sada*','full_name.ilike.*rishidev*','full_name.ilike.*chamar*','full_name.ilike.*ravidas*','full_name.ilike.*dusadh*','full_name.ilike.*paswan*','full_name.ilike.*dom*','full_name.ilike.*rajak*');
+    // Surnames must be anchored with space or clean match to avoid matching first names like Doma or Kami Rita!
+    orClauses.push(
+      'full_name.ilike.* bishwokarma*', 'full_name.ilike.* bishwakarma*', 'full_name.ilike.* wishwakarma*',
+      'full_name.ilike.* b.k*', 'full_name.ilike.* bk', 'full_name.ilike.* pariyar*', 'full_name.ilike.* mijar*',
+      'full_name.ilike.* sunar*', 'full_name.ilike.* sonar*', 'full_name.ilike.* sarki*', 'full_name.ilike.* damai*',
+      'full_name.ilike.* nepali*', 'full_name.ilike.* kami', 'full_name.ilike.* kami *', 'full_name.ilike.* baraili*',
+      'full_name.ilike.* baraily*', 'full_name.ilike.* senchuri*', 'full_name.ilike.* century*', 'full_name.ilike.* senchury*',
+      'full_name.ilike.* rasaili*', 'full_name.ilike.* ramtel*', 'full_name.ilike.* ranapaheli*', 'full_name.ilike.* ghotane*',
+      'full_name.ilike.* ghataney*', 'full_name.ilike.* koli*', 'full_name.ilike.* lohar*', 'full_name.ilike.* tamta*',
+      'full_name.ilike.* chunara*', 'full_name.ilike.* parki*', 'full_name.ilike.* musahar*', 'full_name.ilike.* sada*',
+      'full_name.ilike.* rishidev*', 'full_name.ilike.* paswan*', 'full_name.ilike.* chamar*', 'full_name.ilike.* ravidas*',
+      'full_name.ilike.* dusadh*', 'full_name.ilike.* rajak*'
+    );
   } else if (selCluster === 'madhesi') {
     orClauses.push('full_name.ilike.*yadav*','full_name.ilike.*ahir*','full_name.ilike.*gop*','full_name.ilike.*koiri*','full_name.ilike.*kushwaha*','full_name.ilike.*kurmi*','full_name.ilike.*jha*','full_name.ilike.*shukla*','full_name.ilike.*sah*','full_name.ilike.*sahu*','full_name.ilike.*gupta*','full_name.ilike.*mahato*','full_name.ilike.*raut*','full_name.ilike.*mandal*','full_name.ilike.*tharu*','full_name.ilike.*chaudhary*','full_name.ilike.*chaudhari*','full_name.ilike.*kewat*','full_name.ilike.*kanu*','full_name.ilike.*thakur*','full_name.ilike.*kalwar*','full_name.ilike.*rauniyar*','full_name.ilike.*agrawal*');
   } else if (selCluster === 'muslim') {
@@ -37696,8 +37709,23 @@ async function loadLiveCasteVotersList() {
       'unclassified': 'background:#fef2f2; color:#991b1b; border:1px solid #fecaca;'
     };
 
+    // Strict cluster integrity filter: Never show a Janajati/Khas-Arya in Dalit, or vice-versa!
+    const filteredVoters = voters.filter(v => {
+      if (selCluster === 'all') return true;
+      const c = getVoterCasteClassification(v);
+      if (selCluster === 'unclassified') return c.cluster === 'unclassified';
+      return c.cluster === selCluster;
+    });
+
+    if (filteredVoters.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 24px; color: var(--text-muted);">यस फिल्टरमा कुनै मतदाता फेला परेन।</td></tr>';
+      if (cardContainer) cardContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 30px; color: var(--text-muted);">कुनै कार्ड फेला परेन।</div>';
+      _isLoadingCasteVoters = false;
+      return;
+    }
+
     // 1. Populate Table Rows
-    tbody.innerHTML = voters.map((v, i) => {
+    tbody.innerHTML = filteredVoters.map((v, i) => {
       const c = getVoterCasteClassification(v);
       const pillStyle = clusterPillStyles[c.cluster] || 'background:#f1f5f9; color:#334155;';
       const toleStr = (v.tole && v.tole.trim()) ? v.tole : (v.booth_no ? v.booth_no.replace('Former VDC Building,', '').trim() : '-');
@@ -37754,7 +37782,7 @@ async function loadLiveCasteVotersList() {
 
     // 2. Populate Card View
     if (cardContainer) {
-      cardContainer.innerHTML = voters.map((v, i) => {
+      cardContainer.innerHTML = filteredVoters.map((v, i) => {
         const c = getVoterCasteClassification(v);
         const pillStyle = clusterPillStyles[c.cluster] || 'background:#f1f5f9; color:#334155;';
         const toleStr = (v.tole && v.tole.trim()) ? v.tole : (v.booth_no ? v.booth_no.replace('Former VDC Building,', '').trim() : '-');
@@ -37919,9 +37947,9 @@ function renderCasteSummaryMatrix() {
       code: 'KHAS_ARYA',
       clusterLabel: '🔵 खस आर्य',
       total: clusters.khas_arya || 18120,
-      sure: Math.round((clusters.khas_arya || 18120) * 0.44),
-      swing: Math.round((clusters.khas_arya || 18120) * 0.46),
-      absentee: Math.round((clusters.khas_arya || 18120) * 0.10),
+      sure: 0,
+      swing: clusters.khas_arya || 18120,
+      absentee: 0,
       wards: 'वडा १, ३, ५, ६, ८'
     },
     {
@@ -37930,9 +37958,9 @@ function renderCasteSummaryMatrix() {
       code: 'JANAJATI',
       clusterLabel: '🟢 आदिवासी जनजाति',
       total: clusters.janajati || 11950,
-      sure: Math.round((clusters.janajati || 11950) * 0.45),
-      swing: Math.round((clusters.janajati || 11950) * 0.45),
-      absentee: Math.round((clusters.janajati || 11950) * 0.10),
+      sure: 0,
+      swing: clusters.janajati || 11950,
+      absentee: 0,
       wards: 'वडा १, २, ४'
     },
     {
@@ -37941,9 +37969,9 @@ function renderCasteSummaryMatrix() {
       code: 'NEWAR',
       clusterLabel: '🟠 नेवार समुदाय',
       total: clusters.newar || 6240,
-      sure: Math.round((clusters.newar || 6240) * 0.40),
-      swing: Math.round((clusters.newar || 6240) * 0.50),
-      absentee: Math.round((clusters.newar || 6240) * 0.10),
+      sure: 0,
+      swing: clusters.newar || 6240,
+      absentee: 0,
       wards: 'वडा ६, ८, ९ (बजार क्षेत्र)'
     },
     {
@@ -37952,9 +37980,9 @@ function renderCasteSummaryMatrix() {
       code: 'DALIT',
       clusterLabel: '🟣 दलित समुदाय',
       total: clusters.dalit || 1040,
-      sure: Math.round((clusters.dalit || 1040) * 0.48),
-      swing: Math.round((clusters.dalit || 1040) * 0.42),
-      absentee: Math.round((clusters.dalit || 1040) * 0.10),
+      sure: 0,
+      swing: clusters.dalit || 1040,
+      absentee: 0,
       wards: 'वडा १, ३, ७, ८'
     },
     {
@@ -37963,9 +37991,9 @@ function renderCasteSummaryMatrix() {
       code: 'MADHESI_THARU',
       clusterLabel: '🟤 मधेशी / थारु',
       total: clusters.madhesi || 180,
-      sure: Math.round((clusters.madhesi || 180) * 0.38),
-      swing: Math.round((clusters.madhesi || 180) * 0.52),
-      absentee: Math.round((clusters.madhesi || 180) * 0.10),
+      sure: 0,
+      swing: clusters.madhesi || 180,
+      absentee: 0,
       wards: 'वडा ५, ६, ८ (व्यापारिक क्षेत्र)'
     },
     {

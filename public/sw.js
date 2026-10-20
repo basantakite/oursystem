@@ -1,5 +1,5 @@
 // Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v47-dashboard-pure-reality';
+const CACHE_NAME = 'election-ops-v48-caste-pure-anchor';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
