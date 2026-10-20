@@ -1,5 +1,5 @@
 // Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v46-warroom-wardlock-100pct';
+const CACHE_NAME = 'election-ops-v47-dashboard-pure-reality';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

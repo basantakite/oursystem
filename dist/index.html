@@ -8095,8 +8095,8 @@
           male: 18461,
           female: 19298,
           other: 0,
-          total_households: 10488,
-          avg_family_size: 3.6,
+          total_households: 0,
+          avg_family_size: 0,
           genz_count: 2135,
           seniors_count: 9207,
           middle_age_count: 15006,
@@ -8116,15 +8116,15 @@
           vip: 42,
           missing_parents: 22,
           wards: [
-            { ward: 1, count: 3734, households: 1037, genz: 211, seniors: 910 },
-            { ward: 2, count: 3130, households: 869, genz: 177, seniors: 763 },
-            { ward: 3, count: 4694, households: 1304, genz: 265, seniors: 1145 },
-            { ward: 4, count: 4735, households: 1315, genz: 268, seniors: 1155 },
-            { ward: 5, count: 6436, households: 1788, genz: 364, seniors: 1570 },
-            { ward: 6, count: 6074, households: 1687, genz: 343, seniors: 1482 },
-            { ward: 7, count: 1500, households: 417, genz: 85, seniors: 366 },
-            { ward: 8, count: 5463, households: 1518, genz: 309, seniors: 1333 },
-            { ward: 9, count: 1993, households: 553, genz: 113, seniors: 486 }
+            { ward: 1, count: 3734, households: 0, genz: 211, seniors: 910 },
+            { ward: 2, count: 3130, households: 0, genz: 177, seniors: 763 },
+            { ward: 3, count: 4694, households: 0, genz: 265, seniors: 1145 },
+            { ward: 4, count: 4735, households: 0, genz: 268, seniors: 1155 },
+            { ward: 5, count: 6436, households: 0, genz: 364, seniors: 1570 },
+            { ward: 6, count: 6074, households: 0, genz: 343, seniors: 1482 },
+            { ward: 7, count: 1500, households: 0, genz: 85, seniors: 366 },
+            { ward: 8, count: 5463, households: 0, genz: 309, seniors: 1333 },
+            { ward: 9, count: 1993, households: 0, genz: 113, seniors: 486 }
           ]
         },
         'TNT_MVF9LYO3': {
@@ -8691,6 +8691,15 @@
         if (!state.settings.SUPABASE_KEY) state.settings.SUPABASE_KEY = DEFAULT_CONFIG.SUPABASE_KEY;
         if (!state.voters || state.voters.length === 0) {
           state.voters = getInitialHelambuVoterRollSeed();
+        } else if (Array.isArray(state.voters)) {
+          state.voters.forEach(v => {
+            if (v && v.VerificationStatus === 'Verified' && !v.VerifiedAt && !v.VerifiedBy) {
+              v.VerificationStatus = 'Pending';
+            }
+            if (v && v.ContactStatus === 'Contacted' && !v.ContactedAt && !v.ContactedBy) {
+              v.ContactStatus = 'Not Contacted';
+            }
+          });
         }
         saveState();
       }
@@ -8739,7 +8748,15 @@
             const localVoterCount = (state.voters && state.voters.length) || 0;
             // Hydrate if IndexedDB has more voters (e.g. localStorage hit 5MB quota) or local votes cast states
             if (idbState.voters.length > localVoterCount) {
-              state.voters = idbState.voters;
+              state.voters = idbState.voters.map(v => {
+                if (v && v.VerificationStatus === 'Verified' && !v.VerifiedAt && !v.VerifiedBy) {
+                  v.VerificationStatus = 'Pending';
+                }
+                if (v && v.ContactStatus === 'Contacted' && !v.ContactedAt && !v.ContactedBy) {
+                  v.ContactStatus = 'Not Contacted';
+                }
+                return v;
+              });
               if (Array.isArray(idbState.households) && idbState.households.length > (state.households || []).length) {
                 state.households = idbState.households;
               }
@@ -8871,7 +8888,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261020-v46-warroom-wardlock-100pct';
+      const CURRENT_APP_BUILD = '20261020-v47-dashboard-pure-reality';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8892,6 +8909,16 @@
               localStorage.removeItem(k);
             }
           });
+        } catch(e) {}
+        try {
+          const dbReq = indexedDB.open(IDB_NAME, 1);
+          dbReq.onsuccess = (e) => {
+            const db = e.target.result;
+            if (db && db.objectStoreNames.contains(IDB_STORE)) {
+              const tx = db.transaction(IDB_STORE, 'readwrite');
+              tx.objectStore(IDB_STORE).delete(STORAGE_KEY);
+            }
+          };
         } catch(e) {}
       } else {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8925,7 +8952,7 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261020-v43-cleanfirst-fixed')
+        navigator.serviceWorker.register('sw.js?v=20261020-v47-dashboard-pure-reality')
           .then((reg) => {
             console.log('Election Ops PWA Service Worker Registered (v28-winmargin)');
             reg.update();
@@ -13029,6 +13056,8 @@
       }
       if (typeof updateGenZNavBadge === 'function') updateGenZNavBadge();
       if (typeof updateSeniorsNavBadge === 'function') updateSeniorsNavBadge();
+      if (typeof updateCasteNavBadge === 'function') updateCasteNavBadge();
+      if (typeof updateHouseholdsNavBadge === 'function') updateHouseholdsNavBadge();
       renderDashboardCampaignBanner();
       const v = getScopedVoters();
       const scopedHh = getScopedHouseholds();
@@ -13041,34 +13070,49 @@
       const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : '';
       const tSummary = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(activeTId) : null;
       const total = (tSummary && tSummary.total_voters) || (activeTId === 'TNT_MVG3WXFX' ? 37759 : (activeTId === 'TNT_MVF9LYO3' ? 18907 : Math.max(v.length, 0)));
-      const contacted = v.filter(x => x.ContactStatus === 'Contacted').length;
-      const notContacted = total - contacted;
-      const verified = (scopedVis && scopedVis.length) ? scopedVis.length : v.filter(x => x.VerificationStatus === 'Verified').length;
-      const pendingVerify = total - verified;
+      
+      // REAL FIELD METRICS:
+      // Contacted & Verified strictly from genuine field logs / visits, defaulting to 0 if unvisited
+      const contacted = (scopedVis && scopedVis.length) 
+        ? scopedVis.filter(x => x.ContactStatus === 'Contacted' || x.VisitOutcome === 'Met').length 
+        : v.filter(x => x.ContactStatus === 'Contacted' && !x.RecordSource?.includes('Import')).length;
+      const notContacted = Math.max(0, total - contacted);
+      
+      const verified = (scopedVis && scopedVis.length) 
+        ? scopedVis.filter(x => x.Status === 'Verified' || x.VerificationStatus === 'Verified').length 
+        : v.filter(x => x.VerificationStatus === 'Verified' && !x.RecordSource?.includes('Import') && x.VerifiedAt).length;
+      const pendingVerify = Math.max(0, total - verified);
+      
       const pendingFollow = scopedFol.filter(x => x.Status === 'Pending').length;
       const openIssues = scopedIss.filter(x => x.Status !== 'Resolved').length;
       const publicPending = scopedPub.filter(x => x.Status === 'Pending Review').length;
       const votedCount = v.filter(x => !!x.HasVoted).length;
 
-      document.getElementById('voterCountBadge').textContent = total;
-      document.getElementById('pendingFollowBadge').textContent = pendingFollow;
-      document.getElementById('issuesBadge').textContent = openIssues;
-      document.getElementById('publicBadge').textContent = publicPending;
+      const vBadge = document.getElementById('voterCountBadge');
+      if (vBadge) vBadge.textContent = total.toLocaleString();
+      const pfBadge = document.getElementById('pendingFollowBadge');
+      if (pfBadge) pfBadge.textContent = pendingFollow;
+      const issBadge = document.getElementById('issuesBadge');
+      if (issBadge) issBadge.textContent = openIssues;
+      const pubBadge = document.getElementById('publicBadge');
+      if (pubBadge) pubBadge.textContent = publicPending;
       const votedNavEl = document.getElementById('votedCountNavBadge');
       if (votedNavEl) votedNavEl.textContent = votedCount;
 
       const wardNums = getActivePalikaWardNumbers();
       const wardLabel = isWardRestrictedUser() ? `Ward ${currentUser.Ward}` : `Across ${wardNums.length || 7} Wards`;
 
+      const householdCount = (scopedHh && scopedHh.length) || 0;
+
       const kpis = [
-        { label: 'Total Contacts', val: total, sub: `${contacted} Contacted` },
-        { label: 'Households', val: ((tSummary && tSummary.total_households) || 10488).toLocaleString(), sub: 'Family Units' },
-        { label: 'Contacted Rate', val: total ? Math.round((contacted/total)*100) + '%' : '0%', sub: `${notContacted} Pending` },
-        { label: 'Verified Contacts', val: verified, sub: `${pendingVerify} Unverified` },
-        { label: 'Field Visits Logged', val: scopedVis.length, sub: 'Total Records' },
-        { label: 'Pending Follow-ups', val: pendingFollow, sub: 'Needs Attention' },
-        { label: 'Active Booths', val: scopedBth.length, sub: wardLabel },
-        { label: 'Open Issues', val: openIssues, sub: 'Operational' }
+        { label: 'Total Contacts', val: total.toLocaleString(), sub: `${contacted.toLocaleString()} Contacted` },
+        { label: 'Households', val: householdCount ? householdCount.toLocaleString() : '०', sub: 'प्रणालीमा दर्ता घरधुरी' },
+        { label: 'Contacted Rate', val: total ? Math.round((contacted/total)*100) + '%' : '0%', sub: `${notContacted.toLocaleString()} Pending` },
+        { label: 'Verified Contacts', val: verified.toLocaleString(), sub: `${pendingVerify.toLocaleString()} Unverified` },
+        { label: 'Field Visits Logged', val: scopedVis.length.toLocaleString(), sub: 'Total Records' },
+        { label: 'Pending Follow-ups', val: pendingFollow.toLocaleString(), sub: 'Needs Attention' },
+        { label: 'Active Booths', val: scopedBth.length.toLocaleString(), sub: wardLabel },
+        { label: 'Open Issues', val: openIssues.toLocaleString(), sub: 'Operational' }
       ];
 
       const pInfo = getActivePartyPalette();
@@ -13101,14 +13145,26 @@
       const scopedBooths = getScopedBooths();
       const scopedIssues = getScopedIssues();
       const scopedFollowups = getScopedFollowups();
+      const scopedVisits = getScopedVisits();
 
       let html = '';
       for (const w of wardNums) {
         const wv = scopedVoters.filter(v => Number(v.Ward || v.WardNo || 0) === w);
         const wardSummaryCount = (typeof getActiveWardSummaryCount === 'function') ? getActiveWardSummaryCount(w) : 0;
         const wardVoterCount = wardSummaryCount > 0 ? wardSummaryCount : wv.length;
-        const contacted = wv.filter(v => v.ContactStatus === 'Contacted').length;
-        const verified = wv.filter(v => v.VerificationStatus === 'Verified').length;
+
+        const wardVisits = scopedVisits.filter(vis => {
+          if (vis.Ward && Number(vis.Ward) === w) return true;
+          const vt = getVoterByIdFast(vis.VoterID);
+          return vt && Number(vt.Ward || vt.WardNo || 0) === w;
+        });
+        const contacted = wardVisits.length > 0 
+          ? wardVisits.filter(vis => vis.ContactStatus === 'Contacted' || vis.VisitOutcome === 'Met').length 
+          : wv.filter(v => v.ContactStatus === 'Contacted' && !v.RecordSource?.includes('Import')).length;
+        const verified = wardVisits.length > 0 
+          ? wardVisits.filter(vis => vis.Status === 'Verified' || vis.VerificationStatus === 'Verified').length 
+          : wv.filter(v => v.VerificationStatus === 'Verified' && !v.RecordSource?.includes('Import') && v.VerifiedAt).length;
+
         const booths = scopedBooths.filter(b => Number(b.WardNo || b.Ward || 0) === w).length;
         const issues = scopedIssues.filter(i => Number(i.WardNo || i.Ward || 0) === w && i.Status !== 'Resolved').length;
         const followups = scopedFollowups.filter(f => {
@@ -13120,8 +13176,8 @@
           <tr>
             <td><b>वडा ${w}</b></td>
             <td><b>${wardVoterCount.toLocaleString()}</b></td>
-            <td><span class="badge badge-contacted">${contacted}</span></td>
-            <td><span class="badge badge-verified">${verified}</span></td>
+            <td><span class="badge ${contacted > 0 ? 'badge-contacted' : 'badge-neutral'}" style="${contacted === 0 ? 'background:#f1f5f9; color:#64748b; font-weight:600;' : ''}">${contacted}</span></td>
+            <td><span class="badge ${verified > 0 ? 'badge-verified' : 'badge-neutral'}" style="${verified === 0 ? 'background:#f1f5f9; color:#64748b; font-weight:600;' : ''}">${verified}</span></td>
             <td>${followups ? `<span class="badge badge-urgent">${followups}</span>` : '0'}</td>
             <td>${booths}</td>
             <td>${issues ? `<span class="badge badge-urgent">${issues}</span>` : '0'}</td>
@@ -14238,39 +14294,46 @@
     }
 
     function updateGenZNavBadge() {
-      const el = document.getElementById('genZNavBadge');
-      if (!el) return;
       const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : '';
       const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(activeTId) : null;
       const count = (s && s.genz_count) || (activeTId === 'TNT_MVG3WXFX' ? 2135 : 1240);
-      el.textContent = count.toLocaleString();
+      const valStr = count.toLocaleString();
+      const el1 = document.getElementById('genZCountBadge');
+      const el2 = document.getElementById('genZNavBadge');
+      if (el1) el1.textContent = valStr;
+      if (el2) el2.textContent = valStr;
     }
 
     function updateSeniorsNavBadge() {
-      const el = document.getElementById('seniorsNavBadge');
-      if (!el) return;
       const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : '';
       const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(activeTId) : null;
       const count = (s && s.seniors_count) || (activeTId === 'TNT_MVG3WXFX' ? 9207 : 3450);
-      el.textContent = count.toLocaleString();
+      const valStr = count.toLocaleString();
+      const el1 = document.getElementById('seniorsCountBadge');
+      const el2 = document.getElementById('seniorsNavBadge');
+      if (el1) el1.textContent = valStr;
+      if (el2) el2.textContent = valStr;
     }
 
     function updateCasteNavBadge() {
-      const el = document.getElementById('casteNavBadge');
-      if (!el) return;
       const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : '';
       const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(activeTId) : null;
       const count = (s && s.total_voters) || (activeTId === 'TNT_MVG3WXFX' ? 37759 : 18907);
-      el.textContent = count.toLocaleString();
+      const valStr = count.toLocaleString();
+      const el1 = document.getElementById('casteCountBadge');
+      const el2 = document.getElementById('casteNavBadge');
+      if (el1) el1.textContent = valStr;
+      if (el2) el2.textContent = valStr;
     }
 
     function updateHouseholdsNavBadge() {
-      const el = document.getElementById('householdsNavBadge');
-      if (!el) return;
-      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : '';
-      const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(activeTId) : null;
-      const count = (s && s.total_households) || (activeTId === 'TNT_MVG3WXFX' ? 10488 : 5200);
-      el.textContent = count.toLocaleString();
+      const scopedHh = (typeof getScopedHouseholds === 'function') ? getScopedHouseholds() : (state.households || []);
+      const count = (scopedHh && scopedHh.length) || 0;
+      const valStr = count ? count.toLocaleString() : '०';
+      const el1 = document.getElementById('householdsCountBadge');
+      const el2 = document.getElementById('householdsNavBadge');
+      if (el1) el1.textContent = valStr;
+      if (el2) el2.textContent = valStr;
     }
 
     function legacy_updateGenZNavBadge() {
@@ -15515,12 +15578,7 @@
       return 'can_walk';
     }
 
-    function updateSeniorsNavBadge() {
-      const allVoters = (typeof getScopedVoters === 'function') ? getScopedVoters() : (state.voters || []);
-      const senCount = allVoters.filter(v => getVoterNumericAge(v) >= 60).length;
-      const badge = document.getElementById('seniorsCountBadge');
-      if (badge) badge.textContent = senCount;
-    }
+    // updateSeniorsNavBadge is defined globally above
 
     function setSeniorsAgeSegment(seg) {
       currentSeniorsAgeSegment = seg;
@@ -16712,7 +16770,7 @@
             SpouseName: r.spouse_name,
             SupportTier: notesObj.support_tier || r.sentiment || 'swing',
             ContactStatus: notesObj.contact_status || (r.voted_status ? 'Contacted' : 'Not Contacted'),
-            VerificationStatus: notesObj.verification_status || 'Verified',
+            VerificationStatus: notesObj.verification_status || 'Pending',
             Phone: r.phone || '',
             IsInfluencer: notesObj.is_influencer || r.is_influencer || false,
             TenantID: r.tenant_id
@@ -22383,7 +22441,7 @@
       const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
       const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
 
-      const totalHh = (s && (s.total_households || s.multi_member_families)) || 26117;
+      const totalHh = (s && s.total_households) || (state.households ? state.households.length : 0);
       const multiFam = (s && s.multi_member_families) || 9529;
       const totalV = (s && s.total_voters) || 37759;
       const avgSize = (s && s.avg_family_size) || 1.4;
@@ -22425,7 +22483,7 @@
       const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
 
       const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
-      const defaultTotalHh = (s && (s.total_households || s.multi_member_families)) || 26117;
+      const defaultTotalHh = (s && s.total_households) || (state.households ? state.households.length : 0);
       const totalV = (s && s.total_voters) || 37759;
 
       const searchInput = document.getElementById('householdSearchInput');
@@ -30323,7 +30381,7 @@ function renderElectionDayStrikeSheet() {
           PartyLeaning: r.PartyLeaning || 'Undecided',
           SupportTier: 'swing',
           ContactStatus: 'Not Contacted',
-          VerificationStatus: r.VerificationStatus || 'Verified',
+          VerificationStatus: r.VerificationStatus || 'Pending',
           CurrentLocation: 'गाउँमै उपस्थित (On-Ground)',
           ElectionDayTurnout: 'पक्का स्थानीय उपस्थित (Confirmed)',
           RecordSource: 'CSV Bulk Import'
@@ -37335,12 +37393,7 @@ let _casteFilterState = {
   displayMode: 'table'
 };
 
-function updateCasteNavBadge() {
-  const badge = document.getElementById('casteCountBadge');
-  if (!badge) return;
-  const voters = getScopedVoters();
-  badge.textContent = (voters && voters.length) ? voters.length.toLocaleString() : '0';
-}
+// updateCasteNavBadge is defined globally above
 
 function setCasteClusterFilter(clusterKey) {
   _casteFilterState.cluster = clusterKey;
