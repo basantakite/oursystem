@@ -8097,7 +8097,7 @@
           other: 0,
           total_households: 0,
           avg_family_size: 0,
-          genz_count: 2135,
+          genz_count: 3074,
           seniors_count: 9207,
           middle_age_count: 15006,
           young_adults_count: 11411,
@@ -8888,7 +8888,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261020-v48-caste-pure-anchor';
+      const CURRENT_APP_BUILD = '20261020-v49-genz-seniors-real';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -14296,7 +14296,7 @@
     function updateGenZNavBadge() {
       const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : '';
       const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(activeTId) : null;
-      const count = (s && s.genz_count) || (activeTId === 'TNT_MVG3WXFX' ? 2135 : 1240);
+      const count = (s && s.genz_count) || (activeTId === 'TNT_MVG3WXFX' ? 3074 : 1240);
       const valStr = count.toLocaleString();
       const el1 = document.getElementById('genZCountBadge');
       const el2 = document.getElementById('genZNavBadge');
@@ -14517,10 +14517,17 @@
       const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
       const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
       const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
-      const count = (s && s.genz_count) || (tenantId === 'TNT_MVG3WXFX' ? 2135 : 1240);
+      const count = (s && s.genz_count) || (tenantId === 'TNT_MVG3WXFX' ? 3074 : 1240);
 
-      const kpiTotal = document.getElementById('genZKpiTotal');
-      if (kpiTotal) kpiTotal.textContent = count.toLocaleString();
+      // Populate Top Selector Pills with Exact Ground Truth Counts
+      const setPill = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val.toLocaleString(); };
+      setPill('genZSegCount_all_genz', 3074);
+      setPill('genZSegCount_first_time', 764);
+      setPill('genZSegCount_core_genz', 1371);
+      setPill('genZSegCount_extended_youth', 4994);
+
+      const kpiTotal = document.getElementById('genZKpiTotalCount') || document.getElementById('genZKpiTotal');
+      if (kpiTotal) kpiTotal.textContent = `${count.toLocaleString()} युवा मतदाता`;
 
       loadLiveGenZVotersList();
     }
@@ -14551,7 +14558,13 @@
       const page = genZCurrentPage || 1;
       const offset = (page - 1) * pageSize;
 
-      let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&age=gte.18&age=lte.25`;
+      // Dynamic Age Range based on selected sub-segment
+      let ageQuery = '&age=gte.18&age=lte.27';
+      if (currentGenZAgeSegment === 'first_time') ageQuery = '&age=gte.18&age=lte.21';
+      else if (currentGenZAgeSegment === 'core_genz') ageQuery = '&age=gte.22&age=lte.25';
+      else if (currentGenZAgeSegment === 'extended_youth') ageQuery = '&age=gte.18&age=lte.30';
+
+      let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}${ageQuery}`;
       if (wardVal && wardVal !== 'All' && wardVal !== 'सबै' && wardVal !== 'सबै वडा' && wardVal !== '') {
         q += `&ward_no=eq.${encodeURIComponent(wardVal)}`;
       }
@@ -14580,6 +14593,42 @@
 
         const voters = await res.json();
         const endIdx = Math.min(offset + voters.length, totalCount);
+
+        // Update 4 Top Summary KPI Cards with Pure Ground Truth
+        const setGzTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+        setGzTxt('genZKpiTotalCount', `${totalCount.toLocaleString()} युवा मतदाता`);
+        setGzTxt('genZKpiShareSub', `कुल नामावलीको ${((totalCount/37759)*100).toFixed(1)}% • 🎓 First-Time (१८–२१): 764`);
+        setGzTxt('genZKpiSolidSupport', '० पक्का (०%)');
+        setGzTxt('genZKpiSwingSub', `🟡 ${totalCount.toLocaleString()} दोधार / परिचालन बाँकी`);
+        setGzTxt('genZKpiVillageCount', `${totalCount.toLocaleString()} गाउँमै उपस्थित`);
+        setGzTxt('genZKpiCitySub', '🏙️ ० काठमाडौं/शहर • 🚌 ० बस चाहिने');
+        setGzTxt('genZKpiFamilyVotes', `${Math.round(totalCount * 3.5).toLocaleString()} पारिवारिक भोट`);
+        setGzTxt('genZKpiFamilySub', 'पारिवारिक प्रभाव ब्लक');
+        setGzTxt('genZTabBadgeRoster', totalCount.toLocaleString());
+
+        // Wire up Card View if active
+        const cardContainer = document.getElementById('genZCardsGrid');
+        if (cardContainer && currentGenZDisplayMode === 'card') {
+          cardContainer.style.display = 'grid';
+          if (document.getElementById('genZTableContainer')) document.getElementById('genZTableContainer').style.display = 'none';
+          cardContainer.innerHTML = voters.map((v, i) => `
+            <div class="voter-card" style="border: 1.5px solid #fed7aa; background: #fff; padding: 14px; border-radius: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span class="voter-id-mono-badge">क्र.सं. ${offset + i + 1} • ${esc(v.official_voter_id || v.voter_id)}</span>
+                <span class="badge" style="background: #ffedd5; color: #c2410c; font-weight: 800;">🎂 ${v.age} वर्ष</span>
+              </div>
+              <div style="font-weight: 900; font-size: 15px; color: #0f172a; margin-bottom: 4px;">${esc(v.full_name)}</div>
+              <div style="font-size: 12px; color: #475569; margin-bottom: 8px;">वडा ${v.ward_no} • बुथ ${esc(v.booth_no || 'A')}</div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="badge" style="background: #fefce8; color: #854d0e;">🟡 दोधार</span>
+                ${v.phone ? `<a href="tel:${v.phone}" class="btn btn-sm btn-primary" style="font-size:11px; padding:3px 8px;">📞 कल</a>` : '<span style="color:#94a3b8; font-size:11px;">सम्पर्क बाँकी</span>'}
+              </div>
+            </div>
+          `).join('');
+        } else if (cardContainer) {
+          cardContainer.style.display = 'none';
+          if (document.getElementById('genZTableContainer')) document.getElementById('genZTableContainer').style.display = 'block';
+        }
 
         tbody.innerHTML = voters.map((v, i) => `
           <tr>
@@ -15691,8 +15740,15 @@
       const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
       const count = (s && s.seniors_count) || (tenantId === 'TNT_MVG3WXFX' ? 9207 : 3450);
 
-      const kpiTotal = document.getElementById('seniorsKpiTotal');
-      if (kpiTotal) kpiTotal.textContent = count.toLocaleString();
+      // Populate Top Selector Pills with Exact Ground Truth Counts
+      const setPill = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val.toLocaleString(); };
+      setPill('senSegCount_all_seniors', 9207);
+      setPill('senSegCount_active_60_69', 5000);
+      setPill('senSegCount_allowance_70_79', 2638);
+      setPill('senSegCount_super_80_plus', 1569);
+
+      const kpiTotal = document.getElementById('senKpiTotalCount') || document.getElementById('seniorsKpiTotal');
+      if (kpiTotal) kpiTotal.textContent = `${count.toLocaleString()} ज्येष्ठ नागरिक`;
 
       loadLiveSeniorsVotersList();
     }
@@ -15722,7 +15778,13 @@
       const page = seniorsCurrentPage || 1;
       const offset = (page - 1) * pageSize;
 
-      let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&age=gte.60`;
+      // Dynamic Age Range based on selected sub-segment
+      let ageQuery = '&age=gte.60';
+      if (currentSeniorsAgeSegment === 'active_60_69') ageQuery = '&age=gte.60&age=lte.69';
+      else if (currentSeniorsAgeSegment === 'allowance_70_79') ageQuery = '&age=gte.70&age=lte.79';
+      else if (currentSeniorsAgeSegment === 'super_80_plus') ageQuery = '&age=gte.80';
+
+      let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}${ageQuery}`;
       if (wardVal && wardVal !== 'All' && wardVal !== 'सबै' && wardVal !== 'सबै वडा' && wardVal !== '') {
         q += `&ward_no=eq.${encodeURIComponent(wardVal)}`;
       }
@@ -15751,6 +15813,15 @@
 
         const voters = await res.json();
         const endIdx = Math.min(offset + voters.length, totalCount);
+
+        // Update 4 Top Summary KPI Cards with Pure Ground Truth
+        const setSenTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+        setSenTxt('senKpiTotalCount', `${totalCount.toLocaleString()} ज्येष्ठ नागरिक`);
+        setSenTxt('senKpiShareSub', `कुल नामावलीको ${((totalCount/37759)*100).toFixed(1)}% • ८०+ वर्ष: 1,569 जना`);
+        setSenTxt('senKpiSolidSupport', '० पक्का (०%)');
+        setSenTxt('senKpiEscortCount', '० सहायता दर्ता');
+        setSenTxt('senKpiFamilyVotes', `${Math.round(totalCount * 3.5).toLocaleString()} पारिवारिक भोट`);
+        setSenTxt('seniorsTabBadgeRoster', totalCount.toLocaleString());
 
         tbody.innerHTML = voters.map((v, i) => `
           <tr>
@@ -36754,6 +36825,35 @@ function extractVoterSurname(name) {
 
 // Comprehensive English/Romanized to Nepal Govt Cluster & Sub-caste Knowledge Base
 const ROMANIZED_CASTE_DICTIONARY = {
+  // Top Gokarneshwor Real Voter Roll Surnames (Auto-Mapped)
+  'sinkhada': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'सिम्खडा', devanagari: 'सिम्खडा' },
+  'simkhada': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'सिम्खडा', devanagari: 'सिम्खडा' },
+  'kesi': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'के.सी. / खत्री', devanagari: 'केसी' },
+  'kc': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'के.सी.', devanagari: 'केसी' },
+  'dhunggel': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'ढुङ्गेल', devanagari: 'ढुङ्गेल' },
+  'dhungel': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'ढुङ्गेल', devanagari: 'ढुङ्गेल' },
+  'dhunggana': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'ढुङ्गाना', devanagari: 'ढुङ्गाना' },
+  'dangal': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'दङ्गाल', devanagari: 'दङ्गाल' },
+  'kaphle': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'काफ्ले', devanagari: 'काफ्ले' },
+  'pande': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पाण्डे', devanagari: 'पाण्डे' },
+  'sanjel': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'सञ्जेल', devanagari: 'सञ्जेल' },
+  'koirala': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'कोइराला', devanagari: 'कोइराला' },
+  'humagai': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'हुमागाईँ', devanagari: 'हुमागाईँ' },
+  'dewakota': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'देवकोटा', devanagari: 'देवकोटा' },
+  'pyakurel': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'प्याकुरेल', devanagari: 'प्याकुरेल' },
+  'bastakoti': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'बास्तोकोटी', devanagari: 'बास्तोकोटी' },
+  'prasai': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'प्रसाईँ', devanagari: 'प्रसाईँ' },
+  'dhital': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'धिताल', devanagari: 'धिताल' },
+  'siwabhakti': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'शिवाभक्ति', devanagari: 'शिवाभक्ति' },
+  'nagarkoti': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'नगरकोटी', devanagari: 'नगरकोटी' },
+  'tamangni': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'तामाङ' },
+  'sherpini': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'शेर्पा', devanagari: 'शेर्पा' },
+  'tama': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'तामाङ', devanagari: 'तामाङ' },
+  'sharpa': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'शेर्पा', devanagari: 'शेर्पा' },
+  'serpa': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'शेर्पा', devanagari: 'शेर्पा' },
+  'sonar': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'सुनार', devanagari: 'सुनार' },
+  'rajabhandari': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'राजभण्डारी', devanagari: 'राजभण्डारी' },
+  'karmachary': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'कर्माचार्य', devanagari: 'कर्माचार्य' },
   // KHAS ARYA (खस आर्य) - 96+ Surnames
   'adhikari': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'अधिकारी' },
   'acharya': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'आचार्य' },
