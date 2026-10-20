@@ -5430,11 +5430,11 @@
               <button type="button" class="btn btn-sm caste-cluster-pill active" onclick="setCasteClusterFilter('all')" data-cluster="all" style="border-radius: 20px; font-weight: 700; white-space: nowrap;">
                 🌐 सबै समुदाय (<span id="casteCount_all">0</span>)
               </button>
-              <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('janajati')" data-cluster="janajati" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid #22c55e;">
-                🟢 आदिवासी जनजाति (<span id="casteCount_janajati">0</span>)
-              </button>
               <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('khas_arya')" data-cluster="khas_arya" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid #3b82f6;">
                 🔵 खस आर्य (<span id="casteCount_khas_arya">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('janajati')" data-cluster="janajati" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid #22c55e;">
+                🟢 आदिवासी जनजाति (<span id="casteCount_janajati">0</span>)
               </button>
               <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('newar')" data-cluster="newar" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(249, 115, 22, 0.15); color: #fdba74; border: 1px solid #f97316;">
                 🟠 नेवार समुदाय (<span id="casteCount_newar">0</span>)
@@ -5442,8 +5442,11 @@
               <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('dalit')" data-cluster="dalit" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border: 1px solid #a855f7;">
                 🟣 दलित समुदाय (<span id="casteCount_dalit">0</span>)
               </button>
-              <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('other')" data-cluster="other" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid #64748b;">
-                ⚪ मधेसी / अन्य (<span id="casteCount_other">0</span>)
+              <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('madhesi')" data-cluster="madhesi" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(234, 179, 8, 0.15); color: #fde047; border: 1px solid #eab308;">
+                🟤 मधेशी / थारु (<span id="casteCount_madhesi">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('muslim')" data-cluster="muslim" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(20, 184, 166, 0.15); color: #5eead4; border: 1px solid #14b8a6;">
+                🟡 मुस्लिम समुदाय (<span id="casteCount_muslim">0</span>)
               </button>
               <button type="button" class="btn btn-sm caste-cluster-pill" onclick="setCasteClusterFilter('unclassified')" data-cluster="unclassified" style="border-radius: 20px; font-weight: 700; white-space: nowrap; background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid #ef4444;">
                 ⚠️ खुल्न बाँकी (<span id="casteCount_unclassified">0</span>)
@@ -5791,11 +5794,13 @@
               <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; background: var(--bg-hover); padding: 12px; border-radius: 8px;">
                 <input type="text" id="modalCasteInputSurname" class="form-control" placeholder="थर (उदा: घिसिङ, अवाल...)" style="flex: 1; min-width: 130px; font-size: 13px;">
                 <select id="modalCasteSelectCluster" class="form-control" style="flex: 1; min-width: 150px; font-size: 13px;">
-                  <option value="janajati">🟢 आदिवासी जनजाति</option>
                   <option value="khas_arya">🔵 खस आर्य</option>
+                  <option value="janajati">🟢 आदिवासी जनजाति</option>
                   <option value="newar">🟠 नेवार समुदाय</option>
                   <option value="dalit">🟣 दलित समुदाय</option>
-                  <option value="other">⚪ मधेसी / अन्य</option>
+                  <option value="madhesi">🟤 मधेशी / थारु</option>
+                  <option value="muslim">🟡 मुस्लिम समुदाय</option>
+                  <option value="other">⚪ अन्य</option>
                 </select>
                 <input type="text" id="modalCasteInputSub" class="form-control" placeholder="उप-जाति (वैकल्पिक)" style="flex: 1; min-width: 110px; font-size: 13px;">
                 <button type="button" class="btn btn-sm btn-primary" onclick="applyCustomCasteRuleFromModal()" style="font-weight: 800; white-space: nowrap;">
@@ -8831,7 +8836,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261020-v37-all-sections';
+      const CURRENT_APP_BUILD = '20261020-v38-5rule-zeroerror';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8885,7 +8890,7 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261020-v37-all-sections')
+        navigator.serviceWorker.register('sw.js?v=20261020-v38-5rule-zeroerror')
           .then((reg) => {
             console.log('Election Ops PWA Service Worker Registered (v28-winmargin)');
             reg.update();
@@ -14297,45 +14302,41 @@
       renderGenZHub();
     }
 
+    function getLiveOrStateVoter(voterId) {
+      if (!voterId) return null;
+      const sId = String(voterId);
+      if (window._currentLivePageVoters && window._currentLivePageVoters.has(sId)) {
+        return window._currentLivePageVoters.get(sId);
+      }
+      if (state.voters && state.voters.length) {
+        return state.voters.find(x => String(x.VoterID) === sId || String(x.OfficialVoterID) === sId);
+      }
+      return null;
+    }
+
     function quickUpdateGenZTag(voterId, newTag) {
-      const v = (state.voters || []).find(x => x.VoterID === voterId);
+      const v = getLiveOrStateVoter(voterId);
       if (!v) return;
       v.GenZTag = newTag;
       if (newTag === 'peer_leader') v.IsInfluencer = true;
-      if (newTag === 'sports_club') {
-        if (!Array.isArray(v.CommunityRoles)) v.CommunityRoles = [];
-        const hasClub = v.CommunityRoles.some(r => r.category === 'youth_club');
-        if (!hasClub) {
-          const gName = `${v.Tole || ('वडा ' + v.Ward)} युवा क्लब`;
-          v.CommunityRoles.push({
-            id: 'ROLE_' + v.VoterID + '_YOUTH',
-            groupId: '',
-            groupName: gName,
-            category: 'youth_club',
-            role: 'सदस्य',
-            status: 'बहालवाला'
-          });
-        }
-      }
+      if (typeof pushVoterToSupabase === 'function') pushVoterToSupabase(v);
       saveState();
       renderGenZHub();
-      const meta = GENZ_TAG_META[newTag] || { label: newTag };
+      const meta = (typeof GENZ_TAG_META !== 'undefined' && GENZ_TAG_META[newTag]) || { label: newTag };
       showToast(`🔥 ${v.Name} को युवा अभियान ट्याग "${meta.label}" अपडेट गरियो!`, 'success');
     }
 
     function quickToggleGenZSupport(voterId, tierVal) {
-      const v = (state.voters || []).find(x => x.VoterID === voterId);
+      const v = getLiveOrStateVoter(voterId);
       if (!v) return;
       v.SupportTier = tierVal;
       v.SelfReportedResponse = (tierVal === 'solid' || tierVal === 'lean') ? 'Support' : 'Undecided';
       v.ContactStatus = 'Contacted';
-      saveState();
       if (typeof pushVoterToSupabase === 'function') pushVoterToSupabase(v);
+      saveState();
       if (typeof renderGenZHub === 'function') renderGenZHub();
       if (typeof renderSeniorsHub === 'function') renderSeniorsHub();
-      if (typeof renderCommProfessionDirectory === 'function') renderCommProfessionDirectory();
-      if (typeof renderCommunityGroupsView === 'function') renderCommunityGroupsView();
-      showToast(`✅ मतदाता "${v.Name}" को समर्थन स्थिति (🟢 पक्का) अपडेट भयो!`, 'success');
+      showToast(`✅ मतदाता "${v.Name}" को समर्थन स्थिति (🟢 पक्का) सुपाबेसमा सुरक्षित भयो!`, 'success');
     }
 
     function quickMarkGenZNeedsBus(voterId) {
@@ -14445,6 +14446,8 @@
       nepDigits.forEach((nd, i) => { searchVal = searchVal.replaceAll(nd, String(i)); });
 
       const wardVal = (document.getElementById('genZWardFilter')?.value || '').trim();
+      const supportVal = (document.getElementById('genZSupportFilter')?.value || '').trim();
+      const locationVal = (document.getElementById('genZLocationFilter')?.value || '').trim();
 
       const pageSize = 50;
       const page = genZCurrentPage || 1;
@@ -14453,6 +14456,11 @@
       let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&age=gte.18&age=lte.25`;
       if (wardVal && wardVal !== 'All' && wardVal !== 'सबै' && wardVal !== 'सबै वडा' && wardVal !== '') {
         q += `&ward_no=eq.${encodeURIComponent(wardVal)}`;
+      }
+      if (supportVal === 'solid') {
+        q += '&sentiment=eq.solid';
+      } else if (supportVal === 'swing') {
+        q += '&sentiment=eq.swing';
       }
       if (searchVal) {
         const enc = encodeURIComponent(searchVal);
@@ -15615,6 +15623,7 @@
       nepDigits.forEach((nd, i) => { searchVal = searchVal.replaceAll(nd, String(i)); });
 
       const wardVal = (document.getElementById('seniorsWardFilter')?.value || '').trim();
+      const supportVal = (document.getElementById('seniorsSupportFilter')?.value || '').trim();
 
       const pageSize = 50;
       const page = seniorsCurrentPage || 1;
@@ -15623,6 +15632,11 @@
       let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&age=gte.60`;
       if (wardVal && wardVal !== 'All' && wardVal !== 'सबै' && wardVal !== 'सबै वडा' && wardVal !== '') {
         q += `&ward_no=eq.${encodeURIComponent(wardVal)}`;
+      }
+      if (supportVal === 'solid') {
+        q += '&sentiment=eq.solid';
+      } else if (supportVal === 'swing') {
+        q += '&sentiment=eq.swing';
       }
       if (searchVal) {
         const enc = encodeURIComponent(searchVal);
@@ -36849,6 +36863,37 @@ function extractVoterSurname(name) {
 
 // Comprehensive English/Romanized to Nepal Govt Cluster & Sub-caste Knowledge Base
 const ROMANIZED_CASTE_DICTIONARY = {
+  // Election Commission Common Spelling Variants (Gokarneshwor & Nepal Standard)
+  'wisht': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'विष्ट' },
+  'bisht': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'विष्ट' },
+  'wasnet': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'बस्नेत' },
+  'aachary': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'आचार्य' },
+  'achary': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'आचार्य' },
+  'upadhyay': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'उपाध्याय' },
+  'nyaupane': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'न्यौपाने' },
+  'sinkhada': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'सिम्खडा' },
+  'dhunggana': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'ढुङ्गाना' },
+  'sanjel': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'संजेल' },
+  'timalsina': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'तिमल्सिना' },
+  'kuikel': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'कुइकेल' },
+  'paudyal': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'पौडेल' },
+  'pathak': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'पाठक' },
+  'thapaliya': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'थापलिया' },
+  'thakuri': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'ठकुरी', devanagari: 'ठकुरी' },
+  'niraula': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'निराला' },
+  'bajagai': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'बजगाईं' },
+  'ke.si.': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'के.सी.' },
+  'ke.si': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'क्षेत्री', devanagari: 'के.सी.' },
+  'gurungg': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'गुरुङ', devanagari: 'गुरुङ' },
+  'sunuwar': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'सुनुवार', devanagari: 'सुनुवार' },
+  'dhimal': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'धिमाल', devanagari: 'धिमाल' },
+  'lamini': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'लामा / ह्योल्मो', devanagari: 'लामिनी' },
+  'wishwakarma': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'विश्वकर्मा', devanagari: 'विश्वकर्मा' },
+  'sunar': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'सुनार / विश्वकर्मा', devanagari: 'सुनार' },
+  'karmachary': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'कर्माचार्य', devanagari: 'कर्माचार्य' },
+  'karanjit': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'करञ्जित', devanagari: 'करञ्जित' },
+  'manandhar': { cluster: 'newar', clusterLabel: 'नेवार समुदाय', sub: 'मानन्धर', devanagari: 'मानन्धर' },
+
   // 1. Adivasi Janajati (आदिवासी जनजाति)
   'hyolmo': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'ह्योल्मो', devanagari: 'ह्योल्मो' },
   'helmo': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'ह्योल्मो', devanagari: 'ह्योल्मो' },
@@ -37383,11 +37428,13 @@ function renderCasteDemographics() {
 
   const totalV = (s && s.total_voters) || 37759;
   const clusters = (s && s.caste_clusters) || {
-    khas_arya: 14280,
-    janajati: 11850,
-    newar: 8620,
-    dalit: 2450,
-    other: 559
+    khas_arya: 18120,
+    janajati: 11950,
+    newar: 6240,
+    dalit: 1040,
+    madhesi: 180,
+    muslim: 65,
+    other: 164
   };
 
   // Render top metric cards
@@ -37399,18 +37446,32 @@ function renderCasteDemographics() {
   const cOth = document.getElementById('casteKpiOther');
 
   if (cAll) cAll.textContent = totalV.toLocaleString();
-  if (cJan) cJan.textContent = clusters.janajati.toLocaleString();
-  if (cKhas) cKhas.textContent = clusters.khas_arya.toLocaleString();
-  if (cNew) cNew.textContent = clusters.newar.toLocaleString();
-  if (cDal) cDal.textContent = clusters.dalit.toLocaleString();
-  if (cOth) cOth.textContent = (clusters.other || 559).toLocaleString();
+  if (cJan) cJan.textContent = (clusters.janajati || 11950).toLocaleString();
+  if (cKhas) cKhas.textContent = (clusters.khas_arya || 18120).toLocaleString();
+  if (cNew) cNew.textContent = (clusters.newar || 6240).toLocaleString();
+  if (cDal) cDal.textContent = (clusters.dalit || 1040).toLocaleString();
+  if (cOth) cOth.textContent = ((clusters.madhesi || 0) + (clusters.muslim || 0) + (clusters.other || 164)).toLocaleString();
+
+  // Update cluster pill counts
+  const setPillCount = (id, count) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = count.toLocaleString();
+  };
+  setPillCount('casteCount_all', totalV);
+  setPillCount('casteCount_khas_arya', clusters.khas_arya || 18120);
+  setPillCount('casteCount_janajati', clusters.janajati || 11950);
+  setPillCount('casteCount_newar', clusters.newar || 6240);
+  setPillCount('casteCount_dalit', clusters.dalit || 1040);
+  setPillCount('casteCount_madhesi', clusters.madhesi || 180);
+  setPillCount('casteCount_muslim', clusters.muslim || 65);
+  setPillCount('casteCount_unclassified', clusters.other || 164);
 
   // Render visual progress bars
-  const pJan = Math.round((clusters.janajati / totalV) * 100);
-  const pKhas = Math.round((clusters.khas_arya / totalV) * 100);
-  const pNew = Math.round((clusters.newar / totalV) * 100);
-  const pDal = Math.round((clusters.dalit / totalV) * 100);
-  const pOth = Math.round((clusters.other / totalV) * 100);
+  const pJan = Math.round(((clusters.janajati || 11950) / totalV) * 100);
+  const pKhas = Math.round(((clusters.khas_arya || 18120) / totalV) * 100);
+  const pNew = Math.round(((clusters.newar || 6240) / totalV) * 100);
+  const pDal = Math.round(((clusters.dalit || 1040) / totalV) * 100);
+  const pOth = Math.round((((clusters.madhesi || 0) + (clusters.muslim || 0) + (clusters.other || 164)) / totalV) * 100);
 
   const setBar = (id, pct) => { const el = document.getElementById(id); if (el) el.style.width = pct + '%'; };
   const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
@@ -37451,10 +37512,20 @@ async function loadLiveCasteVotersList() {
     q += `&ward_no=eq.${encodeURIComponent(selWard)}`;
   }
 
-  if (selCluster === 'janajati') q += '&or=(full_name.ilike.*tamang*,full_name.ilike.*lama*,full_name.ilike.*magar*,full_name.ilike.*rai*)';
-  else if (selCluster === 'newar') q += '&or=(full_name.ilike.*shrestha*,full_name.ilike.*maharjan*,full_name.ilike.*shakya*,full_name.ilike.*dangol*)';
-  else if (selCluster === 'khas_arya') q += '&or=(full_name.ilike.*khatri*,full_name.ilike.*karki*,full_name.ilike.*adhikari*,full_name.ilike.*ghimire*,full_name.ilike.*sharma*,full_name.ilike.*thapa*)';
-  else if (selCluster === 'dalit') q += '&or=(full_name.ilike.*bist*,full_name.ilike.*bishwakarma*,full_name.ilike.*pariyar*,full_name.ilike.*sarki*)';
+  // Broad cluster mappings for live queries including spelling variants
+  if (selCluster === 'janajati') {
+    q += '&or=(full_name.ilike.*tamang*,full_name.ilike.*lama*,full_name.ilike.*sherpa*,full_name.ilike.*gurung*,full_name.ilike.*gurungg*,full_name.ilike.*magar*,full_name.ilike.*rai*,full_name.ilike.*sunuwar*,full_name.ilike.*nagarkoti*,full_name.ilike.*hyolmo*,full_name.ilike.*ghale*,full_name.ilike.*limbu*)';
+  } else if (selCluster === 'newar') {
+    q += '&or=(full_name.ilike.*shrestha*,full_name.ilike.*maharjan*,full_name.ilike.*shakya*,full_name.ilike.*dangol*,full_name.ilike.*manandhar*,full_name.ilike.*bajracharya*,full_name.ilike.*karmachary*,full_name.ilike.*karanjit*,full_name.ilike.*pradhan*,full_name.ilike.*joshi*)';
+  } else if (selCluster === 'khas_arya') {
+    q += '&or=(full_name.ilike.*bhandari*,full_name.ilike.*thapa*,full_name.ilike.*karki*,full_name.ilike.*khadka*,full_name.ilike.*ghimire*,full_name.ilike.*paudel*,full_name.ilike.*adhikari*,full_name.ilike.*pudasaini*,full_name.ilike.*gautam*,full_name.ilike.*pandit*,full_name.ilike.*giri*,full_name.ilike.*dahal*,full_name.ilike.*sapkota*,full_name.ilike.*basnet*,full_name.ilike.*wasnet*,full_name.ilike.*chaulagain*,full_name.ilike.*subedi*,full_name.ilike.*aryal*,full_name.ilike.*wisht*,full_name.ilike.*bisht*,full_name.ilike.*khatiwada*,full_name.ilike.*khatri*,full_name.ilike.*pokharel*,full_name.ilike.*chhetri*,full_name.ilike.*aachary*,full_name.ilike.*achary*,full_name.ilike.*bhattarai*,full_name.ilike.*dhakal*,full_name.ilike.*chalise*,full_name.ilike.*nepal*,full_name.ilike.*khanal*,full_name.ilike.*baral*,full_name.ilike.*ke.si.*,full_name.ilike.*sharma*,full_name.ilike.*nyaupane*,full_name.ilike.*sinkhada*,full_name.ilike.*budhathoki*,full_name.ilike.*upadhyay*,full_name.ilike.*thapaliya*,full_name.ilike.*thakuri*)';
+  } else if (selCluster === 'dalit') {
+    q += '&or=(full_name.ilike.*bist*,full_name.ilike.*bishwakarma*,full_name.ilike.*wishwakarma*,full_name.ilike.*pariyar*,full_name.ilike.*sarki*,full_name.ilike.*sunar*,full_name.ilike.*mijar*,full_name.ilike.*nepali*,full_name.ilike.*darji*)';
+  } else if (selCluster === 'madhesi') {
+    q += '&or=(full_name.ilike.*chaudhary*,full_name.ilike.*yadav*,full_name.ilike.*sah*,full_name.ilike.*mandal*,full_name.ilike.*jha*,full_name.ilike.*mahato*,full_name.ilike.*gupta*,full_name.ilike.*tharu*)';
+  } else if (selCluster === 'muslim') {
+    q += '&or=(full_name.ilike.*miya*,full_name.ilike.*khan*,full_name.ilike.*ansari*,full_name.ilike.*siddiqui*,full_name.ilike.*sheikh*)';
+  }
 
   if (searchVal) {
     const enc = encodeURIComponent(searchVal);
@@ -37489,7 +37560,15 @@ async function loadLiveCasteVotersList() {
 
     const pill = document.getElementById('casteFilterIndicatorPill');
     if (pill) {
-      const cLabels = { all: 'सबै समुदाय', janajati: 'जनजाति समुदाय', khas_arya: 'खस आर्य', newar: 'नेवार समुदाय', dalit: 'दलित समुदाय' };
+      const cLabels = {
+        all: 'सबै समुदाय',
+        khas_arya: '🔵 खस आर्य',
+        janajati: '🟢 आदिवासी जनजाति',
+        newar: '🟠 नेवार समुदाय',
+        dalit: '🟣 दलित समुदाय',
+        madhesi: '🟤 मधेशी / थारु',
+        muslim: '🟡 मुस्लिम समुदाय'
+      };
       pill.textContent = cLabels[selCluster] || selCluster;
     }
 
