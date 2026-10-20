@@ -1,5 +1,5 @@
 // Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v51-caste-seniors-stable';
+const CACHE_NAME = 'election-ops-v52-tenant-isolation-seniors-hub';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

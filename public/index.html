@@ -8099,6 +8099,9 @@
           avg_family_size: 0,
           genz_count: 3074,
           seniors_count: 9207,
+          seniors_60_69: 5000,
+          seniors_70_79: 2638,
+          seniors_80_plus: 1569,
           middle_age_count: 15006,
           young_adults_count: 11411,
           caste_clusters: {
@@ -8131,17 +8134,80 @@
           tenant_id: 'TNT_MVF9LYO3',
           total_voters: 18907,
           total_wards: 7,
-          male: 9557,
-          female: 9350,
+          male: 10055,
+          female: 8852,
           other: 0,
+          total_households: 0,
+          avg_family_size: 0,
+          genz_count: 2370,
+          seniors_count: 4692,
+          seniors_60_69: 2300,
+          seniors_70_79: 1449,
+          seniors_80_plus: 943,
+          middle_age_count: 7345,
+          young_adults_count: 4500,
+          caste_clusters: {
+            janajati: 13882,
+            khas_arya: 2496,
+            dalit: 454,
+            newar: 204,
+            madhesi: 68,
+            muslim: 0,
+            other: 1804
+          },
+          solid: 0,
+          swing: 18907,
+          unvisited: 18907,
+          vip: 35,
+          missing_parents: 14,
           wards: [
-            { ward: 1, count: 2471 },
-            { ward: 2, count: 2656 },
-            { ward: 3, count: 2577 },
-            { ward: 4, count: 2452 },
-            { ward: 5, count: 2649 },
-            { ward: 6, count: 2901 },
-            { ward: 7, count: 3201 }
+            { ward: 1, count: 3380, booths: 2, households: 0, genz: 318, firstTime: 57, seniors: 1010, s70: 340, s80: 167 },
+            { ward: 2, count: 3694, booths: 2, households: 0, genz: 443, firstTime: 73, seniors: 1012, s70: 297, s80: 237 },
+            { ward: 3, count: 2128, booths: 1, households: 0, genz: 290, firstTime: 68, seniors: 494, s70: 154, s80: 116 },
+            { ward: 4, count: 2368, booths: 1, households: 0, genz: 307, firstTime: 52, seniors: 501, s70: 156, s80: 84 },
+            { ward: 5, count: 2056, booths: 1, households: 0, genz: 350, firstTime: 88, seniors: 428, s70: 131, s80: 73 },
+            { ward: 6, count: 2622, booths: 1, households: 0, genz: 343, firstTime: 87, seniors: 637, s70: 186, s80: 150 },
+            { ward: 7, count: 2659, booths: 2, households: 0, genz: 319, firstTime: 45, seniors: 610, s70: 185, s80: 116 }
+          ]
+        },
+        'TNT_HELAMBU': {
+          tenant_id: 'TNT_HELAMBU',
+          total_voters: 18907,
+          total_wards: 7,
+          male: 10055,
+          female: 8852,
+          other: 0,
+          total_households: 0,
+          avg_family_size: 0,
+          genz_count: 2370,
+          seniors_count: 4692,
+          seniors_60_69: 2300,
+          seniors_70_79: 1449,
+          seniors_80_plus: 943,
+          middle_age_count: 7345,
+          young_adults_count: 4500,
+          caste_clusters: {
+            janajati: 13882,
+            khas_arya: 2496,
+            dalit: 454,
+            newar: 204,
+            madhesi: 68,
+            muslim: 0,
+            other: 1804
+          },
+          solid: 0,
+          swing: 18907,
+          unvisited: 18907,
+          vip: 35,
+          missing_parents: 14,
+          wards: [
+            { ward: 1, count: 3380, booths: 2, households: 0, genz: 318, firstTime: 57, seniors: 1010, s70: 340, s80: 167 },
+            { ward: 2, count: 3694, booths: 2, households: 0, genz: 443, firstTime: 73, seniors: 1012, s70: 297, s80: 237 },
+            { ward: 3, count: 2128, booths: 1, households: 0, genz: 290, firstTime: 68, seniors: 494, s70: 154, s80: 116 },
+            { ward: 4, count: 2368, booths: 1, households: 0, genz: 307, firstTime: 52, seniors: 501, s70: 156, s80: 84 },
+            { ward: 5, count: 2056, booths: 1, households: 0, genz: 350, firstTime: 88, seniors: 428, s70: 131, s80: 73 },
+            { ward: 6, count: 2622, booths: 1, households: 0, genz: 343, firstTime: 87, seniors: 637, s70: 186, s80: 150 },
+            { ward: 7, count: 2659, booths: 2, households: 0, genz: 319, firstTime: 45, seniors: 610, s70: 185, s80: 116 }
           ]
         }
       },
@@ -9551,6 +9617,9 @@
     // LIVE CLOUD SUMMARY & WARD-LEVEL AGGREGATION ENGINE
     function getActiveTenantSummary(tenantId) {
       if (!tenantId) tenantId = getActiveTenantId();
+      if ((tenantId === 'TNT_HELAMBU' || tenantId === 'TNT_HELAMBU_RSP') && (!state?.tenantSummaries?.[tenantId]) && state?.tenantSummaries?.['TNT_MVF9LYO3']) {
+        tenantId = 'TNT_MVF9LYO3';
+      }
       if (!tenantId || tenantId === 'ALL') {
         const sums = Object.values((state && state.tenantSummaries) || {});
         if (!sums.length) return null;
@@ -15692,7 +15761,13 @@
         if (pane) pane.style.display = (t === tab) ? 'block' : 'none';
         if (btn) btn.className = (t === tab) ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
       });
-      renderSeniorsHub();
+      if (tab === 'vip') {
+        loadLiveSeniorsVipGrid();
+      } else if (tab === 'matrix') {
+        renderSeniorsMatrixTable();
+      } else {
+        loadLiveSeniorsVotersList();
+      }
     }
 
     function setSeniorsDisplayMode(mode) {
@@ -15736,6 +15811,7 @@
     function drilldownSeniorsWard(wardNo) {
       const wEl = document.getElementById('seniorsWardFilter');
       if (wEl) wEl.value = String(wardNo);
+      seniorsCurrentPage = 1;
       switchSeniorsSubTab('roster');
     }
 
@@ -15775,20 +15851,45 @@
       const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
       const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
       const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
-      const count = (s && s.seniors_count) || (tenantId === 'TNT_MVG3WXFX' ? 9207 : 3450);
+      const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
 
-      // Populate Top Selector Pills with Exact Ground Truth Counts
-      const setPill = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val.toLocaleString(); };
-      setPill('senSegCount_all_seniors', 9207);
-      setPill('senSegCount_active_60_69', 5000);
-      setPill('senSegCount_allowance_70_79', 2638);
-      setPill('senSegCount_super_80_plus', 1569);
+      const defSeniors = isHelambu ? {
+        total: 4692,
+        active: 2300,
+        allowance: 1449,
+        super: 943
+      } : {
+        total: 9207,
+        active: 5000,
+        allowance: 2638,
+        super: 1569
+      };
+
+      const totalCount = (s && s.seniors_count) ?? defSeniors.total;
+      const actCount = (s && s.seniors_60_69) ?? defSeniors.active;
+      const allCount = (s && s.seniors_70_79) ?? defSeniors.allowance;
+      const supCount = (s && s.seniors_80_plus) ?? defSeniors.super;
+
+      // Populate Top Selector Pills with Exact Dynamic Ground Truth Counts
+      const setPill = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = Number(val || 0).toLocaleString(); };
+      setPill('senSegCount_all_seniors', totalCount);
+      setPill('senSegCount_active_60_69', actCount);
+      setPill('senSegCount_allowance_70_79', allCount);
+      setPill('senSegCount_super_80_plus', supCount);
 
       const kpiTotal = document.getElementById('senKpiTotalCount') || document.getElementById('seniorsKpiTotal');
-      if (kpiTotal) kpiTotal.textContent = `${count.toLocaleString()} ज्येष्ठ नागरिक`;
+      if (kpiTotal) kpiTotal.textContent = `${totalCount.toLocaleString()} ज्येष्ठ नागरिक`;
 
-      loadLiveSeniorsVotersList();
-      renderSeniorsMatrixTable();
+      const vipBadge = document.getElementById('senTabBadgeVip');
+      if (vipBadge) vipBadge.textContent = isHelambu ? '1,592' : '2,800';
+
+      if (currentSeniorsSubTab === 'vip') {
+        loadLiveSeniorsVipGrid();
+      } else if (currentSeniorsSubTab === 'matrix') {
+        renderSeniorsMatrixTable();
+      } else {
+        loadLiveSeniorsVotersList();
+      }
     }
 
     let _isLoadingSeniors = false;
@@ -15864,7 +15965,10 @@
         // Update 4 Top Summary KPI Cards with Pure Ground Truth
         const setSenTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
         setSenTxt('senKpiTotalCount', `${totalCount.toLocaleString()} ज्येष्ठ नागरिक`);
-        setSenTxt('senKpiShareSub', `कुल नामावलीको ${((totalCount/37759)*100).toFixed(1)}% • ८०+ वर्ष: 1,569 जना`);
+        const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+        const tenantTotalV = isHelambu ? 18907 : 37759;
+        const s80V = isHelambu ? 943 : 1569;
+        setSenTxt('senKpiShareSub', `कुल नामावलीको ${((totalCount/tenantTotalV)*100).toFixed(1)}% • ८०+ वर्ष: ${s80V.toLocaleString()} जना`);
         setSenTxt('senKpiSolidSupport', '० पक्का (०%)');
         setSenTxt('senKpiEscortCount', '० सहायता दर्ता');
         setSenTxt('senKpiFamilyVotes', `${Math.round(totalCount * 3.5).toLocaleString()} पारिवारिक भोट`);
@@ -16240,8 +16344,19 @@
       const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
       const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
       const palika = (typeof getActivePalikaHierarchy === 'function') ? getActivePalikaHierarchy() : null;
+      const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
 
-      const defaultWards = [
+      const defaultHelambuWards = [
+        { ward: 1, count: 3380, booths: 2, seniors: 1010, s70: 340, s80: 167 },
+        { ward: 2, count: 3694, booths: 2, seniors: 1012, s70: 297, s80: 237 },
+        { ward: 3, count: 2128, booths: 1, seniors: 494, s70: 154, s80: 116 },
+        { ward: 4, count: 2368, booths: 1, seniors: 501, s70: 156, s80: 84 },
+        { ward: 5, count: 2056, booths: 1, seniors: 428, s70: 131, s80: 73 },
+        { ward: 6, count: 2622, booths: 1, seniors: 637, s70: 186, s80: 150 },
+        { ward: 7, count: 2659, booths: 2, seniors: 610, s70: 185, s80: 116 }
+      ];
+
+      const defaultGokarnaWards = [
         { ward: 1, count: 3734, booths: 4, seniors: 746, s70: 231, s80: 117 },
         { ward: 2, count: 3130, booths: 3, seniors: 714, s70: 207, s80: 106 },
         { ward: 3, count: 4694, booths: 4, seniors: 1065, s70: 302, s80: 185 },
@@ -16253,20 +16368,20 @@
         { ward: 9, count: 1993, booths: 2, seniors: 521, s70: 149, s80: 92 }
       ];
 
-      const wardList = (s && s.wards && s.wards.length) ? s.wards : defaultWards;
+      const wardList = (s && s.wards && s.wards.length) ? s.wards : (isHelambu ? defaultHelambuWards : defaultGokarnaWards);
 
       tbody.innerHTML = wardList.map(w => {
         const wNum = w.ward;
         const wTotal = w.count || 0;
-        const senCount = (w.seniors !== undefined) ? w.seniors : Math.round(wTotal * 0.244);
-        const s70 = (w.s70 !== undefined) ? w.s70 : Math.round(senCount * 0.28);
-        const s80 = (w.s80 !== undefined) ? w.s80 : Math.round(senCount * 0.17);
+        const senCount = (w.seniors !== undefined) ? w.seniors : Math.round(wTotal * 0.248);
+        const s70 = (w.s70 !== undefined) ? w.s70 : Math.round(senCount * 0.30);
+        const s80 = (w.s80 !== undefined) ? w.s80 : Math.round(senCount * 0.20);
         const solid = 0;
         const famVotes = Math.round(senCount * 3.5);
         const sharePct = wTotal > 0 ? ((senCount / wTotal) * 100).toFixed(1) : '0';
 
         const wInfo = palika && palika.wards ? palika.wards[wNum] : null;
-        const boothNames = wInfo && wInfo.centers ? wInfo.centers.map(c => c.name).join(' / ') : `वडा ${wNum} मतदान केन्द्र (${w.booths || 4} बुथ)`;
+        const boothNames = wInfo && wInfo.centers ? wInfo.centers.map(c => c.name).join(' / ') : `वडा ${wNum} मतदान केन्द्र (${w.booths || 2} केन्द्र)`;
 
         return `
           <tr>
@@ -16287,6 +16402,72 @@
           </tr>
         `;
       }).join('');
+    }
+
+    async function loadLiveSeniorsVipGrid() {
+      const grid = document.getElementById('seniorsVipGrid');
+      if (!grid) return;
+
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+      const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+      const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+      const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+
+      if (!grid.hasChildNodes() || grid.innerHTML.trim() === '' || grid.innerText.includes('लोड हुँदैछ')) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);"><span class="spinner-border spinner-border-sm" role="status"></span> ७५+ वर्षका अति ज्येष्ठ नागरिकहरू लोड हुँदैछ...</div>';
+      }
+
+      try {
+        const q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&age=gte.75&order=age.desc&limit=60`;
+        const res = await fetch(q, { headers: { apikey: key, Authorization: 'Bearer ' + key, Prefer: 'count=exact' } });
+        if (!res.ok) {
+          grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 30px; color: #ef4444;">डाटा लोड गर्न सकिएन।</div>';
+          return;
+        }
+
+        const cr = res.headers.get('content-range');
+        if (cr && cr.includes('/')) {
+          const totalVip = parseInt(cr.split('/')[1], 10);
+          const vipBadge = document.getElementById('senTabBadgeVip');
+          if (vipBadge && !isNaN(totalVip)) vipBadge.textContent = totalVip.toLocaleString();
+        }
+
+        const vips = await res.json();
+        if (!Array.isArray(vips) || vips.length === 0) {
+          grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 36px; background: #fff; border-radius: 12px; color: var(--text-muted);">कुनै ७५+ वर्षका अति ज्येष्ठ नागरिक भेटिएनन्।</div>';
+          return;
+        }
+
+        grid.innerHTML = vips.map(v => {
+          const phoneClean = v.phone ? cleanPhone(v.phone) : '';
+          const boothStr = (v.booth_no || '').replace('Former VDC Building,', '').trim() || `वडा ${v.ward_no}`;
+          return `
+            <div class="card" style="padding: 16px; border: 1.5px solid #99f6e4; border-radius: 12px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span class="badge" style="background: #fef3c7; color: #92400e; font-weight: 900; font-size: 11px;">🙏 सम्माननीय ज्येष्ठ अभिभावक (${v.age} वर्ष)</span>
+                <span class="badge" style="background: #e0e7ff; color: #3730a3; font-weight: 700; font-size: 11px;">वडा ${v.ward_no} • ${esc(v.tole || boothStr)}</span>
+              </div>
+              <h4 style="margin: 0 0 6px; font-size: 15.5px; font-weight: 900; color: #0f172a; cursor: pointer;" onclick="viewVoterProfile('${v.voter_id}')">
+                🧓 ${esc(v.full_name)}
+              </h4>
+              <div style="font-size: 11.5px; color: #64748b; margin-bottom: 8px;">
+                बुवा/पति: <b>${esc(v.father_name || v.spouse_name || '-')}</b> • क्र.सं: <code>${esc(v.official_voter_id || v.voter_id)}</code>
+              </div>
+              <div style="font-size: 12px; color: #475569; background: #f0fdf4; padding: 8px 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #dcfce7;">
+                🏠 <b>पारिवारिक भोट ब्लक:</b> ३-५ मतदाता प्रभाव<br>
+                ♿ <b>मतदान दिन व्यवस्था:</b> ${v.age >= 80 ? '🙏 उम्मेदवार विशेष ढोगभेट र सवारी' : '🚌 घरसम्मै सवारी सहयोग'}
+              </div>
+              <div style="display: flex; gap: 6px;">
+                ${phoneClean ? `<a href="tel:${phoneClean}" class="btn btn-sm btn-primary" style="flex: 1; font-weight: 800; text-align: center; font-size: 11.5px; text-decoration: none;">📞 कल गर्नुहोस्</a>` : ''}
+                <button type="button" class="btn btn-sm btn-secondary" style="flex: 1; font-weight: 800; font-size: 11.5px;" onclick="viewVoterProfile('${v.voter_id}')">👁️ प्रोफाइल</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.warn('loadLiveSeniorsVipGrid error:', err);
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 30px; color: #ef4444;">लोड गर्दा त्रुटि भयो।</div>';
+      }
     }
 
     function renderSeniorsVipGrid(filtered, hhSizeMap) {
@@ -37708,8 +37889,16 @@ function renderCasteDemographics(skipRoster = false) {
 
   updateCasteNavBadge();
 
-  const totalV = (s && s.total_voters) || 37759;
-  const clusters = (s && s.caste_clusters) || {
+  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+  const defClusters = isHelambu ? {
+    janajati: 13882,
+    khas_arya: 2496,
+    dalit: 454,
+    newar: 204,
+    madhesi: 68,
+    muslim: 0,
+    other: 1804
+  } : {
     khas_arya: 15088,
     janajati: 13540,
     newar: 4999,
@@ -37719,22 +37908,24 @@ function renderCasteDemographics(skipRoster = false) {
     other: 3090
   };
 
+  const totalV = (s && s.total_voters) ?? (isHelambu ? 18907 : 37759);
+  const clusters = (s && s.caste_clusters) ? { ...defClusters, ...s.caste_clusters } : defClusters;
+
   const selCluster = (_casteFilterState && _casteFilterState.cluster) || 'all';
 
-  // Calculate scoped numbers for the selected cluster
+  // Calculate scoped numbers for the selected cluster with nullish coalescing
   let scopedCount = totalV;
-  if (selCluster === 'khas_arya') scopedCount = clusters.khas_arya || 15088;
-  else if (selCluster === 'janajati') scopedCount = clusters.janajati || 13540;
-  else if (selCluster === 'newar') scopedCount = clusters.newar || 4999;
-  else if (selCluster === 'dalit') scopedCount = clusters.dalit || 778;
-  else if (selCluster === 'madhesi') scopedCount = clusters.madhesi || 234;
-  else if (selCluster === 'muslim') scopedCount = clusters.muslim || 30;
-  else if (selCluster === 'unclassified') scopedCount = clusters.other || 3090;
+  if (selCluster === 'khas_arya') scopedCount = clusters.khas_arya ?? defClusters.khas_arya;
+  else if (selCluster === 'janajati') scopedCount = clusters.janajati ?? defClusters.janajati;
+  else if (selCluster === 'newar') scopedCount = clusters.newar ?? defClusters.newar;
+  else if (selCluster === 'dalit') scopedCount = clusters.dalit ?? defClusters.dalit;
+  else if (selCluster === 'madhesi') scopedCount = clusters.madhesi ?? defClusters.madhesi;
+  else if (selCluster === 'muslim') scopedCount = clusters.muslim ?? defClusters.muslim;
+  else if (selCluster === 'unclassified') scopedCount = clusters.other ?? defClusters.other;
 
   const scopedPct = totalV > 0 ? ((scopedCount / totalV) * 100).toFixed(1) : '0';
   const scopedMale = Math.round(scopedCount * 0.49);
   const scopedFemale = scopedCount - scopedMale;
-  // REAL FIELD REALITY: Until door-to-door ground verification logs arrive, sure votes default to 0 and all are pending/swing
   const scopedSure = 0;
   const scopedSwing = scopedCount;
   const scopedAbsent = 0;
@@ -37775,17 +37966,17 @@ function renderCasteDemographics(skipRoster = false) {
   };
   if (elBadge) elBadge.textContent = clusterLabels[selCluster] || 'सबै';
 
-  // Update Cluster Quick Filter Buttons (Pills)
-  const setPill = (id, count) => { const el = document.getElementById(id); if (el) el.textContent = count.toLocaleString(); };
+  // Update Cluster Quick Filter Buttons (Pills) with Strict Isolation
+  const setPill = (id, count) => { const el = document.getElementById(id); if (el) el.textContent = Number(count ?? 0).toLocaleString(); };
   setPill('casteCount_all', totalV);
-  setPill('casteCount_khas_arya', clusters.khas_arya || 15088);
-  setPill('casteCount_janajati', clusters.janajati || 13540);
-  setPill('casteCount_newar', clusters.newar || 4999);
-  setPill('casteCount_dalit', clusters.dalit || 778);
-  setPill('casteCount_madhesi', clusters.madhesi || 234);
-  setPill('casteCount_muslim', clusters.muslim || 30);
-  setPill('casteCount_unclassified', clusters.other || 3090);
-  setPill('casteUnmappedBadgeTop', clusters.other || 3090);
+  setPill('casteCount_khas_arya', clusters.khas_arya ?? 0);
+  setPill('casteCount_janajati', clusters.janajati ?? 0);
+  setPill('casteCount_newar', clusters.newar ?? 0);
+  setPill('casteCount_dalit', clusters.dalit ?? 0);
+  setPill('casteCount_madhesi', clusters.madhesi ?? 0);
+  setPill('casteCount_muslim', clusters.muslim ?? 0);
+  setPill('casteCount_unclassified', clusters.other ?? 0);
+  setPill('casteUnmappedBadgeTop', clusters.other ?? 0);
 
   // Load live voters list for the active filter
   if (!skipRoster) loadLiveCasteVotersList();
@@ -37866,7 +38057,8 @@ async function loadLiveCasteVotersList() {
         scanOffset += 300;
       }
       voters = collected;
-      totalMatch = 3090;
+      const isHelambuCaste = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+      totalMatch = isHelambuCaste ? 1804 : 3090;
     } else {
       let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}`;
       if (selWard && selWard !== 'all' && selWard !== '' && selWard !== 'सबै वडा (All Wards)') {
@@ -38156,8 +38348,16 @@ function renderCasteSummaryMatrix() {
   const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
   const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
 
-  const totalV = (s && s.total_voters) || 37759;
-  const clusters = (s && s.caste_clusters) || {
+  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+  const defClusters = isHelambu ? {
+    janajati: 13882,
+    khas_arya: 2496,
+    dalit: 454,
+    newar: 204,
+    madhesi: 68,
+    muslim: 0,
+    other: 1804
+  } : {
     khas_arya: 15088,
     janajati: 13540,
     newar: 4999,
@@ -38167,83 +38367,86 @@ function renderCasteSummaryMatrix() {
     other: 3090
   };
 
+  const totalV = (s && s.total_voters) ?? (isHelambu ? 18907 : 37759);
+  const clusters = (s && s.caste_clusters) ? { ...defClusters, ...s.caste_clusters } : defClusters;
+
   const matrixData = [
     {
       key: 'khas_arya',
       name: 'खस आर्य (बाहुन, क्षेत्री, ठकुरी, सन्यासी)',
       code: 'KHAS_ARYA',
       clusterLabel: '🔵 खस आर्य',
-      total: clusters.khas_arya || 15088,
+      total: clusters.khas_arya ?? defClusters.khas_arya,
       sure: 0,
-      swing: clusters.khas_arya || 15088,
+      swing: clusters.khas_arya ?? defClusters.khas_arya,
       absentee: 0,
-      wards: 'वडा १, ३, ५, ६, ८'
+      wards: isHelambu ? 'वडा २, ६, ७' : 'वडा १, ३, ५, ६, ८'
     },
     {
       key: 'janajati',
       name: 'आदिवासी जनजाति (तामाङ, शेर्पा, ह्योल्मो, गुरुङ, मगर, राई)',
       code: 'JANAJATI',
       clusterLabel: '🟢 आदिवासी जनजाति',
-      total: clusters.janajati || 13540,
+      total: clusters.janajati ?? defClusters.janajati,
       sure: 0,
-      swing: clusters.janajati || 13540,
+      swing: clusters.janajati ?? defClusters.janajati,
       absentee: 0,
-      wards: 'वडा १, २, ४'
+      wards: isHelambu ? 'सबै वडा (१ देखि ७ - बहुसंख्यक)' : 'वडा १, २, ४'
     },
     {
       key: 'newar',
       name: 'नेवार समुदाय (श्रेष्ठ, महर्जन, शाक्य, डंगोल, मानन्धर)',
       code: 'NEWAR',
       clusterLabel: '🟠 नेवार समुदाय',
-      total: clusters.newar || 4999,
+      total: clusters.newar ?? defClusters.newar,
       sure: 0,
-      swing: clusters.newar || 4999,
+      swing: clusters.newar ?? defClusters.newar,
       absentee: 0,
-      wards: 'वडा ६, ८, ९ (बजार क्षेत्र)'
+      wards: isHelambu ? 'वडा १, २, ६ (बजार केन्द्र)' : 'वडा ६, ८, ९ (बजार क्षेत्र)'
     },
     {
       key: 'dalit',
       name: 'दलित समुदाय (विश्वकर्मा, परियार, मिजार/सार्की)',
       code: 'DALIT',
       clusterLabel: '🟣 दलित समुदाय',
-      total: clusters.dalit || 778,
+      total: clusters.dalit ?? defClusters.dalit,
       sure: 0,
-      swing: clusters.dalit || 778,
+      swing: clusters.dalit ?? defClusters.dalit,
       absentee: 0,
-      wards: 'वडा १, ३, ७, ८'
+      wards: isHelambu ? 'वडा १, २, ४, ६' : 'वडा १, ३, ७, ८'
     },
     {
       key: 'madhesi',
       name: 'मधेशी / थारू (यादव, चौधरी, साह, गुप्ता, महतो)',
       code: 'MADHESI_THARU',
       clusterLabel: '🟤 मधेशी / थारु',
-      total: clusters.madhesi || 234,
+      total: clusters.madhesi ?? defClusters.madhesi,
       sure: 0,
-      swing: clusters.madhesi || 234,
+      swing: clusters.madhesi ?? defClusters.madhesi,
       absentee: 0,
-      wards: 'वडा ५, ६, ८ (व्यापारिक क्षेत्र)'
+      wards: isHelambu ? 'बजार तथा व्यवसायिक क्षेत्र' : 'वडा ५, ६, ८ (व्यापारिक क्षेत्र)'
     },
     {
       key: 'muslim',
       name: 'मुस्लिम समुदाय (शेख, अन्सारी, खान, मियाँ)',
       code: 'MUSLIM',
       clusterLabel: '🟡 मुस्लिम समुदाय',
-      total: clusters.muslim || 30,
-      sure: Math.round((clusters.muslim || 30) * 0.40),
-      swing: Math.round((clusters.muslim || 30) * 0.50),
-      absentee: Math.round((clusters.muslim || 30) * 0.10),
-      wards: 'वडा ५, ६'
+      total: clusters.muslim ?? defClusters.muslim,
+      sure: 0,
+      swing: clusters.muslim ?? defClusters.muslim,
+      absentee: 0,
+      wards: isHelambu ? '-' : 'वडा ५, ६'
     },
     {
       key: 'unclassified',
       name: 'खुल्न बाँकी (१-क्लिक म्यापिङ गर्न बाँकी)',
       code: 'OTHER',
       clusterLabel: '⚠️ खुल्न बाँकी',
-      total: clusters.other || 3090,
+      total: clusters.other ?? defClusters.other,
       sure: 0,
-      swing: clusters.other || 3090,
+      swing: clusters.other ?? defClusters.other,
       absentee: 0,
-      wards: 'सबै वडाहरू'
+      wards: 'सबै वडाहरू (फिल्ड रुजु बाँकी)'
     }
   ];
 
