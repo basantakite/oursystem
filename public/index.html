@@ -11498,12 +11498,12 @@
         return 0;
       }
 
-      const chunkSize = 100;
+      const chunkSize = 500;
       let totalSynced = 0;
       const totalVoters = votersList.length;
 
       if (showProgressToast) {
-        showToast(`☁️ Supabase मा ${totalVoters} मतदाता अपलोड हुँदैछ...`, 'info');
+        showToast(`☁️ Supabase मा ${totalVoters} मतदाता हाई-स्पीड ब्याचमा अपलोड हुँदैछ...`, 'info');
       }
 
       const headers = {
@@ -11513,30 +11513,38 @@
         'Prefer': 'resolution=merge-duplicates'
       };
 
-      for (let i = 0; i < totalVoters; i += chunkSize) {
-        const chunk = votersList.slice(i, i + chunkSize);
-        const payloads = chunk.map(v => buildVoterCloudPayload(v)).filter(Boolean);
+      const waveConcurrency = 4;
+      for (let i = 0; i < totalVoters; i += chunkSize * waveConcurrency) {
+        const wavePromises = [];
+        for (let p = i; p < Math.min(i + chunkSize * waveConcurrency, totalVoters); p += chunkSize) {
+          const chunk = votersList.slice(p, p + chunkSize);
+          const payloads = chunk.map(v => buildVoterCloudPayload(v)).filter(Boolean);
 
-        try {
-          const res = await cloudFetch(`${url}/rest/v1/voters`, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(payloads)
-          });
-
-          if (res.ok) {
-            totalSynced += payloads.length;
-            if (showProgressToast && totalVoters > 100) {
-              const pct = Math.round((totalSynced / totalVoters) * 100);
-              console.log(`Cloud sync progress: ${totalSynced}/${totalVoters} (${pct}%)`);
+          const pushWaveChunk = async () => {
+            try {
+              const res = await cloudFetch(`${url}/rest/v1/voters`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(payloads)
+              });
+              if (res.ok) {
+                totalSynced += payloads.length;
+                if (showProgressToast && totalVoters > 200) {
+                  const pct = Math.round((totalSynced / totalVoters) * 100);
+                  const topBadge = document.getElementById('topbarSupabaseSyncBtn');
+                  if (topBadge) topBadge.innerHTML = `<span>⏳</span> <span class="sync-label">${pct}% (${totalSynced})</span>`;
+                }
+              } else {
+                const errText = await res.text();
+                console.warn('Batch chunk failed:', errText);
+              }
+            } catch(e) {
+              console.warn('Batch chunk error:', e);
             }
-          } else {
-            const errText = await res.text();
-            console.warn(`Batch sync chunk failed (${i}-${i + chunkSize}):`, errText);
-          }
-        } catch(err) {
-          console.warn(`Batch sync error at index ${i}:`, err);
+          };
+          wavePromises.push(pushWaveChunk());
         }
+        await Promise.all(wavePromises);
       }
 
       if (showProgressToast) {
@@ -12127,7 +12135,7 @@
 
       // 1b. Role-Scoped Topbar Controls Visibility
       const isSuper = (role === 'Super Admin');
-      const hasSuperCsvAccess = (role === 'Super Admin' || !!user.IsSupportMode);
+      const hasSuperCsvAccess = (role === 'Super Admin' || role === 'Palika Admin' || !!user.IsSupportMode);
       document.body.classList.toggle('role-super-admin', isSuper);
       document.querySelectorAll('.super-admin-only').forEach(el => {
         el.style.display = hasSuperCsvAccess ? (el.tagName === 'BUTTON' || el.tagName === 'SPAN' || el.tagName === 'DIV' ? 'inline-flex' : 'block') : 'none';
@@ -28309,8 +28317,9 @@
 
     // Open the Full-Featured Bulk Voter Import & Sample Preview Studio Modal (SUPER ADMIN ONLY)
     function openBulkVoterImportModal(startOnSampleTab = false) {
-      if (!isSuperAdminUser()) {
-        showToast('⛔ मतदाता नामावली आयात (Bulk Import) सुविधा केवल Super Admin लाई मात्र सीमित गरिएको छ।', 'error');
+      const canImport = isSuperAdminUser() || (currentUser && currentUser.Role === 'Palika Admin');
+      if (!canImport) {
+        showToast('⛔ मतदाता नामावली आयात (Bulk Import) सुविधा केवल Super Admin वा Palika Admin लाई मात्र अनुमति छ।', 'error');
         return;
       }
       const defWard = (currentUser && currentUser.Ward && currentUser.Ward !== 'All') ? Number(currentUser.Ward) : 1;
@@ -28765,8 +28774,9 @@
     }
 
     function executeBulkStudioImport(containerId = 'bulkStudioPreviewContainer') {
-      if (!isSuperAdminUser()) {
-        showToast('⛔ बल्क CSV इम्पोर्ट केवल Super Admin लाई मात्र अनुमति छ।', 'error');
+      const canImport = isSuperAdminUser() || (currentUser && currentUser.Role === 'Palika Admin');
+      if (!canImport) {
+        showToast('⛔ बल्क CSV इम्पोर्ट केवल Super Admin वा Palika Admin लाई मात्र अनुमति छ।', 'error');
         return;
       }
       const selected = bulkStudioParsedRows.filter(r => r.selected && r.isValid);
@@ -28778,8 +28788,11 @@
       const dupMode = document.getElementById('bulkDuplicateMode')?.value || 'update';
       const autoLinkFamily = document.getElementById('bulkAutoLinkFamily') ? document.getElementById('bulkAutoLinkFamily').checked : true;
 
-      const chosenTenantFromSelect = document.getElementById('bulkTargetTenant')?.value;
-      const activeTenantId = chosenTenantFromSelect || ((currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') ? currentUser.TenantID : 'TNT_HELAMBU');
+      let chosenTenantFromSelect = document.getElementById('bulkTargetTenant')?.value;
+      if (currentUser && currentUser.Role === 'Palika Admin' && currentUser.TenantID && currentUser.TenantID !== 'ALL') {
+        chosenTenantFromSelect = currentUser.TenantID;
+      }
+      const activeTenantId = chosenTenantFromSelect || ((currentUser && currentUser.TenantID && currentUser.TenantID !== 'ALL') ? currentUser.TenantID : 'TNT_GOKARNESHWOR_RSP');
 
       let importedCount = 0;
       let updatedCount = 0;
