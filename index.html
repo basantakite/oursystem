@@ -8046,6 +8046,24 @@
       // Multi-Tenant SaaS Subscriptions & Palikas (Super Admin Management)
       tenants: [
         {
+          TenantID: 'TNT_GOKARNESHWOR_RSP',
+          Province: 'बागमती प्रदेश',
+          District: 'काठमाडौं',
+          PalikaName: 'गोकर्णेश्वर नगरपालिका',
+          TenantName: 'राष्ट्रिय स्वतन्त्र पार्टी गोकर्णेश्वर नगर अभियान समिति',
+          TotalWards: 9,
+          TotalPollingLocations: 12,
+          WardsConfig: Array.from({length: 9}, (_, i) => ({ number: i + 1, name: `वडा नं. ${i + 1}` })),
+          Party: 'RSP',
+          Slug: 'gokarna',
+          AdminUsername: 'gokarna',
+          AdminPassword: 'pass@123',
+          ContactPerson: 'Gokarneshwor Head',
+          Phone: '9851000001',
+          Status: 'Active',
+          PlanType: 'Full Palika Suite'
+        },
+        {
           TenantID: 'TNT_MVF9LYO3',
           Province: 'बागमती प्रदेश',
           District: 'सिन्धुपाल्चोक',
@@ -9140,6 +9158,14 @@
         if (anyHelambu) return anyHelambu;
       }
 
+      // 4b. If query is simply 'gokarna' or 'gokarneshwor', return the active Gokarneshwor tenant
+      if (norm.includes('gokarna') || norm.includes('gokarneshwor')) {
+        const activeGokarna = tenants.find(t => 
+          ((t.PalikaName && t.PalikaName.includes('गोकर्णेश्वर')) || (t.TenantID && t.TenantID.includes('GOKARNESHWOR')) || (t.Slug && t.Slug.includes('gokarna'))) && t.Status !== 'Suspended'
+        ) || tenants.find(t => (t.PalikaName && t.PalikaName.includes('गोकर्णेश्वर')) || (t.TenantID && t.TenantID.includes('GOKARNESHWOR')));
+        if (activeGokarna) return activeGokarna;
+      }
+
       // 5. Fallback if single active tenant exists
       const activeTenants = tenants.filter(t => t.Status !== 'Suspended');
       if (activeTenants.length === 1 && (norm === 'admin' || norm === 'palika' || norm === 'app')) {
@@ -9186,9 +9212,36 @@
           const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
           if (url && key && !_isResolvingCloudTenant) {
             _isResolvingCloudTenant = true;
-            fetch(`${url}/rest/v1/system_settings?key=eq.saas_tenants_registry`, {
+            fetch(`${url}/rest/v1/tenants?select=*`, {
               headers: { 'apikey': key, 'Authorization': `Bearer ${key}` }
-            }).then(r => r.json()).then(data => {
+            }).then(r => r.json()).then(rawTenants => {
+              if (Array.isArray(rawTenants) && rawTenants.length > 0) {
+                if (!state.tenants) state.tenants = [];
+                rawTenants.forEach(ct => {
+                  const mapped = {
+                    TenantID: ct.tenant_id,
+                    Province: ct.province || 'बागमती प्रदेश',
+                    District: ct.district || 'काठमाडौं',
+                    PalikaName: ct.palika_name,
+                    TenantName: ct.tenant_name,
+                    TotalWards: Number(ct.total_wards) || 9,
+                    WardsConfig: ct.wards_config || [],
+                    Party: ct.party || 'RSP',
+                    Slug: ct.slug || 'gokarna',
+                    AdminUsername: ct.admin_username,
+                    AdminPassword: ct.admin_password,
+                    ContactPerson: ct.contact_person,
+                    Phone: ct.phone,
+                    Status: ct.status || 'Active',
+                    PlanType: ct.plan_type || 'Full Palika Suite'
+                  };
+                  const exIdx = state.tenants.findIndex(x => x.TenantID === ct.tenant_id);
+                  if (exIdx >= 0) state.tenants[exIdx] = { ...state.tenants[exIdx], ...mapped };
+                  else state.tenants.push(mapped);
+                });
+                saveState();
+              }
+            }).catch(() => null).finally(() => {
               _isResolvingCloudTenant = false;
               if (Array.isArray(data) && data[0] && data[0].value) {
                 const cloudTenants = typeof data[0].value === 'string' ? JSON.parse(data[0].value) : data[0].value;
