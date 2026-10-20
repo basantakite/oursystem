@@ -9344,7 +9344,9 @@
       let activeTenantId = currentUser.TenantID;
       if (!activeTenantId) return [];
       // If logged in as dinesh (TNT_MVBZVZC5), map to TNT_MVC19UMP so Dinesh accesses his 18,907 RSP Helambu roll
-      if (activeTenantId === 'TNT_MVBZVZC5') activeTenantId = 'TNT_MVC19UMP';
+      if (activeTenantId === 'TNT_MVBZVZC5' || activeTenantId === 'TNT_HELAMBU_RSP' || activeTenantId === 'TNT_MVC19UMP') {
+        activeTenantId = 'TNT_MVF9LYO3';
+      }
       
       // Strict pure isolation: each tenant sees only their own voter roll (RSP sees exactly 18,907 voters)
       list = list.filter(v => (v.TenantID || 'TNT_HELAMBU') === activeTenantId);
@@ -10461,11 +10463,18 @@
 
     // Helper: Fetches all voters in controlled parallel wave-chunks of 1000 to overcome Supabase PostgREST limits reliably
     function getCurrentScopedTenantId() {
-      if (window.currentUser && window.currentUser.TenantID && window.currentUser.TenantID !== 'ALL') {
-        return window.currentUser.TenantID;
+      if (window.currentUser) {
+        if (window.currentUser.Role === 'Super Admin') {
+          return (window.currentUser.TenantID && window.currentUser.TenantID !== 'ALL') ? window.currentUser.TenantID : '';
+        }
+        if (window.currentUser.TenantID && window.currentUser.TenantID !== 'ALL') {
+          return window.currentUser.TenantID;
+        }
       }
-      if (window.state && window.state.activeTenantId) return window.state.activeTenantId;
-      return 'TNT_GOKARNESHWOR_RSP';
+      if (window.state && window.state.activeTenantId && window.state.activeTenantId !== 'ALL') {
+        return window.state.activeTenantId;
+      }
+      return '';
     }
 
     async function fetchAllCloudVoters(url, key, progressCallback = null) {
@@ -10805,6 +10814,7 @@
               }
             });
             state.voters = realVoters;
+            saveState();
             if (typeof _voterIdMap !== 'undefined') _voterIdMap = null;
           } else {
             const voterIdxMap = new Map();
@@ -11752,7 +11762,7 @@
       // Automatic live Cloud Sync from Supabase on every login (forces full if local roll is incomplete)
       if (typeof syncSupabaseData === 'function') {
         const localCount = (state.voters && Array.isArray(state.voters)) ? state.voters.length : 0;
-        const needsFull = !state.voters || localCount < 18900;
+        const needsFull = !state.voters || localCount === 0 || localCount < 18900;
         syncSupabaseData(false, needsFull).then(() => {
           refreshDashboardMetrics();
           const activeSec = document.querySelector('.view-section.active');
