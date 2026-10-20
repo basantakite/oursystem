@@ -7495,11 +7495,11 @@
             <div class="form-grid">
               <div class="form-group full">
                 <label class="form-label">Supabase URL (Real Database)</label>
-                <input type="text" id="supabaseUrlInput" class="form-control" value="https://bmhbuypigsfhvqxxoyoh.supabase.co">
+                <input type="text" id="supabaseUrlInput" class="form-control" value="https://peakeevonxocosrlypyx.supabase.co">
               </div>
               <div class="form-group full">
                 <label class="form-label">Supabase Anon / Publishable Key</label>
-                <input type="text" id="supabaseKeyInput" class="form-control" value="sb_publishable_1J2kZOka9zrcaHkcGAD5XA_moqVXj2P">
+                <input type="text" id="supabaseKeyInput" class="form-control" value="sb_publishable_I-Qsd3Ior53hZM8m0dMDnQ_GabbK47N">
               </div>
               <div class="form-group full" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                 <button class="btn btn-primary" onclick="saveSupabaseConfig()">Save Credentials</button>
@@ -7985,8 +7985,8 @@
       DEFAULT_ADMIN_PIN: '1234',
       SUPER_ADMIN_PHONES: ['9851170967', '9705147147'],
       SUPER_ADMIN_PASSWORD: 'admin123',
-      SUPABASE_URL: 'https://bmhbuypigsfhvqxxoyoh.supabase.co',
-      SUPABASE_KEY: 'sb_publishable_1J2kZOka9zrcaHkcGAD5XA_moqVXj2P',
+      SUPABASE_URL: 'https://peakeevonxocosrlypyx.supabase.co',
+      SUPABASE_KEY: 'sb_publishable_I-Qsd3Ior53hZM8m0dMDnQ_GabbK47N',
       AAKASH_SMS_AUTH_TOKEN: 'aakash_live_token_sample',
       AAKASH_SMS_SENDER_ID: 'HELMBU',
       AAKASH_SMS_ENDPOINT: 'https://sms.aakashsms.com/sms/v3/send/',
@@ -10446,7 +10446,9 @@
       const sinceIso = new Date(sinceMs).toISOString();
 
       try {
-        const deltaRes = await cloudFetch(`${url}/rest/v1/voters?select=*&updated_at=gt.${encodeURIComponent(sinceIso)}&limit=500`, { headers });
+        const tenantId = typeof getCurrentScopedTenantId === 'function' ? getCurrentScopedTenantId() : '';
+        const tenantParam = tenantId ? `&tenant_id=eq.${encodeURIComponent(tenantId)}` : '';
+        const deltaRes = await cloudFetch(`${url}/rest/v1/voters?select=*${tenantParam}&updated_at=gt.${encodeURIComponent(sinceIso)}&limit=500`, { headers });
         if (deltaRes && deltaRes.ok) {
           const deltaData = await deltaRes.json().catch(() => []);
           if (Array.isArray(deltaData)) return deltaData;
@@ -10458,7 +10460,17 @@
     }
 
     // Helper: Fetches all voters in controlled parallel wave-chunks of 1000 to overcome Supabase PostgREST limits reliably
+    function getCurrentScopedTenantId() {
+      if (window.currentUser && window.currentUser.TenantID && window.currentUser.TenantID !== 'ALL') {
+        return window.currentUser.TenantID;
+      }
+      if (window.state && window.state.activeTenantId) return window.state.activeTenantId;
+      return 'TNT_GOKARNESHWOR_RSP';
+    }
+
     async function fetchAllCloudVoters(url, key, progressCallback = null) {
+      const tenantId = getCurrentScopedTenantId();
+      const tenantParam = tenantId ? `&tenant_id=eq.${encodeURIComponent(tenantId)}` : '';
       const headers = {
         'apikey': key,
         'Authorization': `Bearer ${key}`,
@@ -10466,7 +10478,7 @@
         'Range': '0-999'
       };
 
-      const firstRes = await cloudFetch(`${url}/rest/v1/voters?select=*`, { headers });
+      const firstRes = await cloudFetch(`${url}/rest/v1/voters?select=*${tenantParam}`, { headers });
       if (!firstRes || !firstRes.ok) return [];
 
       const cr = firstRes.headers.get('content-range'); // e.g. "0-999/22861"
@@ -10486,7 +10498,7 @@
               const to = Math.min(p + pageSize - 1, total - 1);
               const fetchChunkWithRetry = async (attempt = 0) => {
                 try {
-                  const r = await cloudFetch(`${url}/rest/v1/voters?select=*`, {
+                  const r = await cloudFetch(`${url}/rest/v1/voters?select=*${tenantParam}`, {
                     headers: {
                       'apikey': key,
                       'Authorization': `Bearer ${key}`,
@@ -10576,11 +10588,51 @@
           if (topBadge) topBadge.innerHTML = `<span>⏳</span> <span class="sync-label btn-text-mobile-hide">${Math.round((loaded/total)*100)}%</span>`;
         }).catch(() => []) : fetchDeltaCloudVoters(url, key).catch(() => []);
 
-        const [setRes, uRes, vData] = await Promise.all([
+        const [setRes, uRes, tenantsTableRes, vData] = await Promise.all([
           cloudFetch(`${url}/rest/v1/system_settings?select=*`, { headers }).catch(() => null),
           cloudFetch(`${url}/rest/v1/users?select=*`, { headers }).catch(() => null),
+          cloudFetch(`${url}/rest/v1/tenants?select=*`, { headers }).catch(() => null),
           voterFetchPromise
         ]);
+
+        // Process dedicated tenants table
+        if (tenantsTableRes && tenantsTableRes.ok) {
+          try {
+            const rawTenants = await tenantsTableRes.json();
+            if (Array.isArray(rawTenants) && rawTenants.length > 0) {
+              if (!state.tenants) state.tenants = [];
+              rawTenants.forEach(ct => {
+                const existing = state.tenants.find(x => x.TenantID === ct.tenant_id);
+                const mapped = {
+                  TenantID: ct.tenant_id,
+                  Province: ct.province || 'बागमती प्रदेश',
+                  District: ct.district || 'काठमाडौं',
+                  PalikaName: ct.palika_name,
+                  TenantName: ct.tenant_name,
+                  TotalWards: Number(ct.total_wards) || 7,
+                  WardsConfig: ct.wards_config || [],
+                  Party: ct.party || 'RSP',
+                  Slug: ct.slug,
+                  AdminUsername: ct.admin_username,
+                  AdminPassword: ct.admin_password,
+                  ContactPerson: ct.contact_person,
+                  Phone: ct.phone,
+                  Status: ct.status || 'Active',
+                  PlanType: ct.plan_type || 'Full Palika Suite'
+                };
+                if (existing) {
+                  Object.assign(existing, mapped);
+                } else {
+                  state.tenants.push(mapped);
+                }
+              });
+              saveState();
+              if (typeof renderTenantsManagement === 'function') renderTenantsManagement();
+            }
+          } catch(e) {
+            console.warn('Error reading from tenants table:', e);
+          }
+        }
 
         // 1. Process system_settings & multi-tenant cloud registry
         if (setRes && setRes.ok) {
@@ -11026,7 +11078,8 @@
         }
 
         _realtimeClient = window.supabase.createClient(url, key);
-        _realtimeChannel = _realtimeClient.channel('vrm_public_realtime', {
+        const activeScopedTenant = typeof getCurrentScopedTenantId === 'function' ? getCurrentScopedTenantId() : 'global';
+        _realtimeChannel = _realtimeClient.channel('vrm_realtime_' + activeScopedTenant, {
           config: {
             broadcast: { self: false }
           }
@@ -11298,7 +11351,12 @@
       const houseAddress = v.HouseNo ? (String(v.HouseNo).startsWith('घर नं:') ? String(v.HouseNo) : 'घर नं: ' + String(v.HouseNo)) : (v.Address || '');
 
       return {
+        tenant_id: activeTenantId,
         voter_id: vId,
+        official_voter_id: v.OfficialVoterID || vId,
+        spouse_name: v.SpouseName || '',
+        father_name: v.FatherName || '',
+        mother_name: v.MotherName || '',
         full_name: v.Name || '',
         phone: v.Phone || '',
         ward_no: Number(v.Ward) || 1,
@@ -28257,10 +28315,10 @@
                 <div style="font-size: 11.5px; font-weight: 800; color: #1e3a6e; margin-bottom: 4px;">⚙️ Batch Defaults (डिफल्ट पालिका/वडा/बुथ):</div>
                 <div style="margin-bottom: 6px;">
                   <label style="font-size: 10.5px; font-weight: 800; color: #1e3a6e; display: block; margin-bottom: 2px;">🏛️ लक्ष्य पालिका (Target Palika / Tenant):</label>
-                  <select id="bulkTargetTenant" class="form-control" style="font-weight: 800; font-size: 12px; min-height: 32px; height: 32px; padding: 2px 6px; border: 1.5px solid #2563eb; background: #eff6ff; color: #1e3a6e;">
+                  <select id="bulkTargetTenant" onchange="onBulkTargetTenantChanged(this.value)" class="form-control" style="font-weight: 800; font-size: 12px; min-height: 32px; height: 32px; padding: 2px 6px; border: 1.5px solid #2563eb; background: #eff6ff; color: #1e3a6e;">
                     ${(state.tenants && state.tenants.length ? state.tenants : [
-                      { TenantID: 'TNT_HELAMBU', PalikaName: 'हेलाम्बु गाउँपालिका' },
-                      { TenantID: 'TNT_MELAMCHI', PalikaName: 'मेलम्ची नगरपालिका' }
+                      { TenantID: 'TNT_GOKARNESHWOR_RSP', PalikaName: 'गोकर्णेश्वर नगरपालिका', TotalWards: 9 },
+                      { TenantID: 'TNT_HELAMBU_RSP', PalikaName: 'हेलम्बु गाउँपालिका', TotalWards: 7 }
                     ]).map(t => `<option value="${t.TenantID}">${t.PalikaName || t.TenantName} (${t.TenantID})</option>`).join('')}
                   </select>
                 </div>
@@ -28616,7 +28674,16 @@
       renderBulkStudioPreviewTable('bulkStudioPreviewContainer');
     }
 
-    async function executeBulkStudioImport(containerId = 'bulkStudioPreviewContainer') {
+    async function onBulkTargetTenantChanged(tenantId) {
+      const t = (state.tenants || []).find(x => x.TenantID === tenantId);
+      const totalWards = (t && Number(t.TotalWards)) || (String(tenantId).includes('GOK') ? 9 : 7);
+      const wardSelect = document.getElementById('bulkDefaultWard');
+      if (wardSelect) {
+        wardSelect.innerHTML = Array.from({ length: totalWards }, (_, i) => `<option value="${i + 1}">वडा नं. ${i + 1}</option>`).join('');
+      }
+    }
+
+    function executeBulkStudioImport(containerId = 'bulkStudioPreviewContainer') {
       if (!isSuperAdminUser()) {
         showToast('⛔ बल्क CSV इम्पोर्ट केवल Super Admin लाई मात्र अनुमति छ।', 'error');
         return;
