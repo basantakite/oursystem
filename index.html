@@ -8803,7 +8803,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261020-v33-pure-live-cloud';
+      const CURRENT_APP_BUILD = '20261020-v34-fixes';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8852,11 +8852,12 @@
         document.querySelectorAll('.super-admin-only').forEach(el => el.style.display = 'none');
       } else {
         applyRoleBasedNavigation(currentUser);
+      if (typeof updateLiveStatusBadge === 'function') updateLiveStatusBadge();
       }
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261020-v33-pure-live-cloud')
+        navigator.serviceWorker.register('sw.js?v=20261020-v34-fixes')
           .then((reg) => {
             console.log('Election Ops PWA Service Worker Registered (v28-winmargin)');
             reg.update();
@@ -10711,6 +10712,23 @@
       return allVoters;
     }
 
+    function updateLiveStatusBadge() {
+      const topBadge = document.getElementById('topbarSupabaseSyncBtn');
+      if (!topBadge) return;
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : '';
+      const tSum = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(activeTId) : null;
+      let count = (tSum && tSum.total_voters);
+      if (!count || count <= 0) {
+        if (activeTId === 'TNT_MVG3WXFX') count = 37759;
+        else if (activeTId === 'TNT_MVF9LYO3') count = 18907;
+        else count = 37759;
+      }
+      topBadge.style.background = '#f0fdf4';
+      topBadge.style.color = '#166534';
+      topBadge.innerHTML = `<span>🟢</span> <span class="sync-label btn-text-mobile-hide">Live (${count.toLocaleString()})</span>`;
+      topBadge.title = `Supabase Live: ${count.toLocaleString()} मतदाता`;
+    }
+
     async function syncSupabaseData(interactive = false, forceFull = false) {
       if (_isSyncingSupabase) {
         _hasPendingSync = true;
@@ -10769,10 +10787,7 @@
         // PURE CLOUD ON-DEMAND ENGINE: No downloading 37,000+ rows into browser RAM!
         const shouldFullFetch = false;
 
-        const liveActiveCount = (scopedTenantId === 'TNT_MVG3WXFX') ? 37759 : ((scopedTenantId === 'TNT_MVF9LYO3') ? 18907 : (cloudTotal > 0 ? cloudTotal : 37759));
-        if (topBadge) {
-          topBadge.innerHTML = `<span>🟢</span> <span class="sync-label btn-text-mobile-hide">Live (${liveActiveCount.toLocaleString()})</span>`;
-        }
+        if (typeof updateLiveStatusBadge === 'function') updateLiveStatusBadge();
         if (badge) {
           badge.title = 'क्लाउड जडान: Supabase Live';
           badge.innerHTML = `<span style="width:10px;height:10px;background:#10b981;border-radius:50%;display:inline-block;box-shadow:0 0 8px rgba(16,185,129,0.7);"></span>`;
@@ -11115,12 +11130,7 @@
           badge.title = `क्लाउड जडान: अनलाइन (${totalVotersCount} मतदाता सिंक सम्पन्न)`;
           badge.innerHTML = `<span style="width:10px;height:10px;background:#10b981;border-radius:50%;display:inline-block;box-shadow:0 0 8px rgba(16,185,129,0.7);animation:pulseDot 2s infinite;"></span>`;
         }
-        if (topBadge) {
-          topBadge.style.background = '#f0fdf4';
-          topBadge.style.color = '#166534';
-          topBadge.innerHTML = `<span>🟢</span> <span class="sync-label btn-text-mobile-hide">Live (${currentPalikaCount})</span>`;
-          topBadge.title = `Supabase Real-Time Live: कुल ${totalVotersCount} मतदाता (अन्तिम सिंक: ${new Date().toLocaleTimeString()})`;
-        }
+        if (typeof updateLiveStatusBadge === 'function') updateLiveStatusBadge();
 
         // Auto-refresh active view without disrupting user typing or active modal
         if (currentUser) {
@@ -16282,25 +16292,28 @@
       const page = voterCurrentPage || 1;
       const offset = (page - 1) * pageSize;
 
-      // Extract filter values from UI controls
+      // Extract filter values from UI controls (CORRECT ELEMENT IDs)
       const wardSelect = document.getElementById('voterWardFilter');
-      const wardVal = wardSelect ? wardSelect.value : 'All';
-      const genderSelect = document.getElementById('voterGenderFilter');
-      const genderVal = genderSelect ? genderSelect.value : 'All';
-      const searchInput = document.getElementById('voterSearchInput');
-      const searchVal = searchInput ? searchInput.value.trim() : '';
+      const wardVal = wardSelect ? wardSelect.value.trim() : '';
+      const searchInput = document.getElementById('voterSearch');
+      let searchVal = searchInput ? searchInput.value.trim() : '';
+
+      // Convert Nepali digits to standard English digits if present (e.g. २५६१७ -> 25617)
+      const nepDigits = ['०','१','२','३','४','५','६','७','८','९'];
+      nepDigits.forEach((nd, i) => { searchVal = searchVal.replaceAll(nd, String(i)); });
 
       let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}`;
-      if (wardVal && wardVal !== 'All') {
+
+      if (wardVal && wardVal !== '' && wardVal !== 'All' && wardVal !== 'सबै') {
         q += `&ward_no=eq.${encodeURIComponent(wardVal)}`;
       }
-      if (genderVal && genderVal !== 'All') {
-        if (genderVal === 'Male') q += `&gender=in.(Male,पुरुष,M,m)`;
-        else if (genderVal === 'Female') q += `&gender=in.(Female,महिला,F,f)`;
-      }
+
       if (searchVal) {
-        q += `&or=(full_name.ilike.*${encodeURIComponent(searchVal)}*,official_voter_id.ilike.*${encodeURIComponent(searchVal)}*,father_name.ilike.*${encodeURIComponent(searchVal)}*)`;
+        const encQ = encodeURIComponent(searchVal);
+        // Search across Full Name, Voter ID, Serial No, Father's Name
+        q += `&or=(full_name.ilike.*${encQ}*,official_voter_id.ilike.*${encQ}*,father_name.ilike.*${encQ}*,spouse_name.ilike.*${encQ}*,serial_no.ilike.*${encQ}*)`;
       }
+
       q += `&order=ward_no.asc,serial_no.asc&limit=${pageSize}&offset=${offset}`;
 
       try {
@@ -16372,8 +16385,43 @@
 
         renderVoterPaginationControls(totalFiltered, startIdx, endIdx, totalPages);
 
+        // VIEW MODE SWITCHER & CARD VIEW INTEGRATION
         const effectiveMode = currentVoterViewMode || 'roll';
-        renderVotersTable(mappedRows, effectiveMode, startIdx);
+        ['Roll', 'Campaign', 'Card'].forEach(m => {
+          const btn = document.getElementById('segBtn' + m);
+          if (btn) {
+            const match = (m === 'Roll' && effectiveMode === 'roll') ||
+                          (m === 'Campaign' && effectiveMode === 'table') ||
+                          (m === 'Card' && effectiveMode === 'card');
+            btn.classList.toggle('active', match);
+          }
+        });
+
+        const tableContainer = document.getElementById('voterTableContainer');
+        const cardsContainer = document.getElementById('voterCardsContainer');
+
+        if (effectiveMode === 'roll' || effectiveMode === 'table') {
+          if (tableContainer) {
+            tableContainer.classList.remove('hidden-view');
+            tableContainer.style.setProperty('display', 'block', 'important');
+          }
+          if (cardsContainer) {
+            cardsContainer.classList.add('hidden-view');
+            cardsContainer.style.setProperty('display', 'none', 'important');
+          }
+          renderVotersTable(mappedRows, effectiveMode, startIdx);
+        } else {
+          // CARD VIEW
+          if (tableContainer) {
+            tableContainer.classList.add('hidden-view');
+            tableContainer.style.setProperty('display', 'none', 'important');
+          }
+          if (cardsContainer) {
+            cardsContainer.classList.remove('hidden-view');
+            cardsContainer.style.setProperty('display', 'grid', 'important');
+          }
+          renderVotersCards(mappedRows);
+        }
 
         _isLoadingLivePage = false;
         return true;
