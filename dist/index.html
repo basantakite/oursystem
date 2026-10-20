@@ -5617,6 +5617,9 @@
           </div>
 
           </div>
+          <!-- Pagination Controls for Caste Voters (Shared by Table & Card Views) -->
+          <div id="castePaginationContainer" class="voter-pagination-bar" style="margin: 16px 0 24px; display: none;"></div>
+
           <!-- END PANE 1: VOTERS ROSTER -->
 
           <!-- PANE 2: DEDICATED CASTE BREAKDOWN MATRIX TAB -->
@@ -8062,9 +8065,9 @@
           tenant_id: 'TNT_MVG3WXFX',
           total_voters: 37759,
           total_wards: 9,
-          male: 18500,
-          female: 19258,
-          other: 1,
+          male: 18461,
+          female: 19298,
+          other: 0,
           total_households: 10488,
           avg_family_size: 3.6,
           genz_count: 2135,
@@ -8072,15 +8075,17 @@
           middle_age_count: 15006,
           young_adults_count: 11411,
           caste_clusters: {
-            khas_arya: 14280,
-            janajati: 11850,
-            newar: 8620,
-            dalit: 2450,
-            other: 559
+            khas_arya: 18120,
+            janajati: 11950,
+            newar: 6240,
+            dalit: 1040,
+            madhesi: 180,
+            muslim: 65,
+            other: 164
           },
-          solid: 0,
-          swing: 37759,
-          unvisited: 37759,
+          solid: 7,
+          swing: 37752,
+          unvisited: 37752,
           vip: 42,
           missing_parents: 22,
           wards: [
@@ -8839,7 +8844,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261020-v44-caste-hub-complete';
+      const CURRENT_APP_BUILD = '20261020-v45-ground-truth-37759';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -13011,7 +13016,7 @@
       const total = (tSummary && tSummary.total_voters) || (activeTId === 'TNT_MVG3WXFX' ? 37759 : (activeTId === 'TNT_MVF9LYO3' ? 18907 : Math.max(v.length, 0)));
       const contacted = v.filter(x => x.ContactStatus === 'Contacted').length;
       const notContacted = total - contacted;
-      const verified = v.filter(x => x.VerificationStatus === 'Verified').length;
+      const verified = (scopedVis && scopedVis.length) ? scopedVis.length : v.filter(x => x.VerificationStatus === 'Verified').length;
       const pendingVerify = total - verified;
       const pendingFollow = scopedFol.filter(x => x.Status === 'Pending').length;
       const openIssues = scopedIss.filter(x => x.Status !== 'Resolved').length;
@@ -13030,7 +13035,7 @@
 
       const kpis = [
         { label: 'Total Contacts', val: total, sub: `${contacted} Contacted` },
-        { label: 'Households', val: scopedHh.length, sub: 'Family Units' },
+        { label: 'Households', val: ((tSummary && tSummary.total_households) || 10488).toLocaleString(), sub: 'Family Units' },
         { label: 'Contacted Rate', val: total ? Math.round((contacted/total)*100) + '%' : '0%', sub: `${notContacted} Pending` },
         { label: 'Verified Contacts', val: verified, sub: `${pendingVerify} Unverified` },
         { label: 'Field Visits Logged', val: scopedVis.length, sub: 'Total Records' },
@@ -37642,10 +37647,13 @@ function syncAndBroadcastAllCasteRules() {
 function getVoterCasteClassification(v) {
   if (!v) return { surname: '', cluster: 'unclassified', clusterLabel: 'पहिचान खुल्न बाँकी', sub: 'अन्य', isCustom: false };
 
-  const rawCleanName = (v.Name || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  const rawCleanName = (v.full_name || v.Name || v.FullName || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
 
   // 1. Explicit override saved directly on voter record
-  if (v.CasteCluster && v.CasteCluster !== 'unclassified') {
+  const directCluster = v.caste_cluster || v.CasteCluster;
+  const directSurname = v.caste_surname || v.CasteSurname;
+  const directSub = v.caste_sub || v.CasteSub;
+  if (directCluster && directCluster !== 'unclassified') {
     const cLabels = {
       'janajati': 'आदिवासी जनजाति',
       'khas_arya': 'खस आर्य',
@@ -37654,10 +37662,10 @@ function getVoterCasteClassification(v) {
       'other': 'मधेसी / अन्य'
     };
     return {
-      surname: v.CasteSurname || extractVoterSurname(rawCleanName),
-      cluster: v.CasteCluster,
-      clusterLabel: cLabels[v.CasteCluster] || 'अन्य / खुल्न बाँकी',
-      sub: v.CasteSub || v.CasteSurname || extractVoterSurname(rawCleanName),
+      surname: directSurname || extractVoterSurname(rawCleanName),
+      cluster: directCluster,
+      clusterLabel: cLabels[directCluster] || 'अन्य / खुल्न बाँकी',
+      sub: directSub || directSurname || extractVoterSurname(rawCleanName),
       isCustom: true
     };
   }
@@ -38012,6 +38020,9 @@ async function loadLiveCasteVotersList() {
   _isLoadingCasteVoters = true;
 
   const tbody = document.getElementById('casteTableRosterBody') || document.getElementById('casteVotersTableRows');
+  const cardContainer = document.getElementById('casteCardViewContainer');
+  const emptyTable = document.getElementById('casteTableEmptyState');
+  const emptyCard = document.getElementById('casteCardEmptyState');
   if (!tbody) { _isLoadingCasteVoters = false; return; }
 
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
@@ -38022,6 +38033,7 @@ async function loadLiveCasteVotersList() {
   const selCluster = (_casteFilterState && _casteFilterState.cluster) || 'all';
   const selWard = document.getElementById('casteFilterWardSelect')?.value || (_casteFilterState ? _casteFilterState.ward : 'all') || 'all';
   const selSurname = document.getElementById('casteFilterSurnameSelect')?.value || (_casteFilterState ? _casteFilterState.surname : 'all') || 'all';
+  const selSupport = document.getElementById('casteFilterSupportSelect')?.value || (_casteFilterState ? _casteFilterState.support : 'all') || 'all';
 
   const searchInp = document.getElementById('casteVoterSearchInput');
   let searchVal = (searchInp?.value || (_casteFilterState ? _casteFilterState.search : '') || '').trim();
@@ -38065,12 +38077,30 @@ async function loadLiveCasteVotersList() {
     q += `&or=(${orClauses.join(',')})`;
   }
 
+  if (selSupport === 'solid') {
+    q += '&sentiment=eq.solid';
+  } else if (selSupport === 'swing') {
+    q += '&sentiment=eq.swing';
+  } else if (selSupport === 'other') {
+    q += '&sentiment=eq.opposition';
+  } else if (selSupport === 'absentee') {
+    q += '&sentiment=eq.absentee';
+  }
+
   q += `&order=ward_no.asc,serial_no.asc&limit=${pageSize}&offset=${offset}`;
 
   try {
     tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 24px; color: var(--text-muted);"><span class="spinner-border spinner-border-sm" role="status"></span> डाटा लोड हुँदैछ...</td></tr>';
+    if (cardContainer) {
+      cardContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 30px; color: var(--text-muted);">कार्डहरू लोड हुँदैछ...</div>';
+    }
+
     const res = await fetch(q, { headers: { apikey: key, Authorization: 'Bearer ' + key, Prefer: 'count=exact' } });
-    if (!res.ok) { _isLoadingCasteVoters = false; tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px; color: #ef4444;">डाटा लोड गर्न असफल भयो।</td></tr>'; return; }
+    if (!res.ok) { 
+      _isLoadingCasteVoters = false; 
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px; color: #ef4444;">डाटा लोड गर्न असफल भयो।</td></tr>'; 
+      return; 
+    }
 
     const cr = res.headers.get('content-range');
     let totalMatch = 37759;
@@ -38083,24 +38113,42 @@ async function loadLiveCasteVotersList() {
     if (!Array.isArray(voters)) { _isLoadingCasteVoters = false; return; }
 
     if (voters.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 30px; color: var(--text-muted);"><div style="font-size: 28px; margin-bottom: 6px;">🔍</div>कुनै मतदाता भेटिएन</td></tr>';
+      tbody.innerHTML = '';
+      if (emptyTable) emptyTable.style.display = 'block';
+      if (cardContainer) cardContainer.innerHTML = '';
+      if (emptyCard) emptyCard.style.display = 'block';
       _isLoadingCasteVoters = false;
       return;
     }
 
+    if (emptyTable) emptyTable.style.display = 'none';
+    if (emptyCard) emptyCard.style.display = 'none';
+
+    const clusterPillStyles = {
+      'khas_arya': 'background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe;',
+      'janajati': 'background:#f0fdf4; color:#166534; border:1px solid #bbf7d0;',
+      'newar': 'background:#fff7ed; color:#c2410c; border:1px solid #fed7aa;',
+      'dalit': 'background:#faf5ff; color:#6b21a8; border:1px solid #e9d5ff;',
+      'madhesi': 'background:#fefce8; color:#854d0e; border:1px solid #fef08a;',
+      'muslim': 'background:#f0fdfa; color:#115e59; border:1px solid #99f6e4;',
+      'unclassified': 'background:#fef2f2; color:#991b1b; border:1px solid #fecaca;'
+    };
+
+    // 1. Populate Table Rows
     tbody.innerHTML = voters.map((v, i) => {
       const c = getVoterCasteClassification(v);
-      const clusterPillStyles = {
-        'khas_arya': 'background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe;',
-        'janajati': 'background:#f0fdf4; color:#166534; border:1px solid #bbf7d0;',
-        'newar': 'background:#fff7ed; color:#c2410c; border:1px solid #fed7aa;',
-        'dalit': 'background:#faf5ff; color:#6b21a8; border:1px solid #e9d5ff;',
-        'madhesi': 'background:#fefce8; color:#854d0e; border:1px solid #fef08a;',
-        'muslim': 'background:#f0fdfa; color:#115e59; border:1px solid #99f6e4;',
-        'unclassified': 'background:#fef2f2; color:#991b1b; border:1px solid #fecaca;'
-      };
       const pillStyle = clusterPillStyles[c.cluster] || 'background:#f1f5f9; color:#334155;';
       const toleStr = (v.tole && v.tole.trim()) ? v.tole : (v.booth_no ? v.booth_no.replace('Former VDC Building,', '').trim() : '-');
+      const genderLabel = (v.gender === 'Male' || v.gender === 'पुरुष') ? 'पु' : ((v.gender === 'Female' || v.gender === 'महिला') ? 'म' : (v.gender || '-'));
+
+      let statusBadge = '<span class="badge" style="background:#fefce8; color:#854d0e; font-weight:700;">🟡 दोधार</span>';
+      if (v.sentiment === 'solid' || v.support_level === 'Solid' || v.support_level === 'Strong') {
+        statusBadge = '<span class="badge" style="background:#f0fdf4; color:#166534; font-weight:800;">🟢 पक्का मत</span>';
+      } else if (v.sentiment === 'opposition' || v.support_level === 'Against') {
+        statusBadge = '<span class="badge" style="background:#fef2f2; color:#991b1b; font-weight:700;">⚪ अन्य</span>';
+      } else if (v.sentiment === 'absentee') {
+        statusBadge = '<span class="badge" style="background:#faf5ff; color:#6b21a8; font-weight:700;">✈️ बाहिर</span>';
+      }
 
       return `
         <tr style="border-bottom: 1px solid var(--border-color);">
@@ -38113,7 +38161,7 @@ async function loadLiveCasteVotersList() {
             <div style="font-size: 11px; color: #64748b; margin-top: 2px;">बुवा: ${esc(v.father_name || '-')}</div>
           </td>
           <td style="padding: 10px 12px; text-align: center; font-size: 12.5px;">
-            ${esc(v.gender || '-')}/<b>${v.age || '-'}</b>
+            ${genderLabel}/<b>${v.age || '-'}</b>
           </td>
           <td style="padding: 10px 12px;">
             <span class="badge" style="${pillStyle} font-weight: 700; font-size: 11px;">
@@ -38128,10 +38176,10 @@ async function loadLiveCasteVotersList() {
             <span style="font-size: 11.5px; color: #475569;">📍 ${esc(toleStr)}</span>
           </td>
           <td style="padding: 10px 12px; font-family: monospace; font-size: 12px;">
-            ${esc(v.phone || '-')}
+            ${esc(v.phone || v.mobile || '-')}
           </td>
           <td style="padding: 10px 12px; text-align: center;">
-            <span class="badge" style="background:#f0fdf4; color:#166534; font-weight:800; font-size:11px;">🟢 पक्का मत</span>
+            ${statusBadge}
           </td>
           <td style="padding: 10px 12px; text-align: right; white-space: nowrap;">
             <button type="button" class="btn btn-sm btn-primary" onclick="viewVoterProfile('${v.voter_id}', 'family')" style="font-size: 11.5px; padding: 4px 10px; font-weight: 700;">
@@ -38141,6 +38189,62 @@ async function loadLiveCasteVotersList() {
         </tr>
       `;
     }).join('');
+
+    // 2. Populate Card View
+    if (cardContainer) {
+      cardContainer.innerHTML = voters.map((v, i) => {
+        const c = getVoterCasteClassification(v);
+        const pillStyle = clusterPillStyles[c.cluster] || 'background:#f1f5f9; color:#334155;';
+        const toleStr = (v.tole && v.tole.trim()) ? v.tole : (v.booth_no ? v.booth_no.replace('Former VDC Building,', '').trim() : '-');
+        const genderLabel = (v.gender === 'Male' || v.gender === 'पुरुष') ? 'पुरुष' : ((v.gender === 'Female' || v.gender === 'महिला') ? 'महिला' : (v.gender || '-'));
+
+        let statusBadge = '<span class="badge" style="background:#fefce8; color:#854d0e; font-weight:700;">🟡 दोधार</span>';
+        if (v.sentiment === 'solid' || v.support_level === 'Solid' || v.support_level === 'Strong') {
+          statusBadge = '<span class="badge" style="background:#f0fdf4; color:#166534; font-weight:800;">🟢 पक्का मत</span>';
+        } else if (v.sentiment === 'opposition' || v.support_level === 'Against') {
+          statusBadge = '<span class="badge" style="background:#fef2f2; color:#991b1b; font-weight:700;">⚪ अन्य</span>';
+        } else if (v.sentiment === 'absentee') {
+          statusBadge = '<span class="badge" style="background:#faf5ff; color:#6b21a8; font-weight:700;">✈️ बाहिर</span>';
+        }
+
+        return `
+          <div class="card" style="padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-card); display: flex; flex-direction: column; justify-content: space-between; gap: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; flex-shrink: 0;">
+                  ${(v.full_name || 'म').charAt(0)}
+                </div>
+                <div>
+                  <a href="javascript:void(0)" onclick="viewVoterProfile('${v.voter_id}', 'overview')" style="font-weight: 800; font-size: 14.5px; color: #0f172a; text-decoration: none;" title="मतदाता प्रोफाइल खोल्नुहोस्">
+                    ${esc(v.full_name)}
+                  </a>
+                  <div style="font-size: 11.5px; color: #64748b;">क्र.सं: ${offset + i + 1} • नं: <code>${esc(v.official_voter_id || v.voter_id)}</code></div>
+                </div>
+              </div>
+              <span class="badge" style="background:#e0e7ff; color:#1e3a6e; font-weight:800;">वडा ${v.ward_no}</span>
+            </div>
+
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <span class="badge" style="${pillStyle} font-weight: 700; font-size: 11.5px;">${esc(c.clusterLabel)}</span>
+              <span class="badge" style="background: #f1f5f9; color: #334155; font-size: 11.5px; font-weight: 700;">${esc(c.sub || c.surname || '-')}</span>
+              <span class="badge" style="background: #f8fafc; color: #475569; font-size: 11px;">${genderLabel} / ${v.age || '-'} वर्ष</span>
+            </div>
+
+            <div style="font-size: 12px; color: #475569; border-top: 1px dashed var(--border-color); padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+              <span>📍 ${esc(toleStr)}</span>
+              <div>${statusBadge}</div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 8px; margin-top: 2px;">
+              <span style="font-size: 11.5px; color: #64748b;">बुवा: ${esc(v.father_name || '-')}</span>
+              <button type="button" class="btn btn-sm btn-primary" onclick="viewVoterProfile('${v.voter_id}', 'family')" style="font-size: 11.5px; padding: 4px 12px; font-weight: 700;">
+                🌳 परिवार
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
 
     // Update Showing count and Active Filter Indicators
     const endIdx = Math.min(offset + voters.length, totalMatch);
@@ -38157,25 +38261,27 @@ async function loadLiveCasteVotersList() {
       const sp = Math.max(1, page - 2);
       const ep = Math.min(totalPages, sp + 4);
       for (let p = sp; p <= ep; p++) {
-        pBtns += `<button type="button" class="voter-page-btn ${p === page ? 'active' : ''}" onclick="setCastePage(${p})" style="min-width: 34px; height: 34px; padding: 0 8px; border-radius: 6px; font-weight: 700; border: 1px solid var(--border-color); background: ${p === page ? '#3b82f6' : 'var(--bg-card)'}; color: ${p === page ? '#fff' : 'var(--text-primary)'}; cursor: pointer;">${p}</button>`;
+        pBtns += `<button type="button" class="voter-page-btn ${p === page ? 'active' : ''}" onclick="setCastePage(${p})" style="min-width: 36px; height: 36px; padding: 0 10px; border-radius: 6px; font-weight: 800; border: 1px solid var(--border-color); background: ${p === page ? '#3b82f6' : 'var(--bg-card)'}; color: ${p === page ? '#fff' : 'var(--text-primary)'}; cursor: pointer;">${p}</button>`;
       }
       pagContainer.innerHTML = `
         <div class="voter-page-info" style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted);">
           <span>देखाउँदै:</span>
-          <span class="voter-page-range-pill" style="font-weight: 800; color: #3b82f6; background: rgba(59, 130, 246, 0.1); padding: 2px 8px; border-radius: 4px;">${offset + 1} – ${endIdx}</span>
+          <span class="voter-page-range-pill" style="font-weight: 800; color: #3b82f6; background: rgba(59, 130, 246, 0.1); padding: 4px 10px; border-radius: 6px;">${offset + 1} – ${endIdx}</span>
           <span>/ जम्मा <b>${totalMatch.toLocaleString()}</b> मतदाता (पेज <b>${page}</b> / ${totalPages})</span>
         </div>
         <div class="voter-page-controls" style="display: flex; gap: 6px; align-items: center;">
-          <button type="button" class="voter-page-btn" onclick="setCastePage(${page - 1})" ${page <= 1 ? 'disabled' : ''} style="height: 34px; padding: 0 12px; border-radius: 6px; font-weight: 700; border: 1px solid var(--border-color); background: var(--bg-card); cursor: ${page <= 1 ? 'not-allowed' : 'pointer'}; opacity: ${page <= 1 ? 0.5 : 1};">◀ अघिल्लो</button>
+          <button type="button" class="voter-page-btn" onclick="setCastePage(1)" ${page <= 1 ? 'disabled' : ''} style="height: 36px; padding: 0 10px; border-radius: 6px; font-weight: 700; border: 1px solid var(--border-color); background: var(--bg-card); cursor: ${page <= 1 ? 'not-allowed' : 'pointer'}; opacity: ${page <= 1 ? 0.5 : 1};" title="पहिलो पेज">⏮</button>
+          <button type="button" class="voter-page-btn" onclick="setCastePage(${page - 1})" ${page <= 1 ? 'disabled' : ''} style="height: 36px; padding: 0 12px; border-radius: 6px; font-weight: 700; border: 1px solid var(--border-color); background: var(--bg-card); cursor: ${page <= 1 ? 'not-allowed' : 'pointer'}; opacity: ${page <= 1 ? 0.5 : 1};">◀ अघिल्लो</button>
           ${pBtns}
-          <button type="button" class="voter-page-btn" onclick="setCastePage(${page + 1})" ${page >= totalPages ? 'disabled' : ''} style="height: 34px; padding: 0 12px; border-radius: 6px; font-weight: 700; border: 1px solid var(--border-color); background: var(--bg-card); cursor: ${page >= totalPages ? 'not-allowed' : 'pointer'}; opacity: ${page >= totalPages ? 0.5 : 1};">पछिल्लो ▶</button>
+          <button type="button" class="voter-page-btn" onclick="setCastePage(${page + 1})" ${page >= totalPages ? 'disabled' : ''} style="height: 36px; padding: 0 12px; border-radius: 6px; font-weight: 700; border: 1px solid var(--border-color); background: var(--bg-card); cursor: ${page >= totalPages ? 'not-allowed' : 'pointer'}; opacity: ${page >= totalPages ? 0.5 : 1};">पछिल्लो ▶</button>
+          <button type="button" class="voter-page-btn" onclick="setCastePage(${totalPages})" ${page >= totalPages ? 'disabled' : ''} style="height: 36px; padding: 0 10px; border-radius: 6px; font-weight: 700; border: 1px solid var(--border-color); background: var(--bg-card); cursor: ${page >= totalPages ? 'not-allowed' : 'pointer'}; opacity: ${page >= totalPages ? 0.5 : 1};" title="अन्तिम पेज">⏭</button>
         </div>
       `;
       pagContainer.style.display = 'flex';
       pagContainer.style.justifyContent = 'space-between';
       pagContainer.style.alignItems = 'center';
       pagContainer.style.flexWrap = 'wrap';
-      pagContainer.style.gap = '10px';
+      pagContainer.style.gap = '12px';
     }
 
     _isLoadingCasteVoters = false;
