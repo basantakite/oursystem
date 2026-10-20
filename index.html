@@ -4078,7 +4078,7 @@
             <span id="topbarPartySymbol" style="font-size: 16px;">🌳</span>
             <span id="topbarPartyName" class="btn-text-mobile-hide">नेपाली काँग्रेस</span>
           </div>
-          <button id="topbarSupabaseSyncBtn" class="btn btn-sm btn-secondary" onclick="syncSupabaseData(true)" style="display: flex; align-items: center; gap: 5px; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-weight: 600;" title="Supabase Cloud Database Sync">
+          <button id="topbarSupabaseSyncBtn" class="btn btn-sm btn-secondary" onclick="syncSupabaseData(true, true)" style="display: flex; align-items: center; gap: 5px; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-weight: 600;" title="Supabase Cloud Database Sync">
             <span>🟢</span> <span class="sync-label btn-text-mobile-hide">Cloud Sync</span>
           </button>
           <button id="pwaInstallBtn" class="btn btn-sm btn-primary palika-only" style="display: none;" onclick="triggerPwaInstall()">📲 <span class="btn-text-mobile-hide">Install App</span></button>
@@ -8758,7 +8758,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261019-v28-winmargin';
+      const CURRENT_APP_BUILD = '20261020-v30-multitenant-sync';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8811,7 +8811,7 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261019-v28-winmargin')
+        navigator.serviceWorker.register('sw.js?v=20261020-v30-multitenant-sync')
           .then((reg) => {
             console.log('Election Ops PWA Service Worker Registered (v28-winmargin)');
             reg.update();
@@ -10676,12 +10676,37 @@
       try {
         const headers = { 'apikey': key, 'Authorization': `Bearer ${key}` };
 
-        // Per-tenant sync check: Full download if this specific tenant has 0 local voters or has not completed full sync
+        // Cross-Browser Deterministic Sync: First check exact cloud count in <40ms
         const scopedTenantId = getCurrentScopedTenantId();
-        const tenantVoterCount = scopedTenantId ? (state.voters || []).filter(v => (v.TenantID || 'TNT_HELAMBU') === scopedTenantId).length : (state.voters || []).length;
+        const tenantParam = scopedTenantId ? `&tenant_id=eq.${encodeURIComponent(scopedTenantId)}` : '';
+        
+        let cloudTotal = -1;
+        try {
+          const headRes = await cloudFetch(`${url}/rest/v1/voters?select=voter_id${tenantParam}&limit=1`, {
+            headers: { ...headers, 'Prefer': 'count=exact' }
+          });
+          const cr = headRes && headRes.headers.get('content-range');
+          if (cr && cr.includes('/')) {
+            cloudTotal = parseInt(cr.split('/')[1], 10);
+          }
+        } catch(e) {}
+
+        const localCount = scopedTenantId 
+          ? (state.voters || []).filter(v => (v.TenantID || 'TNT_HELAMBU') === scopedTenantId).length 
+          : (state.voters || []).length;
+
         const syncKey = scopedTenantId ? ('EMS_SUPABASE_FULL_SYNC_DONE_' + scopedTenantId) : 'EMS_SUPABASE_FULL_SYNC_DONE';
         const hasFullSynced = !!localStorage.getItem(syncKey);
-        const shouldFullFetch = forceFull || !state.voters || tenantVoterCount === 0 || !hasFullSynced;
+        
+        // Full wave download triggers if:
+        // 1. Force full is requested (or sync button clicked)
+        // 2. Cloud has more voters than local cache (new browser or new tenant upload)
+        // 3. Local count is 0 or full sync hasn't run
+        const shouldFullFetch = forceFull || 
+                                !state.voters || 
+                                localCount === 0 || 
+                                !hasFullSynced || 
+                                (cloudTotal > 0 && localCount < cloudTotal);
 
         if (interactive || shouldFullFetch) {
           if (badge) {
@@ -10704,8 +10729,28 @@
           voterFetchPromise
         ]);
 
-        // Process dedicated tenants table
+        // Process dedicated tenants table & query real-time voter counts per tenant
         if (tenantsTableRes && tenantsTableRes.ok) {
+          try {
+            // Asynchronously fetch exact voter count per tenant for instant cross-browser accuracy
+            const countPromises = (state.tenants || []).map(async (t) => {
+              if (!t.TenantID) return;
+              try {
+                const cRes = await cloudFetch(`${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(t.TenantID)}&select=voter_id&limit=1`, {
+                  headers: { ...headers, 'Prefer': 'count=exact' }
+                });
+                const cCr = cRes && cRes.headers.get('content-range');
+                if (cCr && cCr.includes('/')) {
+                  t.CloudVoterCount = parseInt(cCr.split('/')[1], 10);
+                }
+              } catch(e) {}
+            });
+            Promise.all(countPromises).then(() => {
+              if (currentUser && currentUser.Role === 'Super Admin' && typeof renderTenantsManagement === 'function') {
+                renderTenantsManagement();
+              }
+            }).catch(() => null);
+          } catch(e) {}
           try {
             const rawTenants = await tenantsTableRes.json();
             if (Array.isArray(rawTenants) && rawTenants.length > 0) {
@@ -30707,7 +30752,10 @@
       const suspendedCount = state.tenants.filter(t => t.Status === 'Suspended').length;
       if (document.getElementById('saasActiveTenantsCount')) document.getElementById('saasActiveTenantsCount').textContent = activeCount;
       if (document.getElementById('saasSuspendedTenantsCount')) document.getElementById('saasSuspendedTenantsCount').textContent = suspendedCount;
-      if (document.getElementById('saasTotalPlatformVoters')) document.getElementById('saasTotalPlatformVoters').textContent = state.voters.length;
+      if (document.getElementById('saasTotalPlatformVoters')) {
+        const sumCloud = (state.tenants || []).reduce((acc, t) => acc + (t.CloudVoterCount || (state.voters || []).filter(v => (v.TenantID || 'TNT_HELAMBU') === t.TenantID).length), 0);
+        document.getElementById('saasTotalPlatformVoters').textContent = Math.max((state.voters || []).length, sumCloud).toLocaleString();
+      }
 
       // Calculate total platform revenue
       const totalRev = state.tenants.reduce((sum, t) => {
@@ -30824,9 +30872,13 @@
             <td style="padding: 12px;">
               <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <span style="font-weight: 800; font-size: 14px; color: var(--navy-900);">${esc(displayTitle)}</span>
-                <span class="badge" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px;">
-                  📊 ${((state.voters || []).filter(v => (v.TenantID || 'TNT_HELAMBU') === t.TenantID).length).toLocaleString()} मतदाता
-                </span>
+                ${(() => {
+                  const localC = (state.voters || []).filter(v => (v.TenantID || 'TNT_HELAMBU') === t.TenantID).length;
+                  const finalC = (t.CloudVoterCount && t.CloudVoterCount > localC) ? t.CloudVoterCount : localC;
+                  return `<span class="badge" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px;">
+                    📊 ${finalC.toLocaleString()} मतदाता
+                  </span>`;
+                })()}
                 <span style="background: ${pInfo.accentBg}; color: ${pInfo.primary}; border: 1px solid ${pInfo.border}; padding: 2px 7px; border-radius: 6px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;">
                   <span>${pInfo.symbol}</span> <span>${pInfo.name}</span>
                 </span>
