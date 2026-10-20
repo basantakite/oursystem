@@ -8043,6 +8043,7 @@
       publicSubs: [],
       electionReports: [],
       activities: [],
+      tenantSummaries: {},
       // Multi-Tenant SaaS Subscriptions & Palikas (Super Admin Management)
       tenants: [
         {
@@ -8161,6 +8162,13 @@
     // Load from LocalStorage if available
     function loadPersistedState() {
       let saved = null; try { saved = localStorage.getItem(STORAGE_KEY); } catch(e) {}
+      if (!state.tenantSummaries) state.tenantSummaries = {};
+      ['TNT_MVG3WXFX', 'TNT_MVF9LYO3', 'TNT_HELAMBU', 'TNT_GOKARNESHWOR_RSP'].forEach(tid => {
+        try {
+          const s = localStorage.getItem('tenant_summary_' + tid);
+          if (s) state.tenantSummaries[tid] = JSON.parse(s);
+        } catch(e) {}
+      });
       if (saved) {
         try { 
           const parsed = JSON.parse(saved);
@@ -8758,7 +8766,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261020-v30-multitenant-sync';
+      const CURRENT_APP_BUILD = '20261020-v31-live-summary';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8811,7 +8819,7 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261020-v30-multitenant-sync')
+        navigator.serviceWorker.register('sw.js?v=20261020-v31-live-summary')
           .then((reg) => {
             console.log('Election Ops PWA Service Worker Registered (v28-winmargin)');
             reg.update();
@@ -9405,6 +9413,25 @@
 
       // SCREEN A: Root Default - Super Admin Master Login
       setupSuperAdminScreen();
+    }
+
+    // LIVE CLOUD SUMMARY & WARD-LEVEL AGGREGATION ENGINE
+    function getActiveTenantSummary(tenantId) {
+      if (!tenantId) tenantId = getActiveTenantId();
+      if (!tenantId || tenantId === 'ALL') {
+        const sums = Object.values((state && state.tenantSummaries) || {});
+        if (!sums.length) return null;
+        const totalV = sums.reduce((acc, s) => acc + (s.total_voters || 0), 0);
+        return { total_voters: totalV, total_wards: 9, wards: [] };
+      }
+      return (state && state.tenantSummaries && state.tenantSummaries[tenantId]) || null;
+    }
+
+    function getActiveWardSummaryCount(wardNo, tenantId) {
+      const summary = getActiveTenantSummary(tenantId);
+      if (!summary || !summary.wards) return 0;
+      const found = summary.wards.find(w => Number(w.ward) === Number(wardNo));
+      return found ? (found.count || 0) : 0;
     }
 
     // STRICT TENANT & WARD DATA ISOLATION ENGINE
@@ -10721,6 +10748,29 @@
         const voterFetchPromise = shouldFullFetch ? fetchAllCloudVoters(url, key, (loaded, total) => {
           if (topBadge) topBadge.innerHTML = `<span>⏳</span> <span class="sync-label btn-text-mobile-hide">${Math.round((loaded/total)*100)}%</span>`;
         }).catch(() => []) : fetchDeltaCloudVoters(url, key).catch(() => []);
+
+        // Fetch pre-computed live tenant summaries from system_settings for 0ms dashboard analytics
+        try {
+          const sumRes = await cloudFetch(`${url}/rest/v1/system_settings?key=like.tenant_summary_*`, { headers });
+          if (sumRes && sumRes.ok) {
+            const sumData = await sumRes.json();
+            if (Array.isArray(sumData)) {
+              if (!state.tenantSummaries) state.tenantSummaries = {};
+              sumData.forEach(row => {
+                try {
+                  const sObj = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+                  if (sObj && sObj.tenant_id) {
+                    state.tenantSummaries[sObj.tenant_id] = sObj;
+                    try { localStorage.setItem('tenant_summary_' + sObj.tenant_id, JSON.stringify(sObj)); } catch(e) {}
+                  }
+                } catch(e) {}
+              });
+              if (currentUser && typeof refreshDashboardMetrics === 'function') {
+                refreshDashboardMetrics();
+              }
+            }
+          }
+        } catch(e) {}
 
         const [setRes, uRes, tenantsTableRes, vData] = await Promise.all([
           cloudFetch(`${url}/rest/v1/system_settings?select=*`, { headers }).catch(() => null),
@@ -12873,7 +12923,9 @@
       const scopedBth = getScopedBooths();
       const scopedPub = getScopedPublicSubs();
 
-      const total = v.length;
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : '';
+      const tSummary = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(activeTId) : null;
+      const total = Math.max(v.length, (tSummary && tSummary.total_voters) || 0);
       const contacted = v.filter(x => x.ContactStatus === 'Contacted').length;
       const notContacted = total - contacted;
       const verified = v.filter(x => x.VerificationStatus === 'Verified').length;
@@ -12938,6 +12990,8 @@
       let html = '';
       for (const w of wardNums) {
         const wv = scopedVoters.filter(v => Number(v.Ward || v.WardNo || 0) === w);
+        const wardSummaryCount = (typeof getActiveWardSummaryCount === 'function') ? getActiveWardSummaryCount(w) : 0;
+        const wardVoterCount = Math.max(wv.length, wardSummaryCount);
         const contacted = wv.filter(v => v.ContactStatus === 'Contacted').length;
         const verified = wv.filter(v => v.VerificationStatus === 'Verified').length;
         const booths = scopedBooths.filter(b => Number(b.WardNo || b.Ward || 0) === w).length;
@@ -12950,7 +13004,7 @@
         html += `
           <tr>
             <td><b>वडा ${w}</b></td>
-            <td><b>${wv.length}</b></td>
+            <td><b>${wardVoterCount.toLocaleString()}</b></td>
             <td><span class="badge badge-contacted">${contacted}</span></td>
             <td><span class="badge badge-verified">${verified}</span></td>
             <td>${followups ? `<span class="badge badge-urgent">${followups}</span>` : '0'}</td>
@@ -16195,8 +16249,11 @@
         return true;
       });
 
+      const activeCurT = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : '';
+      const curSummary = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(activeCurT) : null;
+      const totalScopedCount = Math.max(scopedVoters.length, (curSummary && curSummary.total_voters) || 0);
       const pAll = document.getElementById('pillCountAll');
-      if (pAll) pAll.textContent = scopedVoters.length;
+      if (pAll) pAll.textContent = totalScopedCount.toLocaleString();
       const pSolid = document.getElementById('pillCountSolid');
       if (pSolid) pSolid.textContent = scopedVoters.filter(v => getSupportTier(v).key === 'solid').length;
       const pSwing = document.getElementById('pillCountSwing');
