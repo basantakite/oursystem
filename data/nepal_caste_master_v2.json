@@ -1,0 +1,42 @@
+{
+  "schema_version": "2.0",
+  "purpose": "Bilingual reference dictionary, not an individual classification engine",
+  "title": "Nepal Six Community Bilingual Master Reference — Full V2",
+  "record_count": 383,
+  "group_counts": {
+    "KHAS_ARYA": 96,
+    "JANAJATI": 80,
+    "NEWAR": 57,
+    "DALIT": 52,
+    "MADHESI_THARU": 58,
+    "MUSLIM": 40
+  },
+  "collision_keys": [
+    "baniya",
+    "darji",
+    "darzi",
+    "dhobi",
+    "haluwai",
+    "joshi",
+    "lohar",
+    "malla",
+    "mishra",
+    "rana",
+    "teli"
+  ],
+  "groups": [
+    { "code": "KHAS_ARYA", "label_ne": "खस आर्य", "color": "#3b82f6" },
+    { "code": "JANAJATI", "label_ne": "आदिवासी जनजाति", "color": "#22c55e" },
+    { "code": "NEWAR", "label_ne": "नेवार", "color": "#f97316" },
+    { "code": "DALIT", "label_ne": "दलित", "color": "#a855f7" },
+    { "code": "MADHESI_THARU", "label_ne": "मधेशी / थारू", "color": "#eab308" },
+    { "code": "MUSLIM", "label_ne": "मुस्लिम", "color": "#14b8a6" }
+  ],
+  "rules": {
+    "compound_name_distinction": "थापा / Thapa (KHAS_ARYA) and थापा मगर / Thapa Magar (JANAJATI) are distinct reference labels.",
+    "exact_match": "Compare normalized Nepali name or case-insensitive exact English name; do not automatically merge related surnames.",
+    "shared_surnames": "Preserve conflicts and mark REVIEW_REQUIRED; never force unique affiliation.",
+    "individual_classification": "Do not infer sensitive caste, ethnicity, or religion from names; use self-report or authoritative documented records.",
+    "coverage": "Working list compiled from prior conversation, not an exhaustive or officially verified registry."
+  }
+}
