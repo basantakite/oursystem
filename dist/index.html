@@ -28316,6 +28316,23 @@
     }
 
     // Open the Full-Featured Bulk Voter Import & Sample Preview Studio Modal (SUPER ADMIN ONLY)
+    function openBulkVoterImportModalForTenant(tenantId) {
+      if (!isSuperAdminUser()) {
+        showToast('⛔ मतदाता नामावली आयात केवल Super Admin ले मात्र गर्न सक्नुहुन्छ।', 'error');
+        return;
+      }
+      openBulkVoterImportModal(false);
+      setTimeout(() => {
+        const sel = document.getElementById('bulkTargetTenant');
+        if (sel && tenantId) {
+          sel.value = tenantId;
+          if (typeof onBulkTargetTenantChanged === 'function') {
+            onBulkTargetTenantChanged(tenantId);
+          }
+        }
+      }, 150);
+    }
+
     function openBulkVoterImportModal(startOnSampleTab = false) {
       const canImport = isSuperAdminUser() || (currentUser && currentUser.Role === 'Palika Admin');
       if (!canImport) {
@@ -28767,9 +28784,14 @@
     async function onBulkTargetTenantChanged(tenantId) {
       const t = (state.tenants || []).find(x => x.TenantID === tenantId);
       const totalWards = (t && Number(t.TotalWards)) || (String(tenantId).includes('GOK') ? 9 : 7);
+      const palikaName = (t && (t.PalikaName || t.TenantName)) || tenantId;
       const wardSelect = document.getElementById('bulkDefaultWard');
       if (wardSelect) {
         wardSelect.innerHTML = Array.from({ length: totalWards }, (_, i) => `<option value="${i + 1}">वडा नं. ${i + 1}</option>`).join('');
+      }
+      const bannerEl = document.getElementById('bulkTargetTenantBanner');
+      if (bannerEl) {
+        bannerEl.innerHTML = `🎯 <b>लक्ष्य तेनेन्ट:</b> <span style="color:#1d4ed8;">${esc(palikaName)} (${totalWards} वडा)</span> — यो फाइलका मतदाताहरू सिधै यसै तेनेन्टमा मात्र लक हुनेछन्।`;
       }
     }
 
@@ -30628,6 +30650,9 @@
             <td style="padding: 12px;">
               <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <span style="font-weight: 800; font-size: 14px; color: var(--navy-900);">${esc(displayTitle)}</span>
+                <span class="badge" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px;">
+                  📊 ${((state.voters || []).filter(v => (v.TenantID || 'TNT_HELAMBU') === t.TenantID).length).toLocaleString()} मतदाता
+                </span>
                 <span style="background: ${pInfo.accentBg}; color: ${pInfo.primary}; border: 1px solid ${pInfo.border}; padding: 2px 7px; border-radius: 6px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;">
                   <span>${pInfo.symbol}</span> <span>${pInfo.name}</span>
                 </span>
@@ -30673,6 +30698,9 @@
             </td>
             <td style="text-align: center; padding: 12px 8px;">
               <div style="display: flex; gap: 5px; justify-content: center; align-items: center;">
+                <button class="btn btn-sm btn-success" onclick="event.stopPropagation(); openBulkVoterImportModalForTenant('${t.TenantID}')" style="background: #059669; color: white; border: 1px solid #047857; font-weight: 800; font-size: 11.5px; padding: 5px 10px; border-radius: 6px; box-shadow: 0 2px 6px rgba(5,150,105,0.25);" title="यस तेनेन्टका लागि मतदाता सूची (Excel/CSV) सिधै अपलोड गर्नुहोस्">
+                  📤 मतदाता अपलोड
+                </button>
                 <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openTenantDossierModal('${t.TenantID}')" style="background: #0f172a; color: #fbbf24; border: 1px solid #334155; font-weight: 800; font-size: 11.5px; padding: 5px 9px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="सम्पूर्ण विवरण र सेटिङ्स कन्ट्रोल खोल्नुहोस्">
                   👁️ विवरण/सेटिङ
                 </button>
