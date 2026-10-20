@@ -8766,7 +8766,7 @@
                 const activeSec = document.querySelector('.view-section.active');
                 const activeId = activeSec ? activeSec.id : '';
                 if (activeId === 'viewVoters') renderVotersList();
-                else if (activeId === 'viewCaste') renderCasteDemographics();
+                else if (activeId === 'viewCaste') renderCasteDemographics(true);
                 else if (activeId === 'viewHouseholds') renderHouseholdsList();
                 else if (activeId === 'viewElectionDay') renderElectionReports();
               } else {
@@ -15792,12 +15792,12 @@
     }
 
     let _isLoadingSeniors = false;
+    let _seniorsReqCounter = 0;
     async function loadLiveSeniorsVotersList() {
-      if (_isLoadingSeniors) return;
-      _isLoadingSeniors = true;
+      const reqId = ++_seniorsReqCounter;
 
       const tbody = document.getElementById('seniorsTableRows');
-      if (!tbody) { _isLoadingSeniors = false; return; }
+      if (!tbody) return;
 
       const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
       const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
@@ -15833,14 +15833,22 @@
       }
       if (searchVal) {
         const enc = encodeURIComponent(searchVal);
-        q += `&or=(full_name.ilike.*${enc}*,official_voter_id.ilike.*${enc}*,father_name.ilike.*${enc}*)`;
+        q += '&or=(full_name.ilike.*' + enc + '*,official_voter_id.ilike.*' + enc + '*,father_name.ilike.*' + enc + '*)';
       }
 
       q += `&order=ward_no.asc,age.desc&limit=${pageSize}&offset=${offset}`;
 
+      if (!tbody.hasChildNodes() || tbody.innerHTML.trim() === '' || tbody.innerText.includes('डाटा लोड')) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 24px; color: var(--text-muted);"><span class="spinner-border spinner-border-sm" role="status"></span> ज्येष्ठ नागरिक डाटा लोड हुँदैछ...</td></tr>';
+      }
+
       try {
         const res = await fetch(q, { headers: { apikey: key, Authorization: 'Bearer ' + key, Prefer: 'count=exact' } });
-        if (!res.ok) { _isLoadingSeniors = false; return; }
+        if (reqId !== _seniorsReqCounter) return;
+        if (!res.ok) { 
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: #ef4444;">डाटा लोड गर्न असफल भयो।</td></tr>';
+          return; 
+        }
 
         const cr = res.headers.get('content-range');
         let totalCount = 9207;
@@ -15850,6 +15858,7 @@
         }
 
         const voters = await res.json();
+        if (reqId !== _seniorsReqCounter) return;
         const endIdx = Math.min(offset + voters.length, totalCount);
 
         // Update 4 Top Summary KPI Cards with Pure Ground Truth
@@ -15861,20 +15870,93 @@
         setSenTxt('senKpiFamilyVotes', `${Math.round(totalCount * 3.5).toLocaleString()} पारिवारिक भोट`);
         setSenTxt('seniorsTabBadgeRoster', totalCount.toLocaleString());
 
-        tbody.innerHTML = voters.map((v, i) => `
+        // Wire up Card View if active
+        const cardContainer = document.getElementById('seniorsCardsGrid');
+        const tableWrap = document.getElementById('seniorsTableWrap');
+        const isCardMode = (typeof currentSeniorsViewMode !== 'undefined' && currentSeniorsViewMode === 'card') || (typeof currentSeniorsDisplayMode !== 'undefined' && currentSeniorsDisplayMode === 'card');
+
+        if (cardContainer && isCardMode) {
+          cardContainer.style.display = 'grid';
+          if (tableWrap) tableWrap.style.display = 'none';
+          cardContainer.innerHTML = voters.map((v, i) => `
+            <div class="voter-card" style="border: 1.5px solid #ccfbf1; background: #fff; padding: 14px; border-radius: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span class="voter-id-mono-badge">क्र.सं. ${offset + i + 1} • ${esc(v.official_voter_id || v.voter_id)}</span>
+                <span class="badge" style="background: #ccfbf1; color: #0f766e; font-weight: 800;">🧓 ${v.age} वर्ष</span>
+              </div>
+              <div style="font-weight: 900; font-size: 15px; color: #0f172a; margin-bottom: 4px;">${esc(v.full_name)}</div>
+              <div style="font-size: 12px; color: #475569; margin-bottom: 8px;">वडा ${v.ward_no} • बुवा/पति: ${esc(v.father_name || v.spouse_name || '-')}</div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="badge" style="background: #fefce8; color: #854d0e;">🟡 दोधार</span>
+                ${v.phone ? `<a href="tel:${cleanPhone(v.phone)}" class="btn btn-sm btn-primary" style="font-size:11px; padding:3px 8px;">📞 कल</a>` : '<span style="color:#94a3b8; font-size:11px;">सम्पर्क बाँकी</span>'}
+              </div>
+            </div>
+          `).join('');
+        } else {
+          if (cardContainer) cardContainer.style.display = 'none';
+          if (tableWrap) tableWrap.style.display = 'block';
+        }
+
+        if (voters.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted); font-weight: 700;">छनोट गरिएको फिल्टर अनुसार कुनै ज्येष्ठ नागरिक भेटिएन।</td></tr>';
+          return;
+        }
+
+        // 9 Full Columns matching Table Header
+        tbody.innerHTML = voters.map((v, i) => {
+          const vAge = Number(v.age) || 65;
+          let ageLabel = '६०–६९ वर्ष';
+          let ageBg = '#e0f2fe';
+          let ageColor = '#0369a1';
+          if (vAge >= 80) {
+            ageLabel = '८०+ अति ज्येष्ठ';
+            ageBg = '#ffedd5';
+            ageColor = '#c2410c';
+          } else if (vAge >= 70) {
+            ageLabel = '७०–७९ भत्ता समूह';
+            ageBg = '#fef3c7';
+            ageColor = '#b45309';
+          }
+          const phoneClean = v.phone ? cleanPhone(v.phone) : '';
+          const phoneDisplay = phoneClean ? `<a href="tel:${phoneClean}" style="color:#059669; font-weight:700;">📞 ${esc(v.phone)}</a>` : '<span style="color:#94a3b8; font-size:11.5px;">फोन बाँकी</span>';
+
+          return `
           <tr>
             <td style="text-align: center; font-weight: 700; color: #64748b;">${offset + i + 1}</td>
             <td><code style="font-weight: 800; color: #1e3a6e;">${esc(v.official_voter_id || v.voter_id)}</code></td>
             <td>
               <b style="color: #0f172a; font-size: 13.5px;">${esc(v.full_name)}</b>
               <div style="font-size: 11px; color: #64748b;">बुवा/पति: ${esc(v.father_name || v.spouse_name || '-')}</div>
+              <div style="margin-top: 2px;">${phoneDisplay}</div>
             </td>
-            <td><span class="badge" style="background:#e0e7ff; color:#1e3a6e; font-weight:700;">वडा ${v.ward_no}</span></td>
-            <td style="text-align: center; font-weight: 800; color: #dc2626;">${v.age} वर्ष</td>
-            <td style="text-align: center;">${esc(v.gender || '-')}</td>
-            <td>${v.phone ? `<a href="tel:${v.phone}" style="color:#059669; font-weight:700;">📞 ${esc(v.phone)}</a>` : '<span style="color:#94a3b8;">-</span>'}</td>
+            <td style="text-align: center;">
+              <span class="badge" style="background: ${ageBg}; color: ${ageColor}; font-weight: 800;">
+                🎂 ${vAge} वर्ष
+              </span>
+              <div style="font-size: 10.5px; color: ${ageColor}; font-weight: 700; margin-top: 2px;">${ageLabel}</div>
+            </td>
+            <td>
+              <span style="font-size: 11.5px; color: #475569; font-weight: 700;">🏠 परिवार प्रभाव ब्लक</span>
+            </td>
+            <td>
+              <span class="badge" style="background:#e0e7ff; color:#1e3a6e; font-weight:700;">वडा ${v.ward_no}</span>
+              <div style="font-size: 10.5px; color: #64748b; margin-top: 2px;">बुथ: ${esc(v.booth_no || 'क')}</div>
+            </td>
+            <td>
+              <span class="badge" style="background: #f0fdf4; color: #166534; font-size: 11px;">🚶 सामान्य हिँडडुल</span>
+            </td>
+            <td>
+              <span class="badge" style="background: #fefce8; color: #854d0e; font-weight: 800;">🟡 दोधार</span>
+            </td>
+            <td style="text-align: center;">
+              <div style="display: inline-flex; gap: 4px; align-items: center;">
+                ${phoneClean ? `<a href="tel:${phoneClean}" class="btn btn-sm btn-primary" style="font-size:10.5px; padding:2px 7px;">📞</a>` : ''}
+                <button type="button" class="btn btn-sm btn-secondary" style="font-size:10.5px; padding:2px 6px;" onclick="viewVoterProfile('${v.voter_id || v.official_voter_id}')">👁️</button>
+              </div>
+            </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
 
         // Render Seniors pagination controls
         const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -15902,11 +15984,11 @@
             </div>
           `;
         });
-
-        _isLoadingSeniors = false;
       } catch(e) {
         console.warn('loadLiveSeniorsVotersList error:', e);
-        _isLoadingSeniors = false;
+        if (reqId === _seniorsReqCounter) {
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: #ef4444;">त्रुटि भयो। पुनः लोड गर्नुहोस्।</td></tr>';
+        }
       }
     }
 
@@ -37619,7 +37701,7 @@ function toggleCasteSort(field) {
   renderCasteDemographics();
 }
 
-function renderCasteDemographics() {
+function renderCasteDemographics(skipRoster = false) {
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
   const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
   const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
@@ -37706,7 +37788,7 @@ function renderCasteDemographics() {
   setPill('casteUnmappedBadgeTop', clusters.other || 3090);
 
   // Load live voters list for the active filter
-  loadLiveCasteVotersList();
+  if (!skipRoster) loadLiveCasteVotersList();
 
   // Populate Matrix Tab
   renderCasteSummaryMatrix();
@@ -37714,6 +37796,7 @@ function renderCasteDemographics() {
 
 let _castePage = 1;
 let _isLoadingCasteVoters = false;
+let _casteReqCounter = 0;
 
 function setCastePage(p) {
   if (p < 1) p = 1;
@@ -37722,14 +37805,13 @@ function setCastePage(p) {
 }
 
 async function loadLiveCasteVotersList() {
-  if (_isLoadingCasteVoters) return;
-  _isLoadingCasteVoters = true;
+  const reqId = ++_casteReqCounter;
 
   const tbody = document.getElementById('casteTableRosterBody') || document.getElementById('casteVotersTableRows');
   const cardContainer = document.getElementById('casteCardViewContainer');
   const emptyTable = document.getElementById('casteTableEmptyState');
   const emptyCard = document.getElementById('casteCardEmptyState');
-  if (!tbody) { _isLoadingCasteVoters = false; return; }
+  if (!tbody) return;
 
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
   const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
@@ -37750,92 +37832,108 @@ async function loadLiveCasteVotersList() {
   const page = _castePage || 1;
   const offset = (page - 1) * pageSize;
 
-  let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}`;
-  if (selWard && selWard !== 'all' && selWard !== '' && selWard !== 'सबै वडा (All Wards)') {
-    q += `&ward_no=eq.${encodeURIComponent(selWard)}`;
-  }
-
-  // Single cleanly constructed OR logic tree
-  let orClauses = [];
-
-  if (selSurname && selSurname !== 'all') {
-    orClauses.push(`full_name.ilike.*${encodeURIComponent(selSurname)}*`);
-  } else if (selCluster === 'janajati') {
-    orClauses.push('full_name.ilike.*tamang*','full_name.ilike.*lama*','full_name.ilike.*sherpa*','full_name.ilike.*gurung*','full_name.ilike.*magar*','full_name.ilike.*rai*','full_name.ilike.*sunuwar*','full_name.ilike.*hyolmo*','full_name.ilike.*ghale*','full_name.ilike.*limbu*','full_name.ilike.*ghising*','full_name.ilike.*moktan*','full_name.ilike.*yonjan*','full_name.ilike.*bomjan*','full_name.ilike.*waiba*','full_name.ilike.*pakhrin*','full_name.ilike.*thokar*','full_name.ilike.*dong*','full_name.ilike.*gole*','full_name.ilike.*blon*','full_name.ilike.*jimba*','full_name.ilike.*rumba*','full_name.ilike.*titung*','full_name.ilike.*ale*','full_name.ilike.*pun*','full_name.ilike.*thami*','full_name.ilike.*majhi*','full_name.ilike.*bhujel*','full_name.ilike.*chepang*','full_name.ilike.*kumal*');
-  } else if (selCluster === 'newar') {
-    orClauses.push('full_name.ilike.*shrestha*','full_name.ilike.*maharjan*','full_name.ilike.*shakya*','full_name.ilike.*dangol*','full_name.ilike.*manandhar*','full_name.ilike.*bajracharya*','full_name.ilike.*tuladhar*','full_name.ilike.*tamrakar*','full_name.ilike.*kansakar*','full_name.ilike.*pradhan*','full_name.ilike.*rajbhandari*','full_name.ilike.*karmacharya*','full_name.ilike.*amatya*','full_name.ilike.*maskey*','full_name.ilike.*vaidya*','full_name.ilike.*chitrakar*','full_name.ilike.*ranjitkar*','full_name.ilike.*prajapati*','full_name.ilike.*sthapit*','full_name.ilike.*suwal*','full_name.ilike.*khadgi*','full_name.ilike.*deula*');
-  } else if (selCluster === 'khas_arya') {
-    orClauses.push('full_name.ilike.*bhandari*','full_name.ilike.*thapa*','full_name.ilike.*karki*','full_name.ilike.*khadka*','full_name.ilike.*ghimire*','full_name.ilike.*paudel*','full_name.ilike.*adhikari*','full_name.ilike.*pudasaini*','full_name.ilike.*gautam*','full_name.ilike.*pandit*','full_name.ilike.*giri*','full_name.ilike.*dahal*','full_name.ilike.*sapkota*','full_name.ilike.*basnet*','full_name.ilike.*chaulagain*','full_name.ilike.*subedi*','full_name.ilike.*aryal*','full_name.ilike.*khatiwada*','full_name.ilike.*khatri*','full_name.ilike.*pokharel*','full_name.ilike.*chhetri*','full_name.ilike.*bhattarai*','full_name.ilike.*dhakal*','full_name.ilike.*chalise*','full_name.ilike.*nepal*','full_name.ilike.*khanal*','full_name.ilike.*baral*','full_name.ilike.*sharma*','full_name.ilike.*nyaupane*','full_name.ilike.*budhathoki*','full_name.ilike.*upadhyay*','full_name.ilike.*thapaliya*','full_name.ilike.*thakuri*','full_name.ilike.*kafle*','full_name.ilike.*katuwal*','full_name.ilike.*kattel*','full_name.ilike.*kandel*','full_name.ilike.*kunwar*','full_name.ilike.*devkota*','full_name.ilike.*dulal*','full_name.ilike.*tiwari*','full_name.ilike.*tripathi*','full_name.ilike.*humagain*','full_name.ilike.*hamal*');
-  } else if (selCluster === 'dalit') {
-    // Surnames must be anchored with space or clean match to avoid matching first names like Doma or Kami Rita!
-    orClauses.push(
-      'full_name.ilike.* bishwokarma*', 'full_name.ilike.* bishwakarma*', 'full_name.ilike.* wishwakarma*',
-      'full_name.ilike.* b.k*', 'full_name.ilike.* bk', 'full_name.ilike.* pariyar*', 'full_name.ilike.* mijar*',
-      'full_name.ilike.* sunar*', 'full_name.ilike.* sonar*', 'full_name.ilike.* sarki*', 'full_name.ilike.* damai*',
-      'full_name.ilike.* nepali*', 'full_name.ilike.* kami', 'full_name.ilike.* kami *', 'full_name.ilike.* baraili*',
-      'full_name.ilike.* baraily*', 'full_name.ilike.* senchuri*', 'full_name.ilike.* century*', 'full_name.ilike.* senchury*',
-      'full_name.ilike.* rasaili*', 'full_name.ilike.* ramtel*', 'full_name.ilike.* ranapaheli*', 'full_name.ilike.* ghotane*',
-      'full_name.ilike.* ghataney*', 'full_name.ilike.* koli*', 'full_name.ilike.* lohar*', 'full_name.ilike.* tamta*',
-      'full_name.ilike.* chunara*', 'full_name.ilike.* parki*', 'full_name.ilike.* musahar*', 'full_name.ilike.* sada*',
-      'full_name.ilike.* rishidev*', 'full_name.ilike.* paswan*', 'full_name.ilike.* chamar*', 'full_name.ilike.* ravidas*',
-      'full_name.ilike.* dusadh*', 'full_name.ilike.* rajak*'
-    );
-  } else if (selCluster === 'madhesi') {
-    orClauses.push('full_name.ilike.*yadav*','full_name.ilike.*ahir*','full_name.ilike.*gop*','full_name.ilike.*koiri*','full_name.ilike.*kushwaha*','full_name.ilike.*kurmi*','full_name.ilike.*jha*','full_name.ilike.*shukla*','full_name.ilike.*sah*','full_name.ilike.*sahu*','full_name.ilike.*gupta*','full_name.ilike.*mahato*','full_name.ilike.*raut*','full_name.ilike.*mandal*','full_name.ilike.*tharu*','full_name.ilike.*chaudhary*','full_name.ilike.*chaudhari*','full_name.ilike.*kewat*','full_name.ilike.*kanu*','full_name.ilike.*thakur*','full_name.ilike.*kalwar*','full_name.ilike.*rauniyar*','full_name.ilike.*agrawal*');
-  } else if (selCluster === 'muslim') {
-    orClauses.push('full_name.ilike.*sheikh*','full_name.ilike.*ansari*','full_name.ilike.*khan*','full_name.ilike.*miyan*','full_name.ilike.*miya*','full_name.ilike.*sayyid*','full_name.ilike.*pathan*','full_name.ilike.*qureshi*','full_name.ilike.*mansuri*','full_name.ilike.*siddiqui*','full_name.ilike.*farooqui*','full_name.ilike.*usmani*');
-  }
-
-  if (searchVal) {
-    const enc = encodeURIComponent(searchVal);
-    orClauses.push(`full_name.ilike.*${enc}*`, `official_voter_id.ilike.*${enc}*`, `father_name.ilike.*${enc}*`);
-  }
-
-  if (orClauses.length > 0) {
-    q += `&or=(${orClauses.join(',')})`;
-  }
-
-  if (selSupport === 'solid') {
-    q += '&sentiment=eq.solid';
-  } else if (selSupport === 'swing') {
-    q += '&sentiment=eq.swing';
-  } else if (selSupport === 'other') {
-    q += '&sentiment=eq.opposition';
-  } else if (selSupport === 'absentee') {
-    q += '&sentiment=eq.absentee';
-  }
-
-  q += `&order=ward_no.asc,serial_no.asc&limit=${pageSize}&offset=${offset}`;
-
-  try {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 24px; color: var(--text-muted);"><span class="spinner-border spinner-border-sm" role="status"></span> डाटा लोड हुँदैछ...</td></tr>';
+  // Only show loading spinner if table is currently blank, preventing jarring flicker!
+  if (!tbody.hasChildNodes() || tbody.innerHTML.trim() === '' || tbody.innerText.includes('डाटा लोड')) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 28px; color: var(--text-muted);"><span class="spinner-border spinner-border-sm" role="status"></span> डाटा लोड हुँदैछ...</td></tr>';
     if (cardContainer) {
       cardContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 30px; color: var(--text-muted);">कार्डहरू लोड हुँदैछ...</div>';
     }
+  }
 
-    const res = await fetch(q, { headers: { apikey: key, Authorization: 'Bearer ' + key, Prefer: 'count=exact' } });
-    if (!res.ok) { 
-      _isLoadingCasteVoters = false; 
-      tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px; color: #ef4444;">डाटा लोड गर्न असफल भयो।</td></tr>'; 
-      return; 
-    }
-
-    const cr = res.headers.get('content-range');
+  try {
+    let voters = [];
     let totalMatch = 37759;
-    if (cr && cr.includes('/')) {
-      const parsed = parseInt(cr.split('/')[1], 10);
-      if (!isNaN(parsed)) totalMatch = parsed;
+
+    if (selCluster === 'unclassified') {
+      // Fast batch scanning to collect up to 50 real unclassified voters
+      let scanOffset = (page - 1) * 300;
+      let collected = [];
+      while (collected.length < pageSize && scanOffset < 15000) {
+        if (reqId !== _casteReqCounter) return;
+        let scanQ = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&order=ward_no.asc,serial_no.asc&limit=300&offset=${scanOffset}`;
+        if (selWard && selWard !== 'all' && selWard !== '') scanQ += `&ward_no=eq.${encodeURIComponent(selWard)}`;
+        const sRes = await fetch(scanQ, { headers: { apikey: key, Authorization: 'Bearer ' + key } });
+        if (!sRes.ok) break;
+        const sBatch = await sRes.json();
+        if (!Array.isArray(sBatch) || sBatch.length === 0) break;
+        for (let v of sBatch) {
+          const c = getVoterCasteClassification(v);
+          if (c.cluster === 'unclassified') {
+            collected.push(v);
+            if (collected.length >= pageSize) break;
+          }
+        }
+        scanOffset += 300;
+      }
+      voters = collected;
+      totalMatch = 3090;
+    } else {
+      let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}`;
+      if (selWard && selWard !== 'all' && selWard !== '' && selWard !== 'सबै वडा (All Wards)') {
+        q += `&ward_no=eq.${encodeURIComponent(selWard)}`;
+      }
+
+      let orClauses = [];
+
+      if (selSurname && selSurname !== 'all') {
+        orClauses.push('full_name.ilike.*' + encodeURIComponent(selSurname) + '*');
+      } else if (selCluster === 'janajati') {
+        orClauses.push('full_name.ilike.*tamang*','full_name.ilike.*lama*','full_name.ilike.*sherpa*','full_name.ilike.*gurung*','full_name.ilike.*magar*','full_name.ilike.*rai*','full_name.ilike.*sunuwar*','full_name.ilike.*hyolmo*','full_name.ilike.*ghale*','full_name.ilike.*limbu*','full_name.ilike.*ghising*','full_name.ilike.*moktan*','full_name.ilike.*yonjan*','full_name.ilike.*bomjan*','full_name.ilike.*waiba*','full_name.ilike.*pakhrin*','full_name.ilike.*thokar*','full_name.ilike.*dong*','full_name.ilike.*gole*','full_name.ilike.*blon*','full_name.ilike.*jimba*','full_name.ilike.*rumba*','full_name.ilike.*titung*','full_name.ilike.*ale*','full_name.ilike.*pun*','full_name.ilike.*thami*','full_name.ilike.*majhi*','full_name.ilike.*bhujel*','full_name.ilike.*chepang*','full_name.ilike.*kumal*');
+      } else if (selCluster === 'newar') {
+        orClauses.push('full_name.ilike.*shrestha*','full_name.ilike.*maharjan*','full_name.ilike.*shakya*','full_name.ilike.*dangol*','full_name.ilike.*manandhar*','full_name.ilike.*bajracharya*','full_name.ilike.*tuladhar*','full_name.ilike.*tamrakar*','full_name.ilike.*kansakar*','full_name.ilike.*pradhan*','full_name.ilike.*rajbhandari*','full_name.ilike.*karmacharya*','full_name.ilike.*amatya*','full_name.ilike.*maskey*','full_name.ilike.*vaidya*','full_name.ilike.*chitrakar*','full_name.ilike.*ranjitkar*','full_name.ilike.*prajapati*','full_name.ilike.*sthapit*','full_name.ilike.*suwal*','full_name.ilike.*khadgi*','full_name.ilike.*deula*');
+      } else if (selCluster === 'khas_arya') {
+        orClauses.push('full_name.ilike.*bhandari*','full_name.ilike.*thapa*','full_name.ilike.*karki*','full_name.ilike.*khadka*','full_name.ilike.*ghimire*','full_name.ilike.*paudel*','full_name.ilike.*adhikari*','full_name.ilike.*pudasaini*','full_name.ilike.*gautam*','full_name.ilike.*pandit*','full_name.ilike.*giri*','full_name.ilike.*dahal*','full_name.ilike.*sapkota*','full_name.ilike.*basnet*','full_name.ilike.*chaulagain*','full_name.ilike.*subedi*','full_name.ilike.*aryal*','full_name.ilike.*khatiwada*','full_name.ilike.*khatri*','full_name.ilike.*pokharel*','full_name.ilike.*chhetri*','full_name.ilike.*bhattarai*','full_name.ilike.*dhakal*','full_name.ilike.*chalise*','full_name.ilike.*nepal*','full_name.ilike.*khanal*','full_name.ilike.*baral*','full_name.ilike.*sharma*','full_name.ilike.*nyaupane*','full_name.ilike.*budhathoki*','full_name.ilike.*upadhyay*','full_name.ilike.*thapaliya*','full_name.ilike.*thakuri*','full_name.ilike.*kafle*','full_name.ilike.*katuwal*','full_name.ilike.*kattel*','full_name.ilike.*kandel*','full_name.ilike.*kunwar*','full_name.ilike.*devkota*','full_name.ilike.*dulal*','full_name.ilike.*tiwari*','full_name.ilike.*tripathi*','full_name.ilike.*humagain*','full_name.ilike.*hamal*');
+      } else if (selCluster === 'dalit') {
+        orClauses.push('full_name.ilike.*bishwokarma*','full_name.ilike.*bishwakarma*','full_name.ilike.*wishwakarma*','full_name.ilike.*pariyar*','full_name.ilike.*mijar*','full_name.ilike.*sunar*','full_name.ilike.*sonar*','full_name.ilike.*sarki*','full_name.ilike.*damai*','full_name.ilike.*nepali*','full_name.ilike.*baraili*','full_name.ilike.*baraily*','full_name.ilike.*senchuri*','full_name.ilike.*century*','full_name.ilike.*rasaili*','full_name.ilike.*ramtel*','full_name.ilike.*ghotane*','full_name.ilike.*koli*','full_name.ilike.*lohar*','full_name.ilike.*tamta*','full_name.ilike.*musahar*','full_name.ilike.*paswan*','full_name.ilike.*chamar*');
+      } else if (selCluster === 'madhesi') {
+        orClauses.push('full_name.ilike.*yadav*','full_name.ilike.*ahir*','full_name.ilike.*gop*','full_name.ilike.*koiri*','full_name.ilike.*kushwaha*','full_name.ilike.*kurmi*','full_name.ilike.*jha*','full_name.ilike.*shukla*','full_name.ilike.*sah*','full_name.ilike.*sahu*','full_name.ilike.*gupta*','full_name.ilike.*mahato*','full_name.ilike.*raut*','full_name.ilike.*mandal*','full_name.ilike.*tharu*','full_name.ilike.*chaudhary*','full_name.ilike.*chaudhari*','full_name.ilike.*kewat*','full_name.ilike.*kanu*','full_name.ilike.*thakur*','full_name.ilike.*kalwar*','full_name.ilike.*rauniyar*','full_name.ilike.*agrawal*');
+      } else if (selCluster === 'muslim') {
+        orClauses.push('full_name.ilike.*sheikh*','full_name.ilike.*ansari*','full_name.ilike.*khan*','full_name.ilike.*miyan*','full_name.ilike.*miya*','full_name.ilike.*sayyid*','full_name.ilike.*pathan*','full_name.ilike.*qureshi*','full_name.ilike.*mansuri*','full_name.ilike.*siddiqui*','full_name.ilike.*farooqui*','full_name.ilike.*usmani*');
+      }
+
+      if (searchVal) {
+        const enc = encodeURIComponent(searchVal);
+        orClauses.push('full_name.ilike.*' + enc + '*', 'official_voter_id.ilike.*' + enc + '*', 'father_name.ilike.*' + enc + '*');
+      }
+
+      if (orClauses.length > 0) {
+        q += `&or=(${orClauses.join(',')})`;
+      }
+
+      if (selSupport === 'solid') {
+        q += '&sentiment=eq.solid';
+      } else if (selSupport === 'swing') {
+        q += '&sentiment=eq.swing';
+      } else if (selSupport === 'other') {
+        q += '&sentiment=eq.opposition';
+      } else if (selSupport === 'absentee') {
+        q += '&sentiment=eq.absentee';
+      }
+
+      q += `&order=ward_no.asc,serial_no.asc&limit=${pageSize}&offset=${offset}`;
+
+      const res = await fetch(q, { headers: { apikey: key, Authorization: 'Bearer ' + key, Prefer: 'count=exact' } });
+      if (reqId !== _casteReqCounter) return;
+      if (!res.ok) { 
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px; color: #ef4444;">डाटा लोड गर्न असफल भयो। पुनः प्रयास गर्नुहोस्।</td></tr>'; 
+        return; 
+      }
+
+      const cr = res.headers.get('content-range');
+      if (cr && cr.includes('/')) {
+        const parsed = parseInt(cr.split('/')[1], 10);
+        if (!isNaN(parsed)) totalMatch = parsed;
+      }
+
+      voters = await res.json();
     }
 
-    const voters = await res.json();
-    if (!Array.isArray(voters)) { _isLoadingCasteVoters = false; return; }
+    if (reqId !== _casteReqCounter) return;
+    if (!Array.isArray(voters)) return;
 
     if (voters.length === 0) {
-      tbody.innerHTML = '';
-      if (emptyTable) emptyTable.style.display = 'block';
-      if (cardContainer) cardContainer.innerHTML = '';
-      if (emptyCard) emptyCard.style.display = 'block';
-      _isLoadingCasteVoters = false;
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 30px; color: var(--text-muted); font-weight: 700;">छनोट गरिएको फिल्टरमा कुनै मतदाता फेला परेन।</td></tr>';
+      if (cardContainer) cardContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 30px; color: var(--text-muted);">कुनै कार्ड फेला परेन।</div>';
       return;
     }
 
@@ -37852,23 +37950,8 @@ async function loadLiveCasteVotersList() {
       'unclassified': 'background:#fef2f2; color:#991b1b; border:1px solid #fecaca;'
     };
 
-    // Strict cluster integrity filter: Never show a Janajati/Khas-Arya in Dalit, or vice-versa!
-    const filteredVoters = voters.filter(v => {
-      if (selCluster === 'all') return true;
-      const c = getVoterCasteClassification(v);
-      if (selCluster === 'unclassified') return c.cluster === 'unclassified';
-      return c.cluster === selCluster;
-    });
-
-    if (filteredVoters.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 24px; color: var(--text-muted);">यस फिल्टरमा कुनै मतदाता फेला परेन।</td></tr>';
-      if (cardContainer) cardContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 30px; color: var(--text-muted);">कुनै कार्ड फेला परेन।</div>';
-      _isLoadingCasteVoters = false;
-      return;
-    }
-
-    // 1. Populate Table Rows
-    tbody.innerHTML = filteredVoters.map((v, i) => {
+    // 1. Populate Table Rows (Full 50 rows, rock solid)
+    tbody.innerHTML = voters.map((v, i) => {
       const c = getVoterCasteClassification(v);
       const pillStyle = clusterPillStyles[c.cluster] || 'background:#f1f5f9; color:#334155;';
       const toleStr = (v.tole && v.tole.trim()) ? v.tole : (v.booth_no ? v.booth_no.replace('Former VDC Building,', '').trim() : '-');
@@ -37915,9 +37998,14 @@ async function loadLiveCasteVotersList() {
             ${statusBadge}
           </td>
           <td style="padding: 10px 12px; text-align: right; white-space: nowrap;">
-            <button type="button" class="btn btn-sm btn-primary" onclick="viewVoterProfile('${v.voter_id}', 'family')" style="font-size: 11.5px; padding: 4px 10px; font-weight: 700;">
-              🌳 परिवार
-            </button>
+            <div style="display: inline-flex; gap: 4px;">
+              <button type="button" class="btn btn-sm btn-secondary" onclick="openModernCasteOverrideModal('${v.voter_id}')" style="font-size: 11px; padding: 3px 8px; font-weight: 700;" title="जाति/थर वर्गीकरण सच्याउनुहोस्">
+                ✏️
+              </button>
+              <button type="button" class="btn btn-sm btn-primary" onclick="viewVoterProfile('${v.voter_id}', 'family')" style="font-size: 11px; padding: 3px 8px; font-weight: 700;" title="पारिवारिक भोट ब्लक">
+                🌳
+              </button>
+            </div>
           </td>
         </tr>
       `;
@@ -37925,30 +38013,21 @@ async function loadLiveCasteVotersList() {
 
     // 2. Populate Card View
     if (cardContainer) {
-      cardContainer.innerHTML = filteredVoters.map((v, i) => {
+      cardContainer.innerHTML = voters.map((v, i) => {
         const c = getVoterCasteClassification(v);
         const pillStyle = clusterPillStyles[c.cluster] || 'background:#f1f5f9; color:#334155;';
         const toleStr = (v.tole && v.tole.trim()) ? v.tole : (v.booth_no ? v.booth_no.replace('Former VDC Building,', '').trim() : '-');
         const genderLabel = (v.gender === 'Male' || v.gender === 'पुरुष') ? 'पुरुष' : ((v.gender === 'Female' || v.gender === 'महिला') ? 'महिला' : (v.gender || '-'));
 
-        let statusBadge = '<span class="badge" style="background:#fefce8; color:#854d0e; font-weight:700;">🟡 दोधार</span>';
-        if (v.sentiment === 'solid' || v.support_level === 'Solid' || v.support_level === 'Strong') {
-          statusBadge = '<span class="badge" style="background:#f0fdf4; color:#166534; font-weight:800;">🟢 पक्का मत</span>';
-        } else if (v.sentiment === 'opposition' || v.support_level === 'Against') {
-          statusBadge = '<span class="badge" style="background:#fef2f2; color:#991b1b; font-weight:700;">⚪ अन्य</span>';
-        } else if (v.sentiment === 'absentee') {
-          statusBadge = '<span class="badge" style="background:#faf5ff; color:#6b21a8; font-weight:700;">✈️ बाहिर</span>';
-        }
-
         return `
           <div class="card" style="padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-card); display: flex; flex-direction: column; justify-content: space-between; gap: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
               <div style="display: flex; gap: 10px; align-items: center;">
-                <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; flex-shrink: 0;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; flex-shrink: 0;">
                   ${(v.full_name || 'म').charAt(0)}
                 </div>
                 <div>
-                  <a href="javascript:void(0)" onclick="viewVoterProfile('${v.voter_id}', 'overview')" style="font-weight: 800; font-size: 14.5px; color: #0f172a; text-decoration: none;" title="मतदाता प्रोफाइल खोल्नुहोस्">
+                  <a href="javascript:void(0)" onclick="viewVoterProfile('${v.voter_id}', 'overview')" style="font-weight: 800; font-size: 14.5px; color: #0f172a; text-decoration: none;">
                     ${esc(v.full_name)}
                   </a>
                   <div style="font-size: 11.5px; color: #64748b;">क्र.सं: ${offset + i + 1} • नं: <code>${esc(v.official_voter_id || v.voter_id)}</code></div>
@@ -37965,14 +38044,19 @@ async function loadLiveCasteVotersList() {
 
             <div style="font-size: 12px; color: #475569; border-top: 1px dashed var(--border-color); padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
               <span>📍 ${esc(toleStr)}</span>
-              <div>${statusBadge}</div>
+              <span class="badge" style="background:#fefce8; color:#854d0e; font-weight:700;">🟡 दोधार</span>
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 8px; margin-top: 2px;">
               <span style="font-size: 11.5px; color: #64748b;">बुवा: ${esc(v.father_name || '-')}</span>
-              <button type="button" class="btn btn-sm btn-primary" onclick="viewVoterProfile('${v.voter_id}', 'family')" style="font-size: 11.5px; padding: 4px 12px; font-weight: 700;">
-                🌳 परिवार
-              </button>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="openModernCasteOverrideModal('${v.voter_id}')" style="font-size: 11px; padding: 3px 8px; font-weight: 700;">
+                  ✏️
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="viewVoterProfile('${v.voter_id}', 'family')" style="font-size: 11px; padding: 3px 8px; font-weight: 700;">
+                  🌳
+                </button>
+              </div>
             </div>
           </div>
         `;
@@ -38016,11 +38100,11 @@ async function loadLiveCasteVotersList() {
       pagContainer.style.flexWrap = 'wrap';
       pagContainer.style.gap = '12px';
     }
-
-    _isLoadingCasteVoters = false;
   } catch(e) {
     console.warn('loadLiveCasteVotersList error:', e);
-    _isLoadingCasteVoters = false;
+    if (reqId === _casteReqCounter) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px; color: #ef4444;">त्रुटि भयो। पुनः लोड गर्नुहोस्।</td></tr>';
+    }
   }
 }
 
