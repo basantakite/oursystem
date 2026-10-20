@@ -8766,7 +8766,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261020-v31-live-summary';
+      const CURRENT_APP_BUILD = '20261020-v32-purge-voters';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -8819,7 +8819,7 @@
 
       // Register Service Worker with cache-busting
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=20261020-v31-live-summary')
+        navigator.serviceWorker.register('sw.js?v=20261020-v32-purge-voters')
           .then((reg) => {
             console.log('Election Ops PWA Service Worker Registered (v28-winmargin)');
             reg.update();
@@ -30984,6 +30984,9 @@
                 <button class="btn btn-sm btn-success" onclick="event.stopPropagation(); openBulkVoterImportModalForTenant('${t.TenantID}')" style="background: #059669; color: white; border: 1px solid #047857; font-weight: 800; font-size: 11.5px; padding: 5px 10px; border-radius: 6px; box-shadow: 0 2px 6px rgba(5,150,105,0.25);" title="यस तेनेन्टका लागि मतदाता सूची (Excel/CSV) सिधै अपलोड गर्नुहोस्">
                   📤 मतदाता अपलोड
                 </button>
+                <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); openPurgeTenantVotersModal('${t.TenantID}')" style="background: #dc2626; color: white; border: 1px solid #b91c1c; font-weight: 800; font-size: 11.5px; padding: 5px 9px; border-radius: 6px; box-shadow: 0 1px 3px rgba(220,38,38,0.2);" title="यस पालिकाको सम्पूर्ण मतदाता सूची डाटाबेसबाट १-क्लिकमा सफा गर्नुहोस्">
+                  🗑️ मतदाता सफा
+                </button>
                 <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); openTenantDossierModal('${t.TenantID}')" style="background: #0f172a; color: #fbbf24; border: 1px solid #334155; font-weight: 800; font-size: 11.5px; padding: 5px 9px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="सम्पूर्ण विवरण र सेटिङ्स कन्ट्रोल खोल्नुहोस्">
                   👁️ विवरण/सेटिङ
                 </button>
@@ -31313,6 +31316,23 @@
                 </div>
               </div>
 
+              <!-- Purge Voter Roll Only -->
+              <div style="background: #fff7ed; border: 1.5px dashed #f97316; border-radius: 10px; padding: 18px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                  <div>
+                    <h4 style="margin: 0; color: #c2410c; font-size: 15px; font-weight: 800;">
+                      🗑️ मतदाता सूची मात्र मेटाउनुहोस् (Purge Voter Roll Only)
+                    </h4>
+                    <p style="margin: 4px 0 0; font-size: 12.5px; color: #9a3412;">
+                      यस पालिकाको खाता, लगइन युजर र सेटिङ सुरक्षित राख्दै हालसम्म अपलोड गरिएका सबै मतदाताहरू Supabase Cloud बाट स्थायी रूपमा मेटाउनुहोस्। नयाँ Excel/CSV पुन: अपलोड गर्न यो आवश्यक छ।
+                    </p>
+                  </div>
+                  <button type="button" class="btn btn-danger" onclick="openPurgeTenantVotersModal('${t.TenantID}')" style="background: #ea580c; border-color: #c2410c; font-weight: 800; padding: 8px 16px; border-radius: 8px;">
+                    🗑️ Purge Voter Roll
+                  </button>
+                </div>
+              </div>
+
               <!-- Danger Zone Delete -->
               <div style="background: #fff1f2; border: 1px dashed #f43f5e; border-radius: 10px; padding: 18px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
@@ -31586,9 +31606,14 @@
                 १. एउटा केन्द्रको फाइल (Single Centre) | २. पूरै वडाको फाइल (Whole Ward) | ३. पूरै पालिकाको फाइल (Whole Palika)
               </p>
             </div>
-            <button type="button" class="btn btn-primary" onclick="closeModal(); openSuperAdmin3TierImportStudio('${tenantId}')" style="background: #fbbf24; color: #0f172a; border-color: #fbbf24; font-weight: 800; padding: 9px 18px; border-radius: 8px; box-shadow: 0 2px 8px rgba(251,191,36,0.3);">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-primary" onclick="closeModal(); openSuperAdmin3TierImportStudio('${tenantId}')" style="background: #fbbf24; color: #0f172a; border-color: #fbbf24; font-weight: 800; padding: 9px 18px; border-radius: 8px; box-shadow: 0 2px 8px rgba(251,191,36,0.3);">
               🚀 नयाँ फाइल आयात खोल्नुहोस्
             </button>
+              <button type="button" class="btn btn-danger" onclick="openPurgeTenantVotersModal('${tenantId}')" style="background: #dc2626; color: white; border-color: #b91c1c; font-weight: 800; padding: 9px 14px; border-radius: 8px; box-shadow: 0 2px 8px rgba(220,38,38,0.3);" title="यस पालिकाका सम्पूर्ण मतदाता डेटाबेसबाट हटाउनुहोस्">
+                🗑️ मतदाता सूची खाली गर्नुहोस् (Purge)
+              </button>
+            </div>
           </div>
 
           <!-- Tenant Import Batches & Rollback Table -->
@@ -32827,6 +32852,259 @@
       const text = `Election Ops Platform Login Credentials:\nTenant: ${t.TenantName || t.PalikaName}\nParty: ${pInfo.name} (${pInfo.symbol})\nPalika: ${t.PalikaName}\nDedicated Portal URL: ${portalUrl}\nUsername: ${t.AdminUsername}\nPassword: ${t.AdminPassword}\nExpiry: ${t.ExpiresAt}`;
       navigator.clipboard.writeText(text);
       showToast(`${t.TenantName || t.PalikaName} लगइन विवरण कपी भयो!`, 'success');
+    }
+
+    // =========================================================================
+    // 👑 1-CLICK PURGE TENANT VOTER ROLL (SUPER ADMIN ONLY)
+    // =========================================================================
+    function openPurgeTenantVotersModal(tenantId) {
+      if (!isSuperAdminUser()) {
+        showToast('⛔ यो कार्य गर्न केवल Super Admin लाई अनुमति छ।', 'error');
+        return;
+      }
+      const t = (state.tenants || []).find(x => x.TenantID === tenantId);
+      if (!t) {
+        showToast('पालिका फेला परेन।', 'error');
+        return;
+      }
+
+      const summary = (state.tenantSummaries && state.tenantSummaries[tenantId]) || null;
+      const localC = (state.voters || []).filter(v => (v.TenantID || 'TNT_HELAMBU') === tenantId).length;
+      const vCount = (summary && summary.total_voters) || t.CloudVoterCount || localC || 0;
+
+      const pCode = normalizePartyCode(t.Party || 'NC');
+      const pInfo = PARTY_PALETTES[pCode] || PARTY_PALETTES.NC;
+
+      const bodyHtml = `
+        <div style="padding: 6px;">
+          <!-- Warning Header Box -->
+          <div style="background: #fef2f2; border: 1.5px solid #f87171; border-radius: 10px; padding: 16px; margin-bottom: 18px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+              <div style="font-size: 32px;">⚠️</div>
+              <div>
+                <div style="font-size: 16px; font-weight: 900; color: #991b1b;">
+                  मतदाता सूची मेटाउने पुष्टिकरण (Purge Voter Roll)
+                </div>
+                <div style="font-size: 12px; color: #b91c1c; margin-top: 2px;">
+                  यो कार्यले Supabase Cloud Database बाट सम्बन्धित पालिकाका सबै मतदाता डेटा स्थायी रूपमा मेटाउनेछ।
+                </div>
+              </div>
+            </div>
+
+            <div style="background: white; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; margin-top: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div>
+                  <div style="font-size: 11.5px; color: #64748b; font-weight: 700;">लक्षित पालिका (Target Tenant):</div>
+                  <div style="font-size: 15px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                    <span>${pInfo.symbol}</span> <span>${esc(t.TenantName || t.PalikaName)}</span>
+                    <span class="badge" style="background: #e2e8f0; color: #334155; font-size: 11px;">${esc(t.TenantID)}</span>
+                  </div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 11.5px; color: #64748b; font-weight: 700;">हालको कुल मतदाता:</div>
+                  <div style="font-size: 20px; font-weight: 900; color: #dc2626; margin-top: 2px;">
+                    ${vCount.toLocaleString()} मतदाता
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Effects bullet points -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 18px; font-size: 12.5px; line-height: 1.6;">
+            <div style="font-weight: 800; color: #0f172a; margin-bottom: 6px;">यस कार्यको प्रभाव:</div>
+            <div style="display: flex; align-items: flex-start; gap: 8px; color: #991b1b; margin-bottom: 4px;">
+              <span>❌</span> <span>यस पालिकाका हालसम्म अपलोड गरिएका <b>${vCount.toLocaleString()}</b> वटै मतदाताहरू Supabase Cloud र सम्पूर्ण डिभाइसहरूबाट तुरुन्तै हटाइनेछन्।</span>
+            </div>
+            <div style="display: flex; align-items: flex-start; gap: 8px; color: #166534; margin-bottom: 4px;">
+              <span>✅</span> <span>पालिकाको खाता, लगइन युजर, पासवर्ड, एसएमएस कोटा, र वार्ड सेटिङहरू <b>सुरक्षित</b> रहनेछन्।</span>
+            </div>
+            <div style="display: flex; align-items: flex-start; gap: 8px; color: #1e40af;">
+              <span>🔄</span> <span>डाटाबेस खाली भएपछि तपाईंले ताजा Excel/CSV फाइल पुन: सुरुदेखि १-क्लिकमा अपलोड गर्न सक्नुहुनेछ।</span>
+            </div>
+          </div>
+
+          <!-- Confirmation Input Safety Check -->
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; font-weight: 800; font-size: 13px; color: #0f172a; margin-bottom: 6px;">
+              सुरक्षा पुष्टिकरण: निश्चित गर्न तलको बाकसमा <span style="background: #fee2e2; color: #dc2626; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: 900;">DELETE</span> टाइप गर्नुहोस् *
+            </label>
+            <input type="text" id="purgeVoterConfirmInput" class="form-control" placeholder="DELETE टाइप गर्नुहोस्..." 
+              oninput="onPurgeVoterConfirmInputChange('${tenantId}', this.value)"
+              style="font-size: 14px; font-weight: 800; border: 2px solid #cbd5e1; text-transform: uppercase;">
+          </div>
+
+          <div id="purgeStatusMsg" style="display: none; padding: 10px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; color: #1d4ed8; font-weight: 700; font-size: 12px; margin-bottom: 12px; text-align: center;">
+          </div>
+        </div>
+      `;
+
+      const footerHtml = `
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">रद्द गर्नुहोस् (Cancel)</button>
+        <button type="button" id="btnExecutePurgeVoters" class="btn btn-danger" disabled onclick="executePurgeTenantVoters('${tenantId}')" style="font-weight: 800; background: #dc2626; border-color: #b91c1c; opacity: 0.6; cursor: not-allowed;">
+          🗑️ सम्पूर्ण मतदाता स्थायी रूपमा मेटाउनुहोस्
+        </button>
+      `;
+
+      openModal('⚠️ मतदाता सूची मेटाउने पुष्टिकरण (Purge All Voters)', bodyHtml, footerHtml);
+    }
+
+    function onPurgeVoterConfirmInputChange(tenantId, val) {
+      const btn = document.getElementById('btnExecutePurgeVoters');
+      if (!btn) return;
+      const trimmed = (val || '').trim().toUpperCase();
+      const isValid = (trimmed === 'DELETE' || trimmed === 'मेटाउनुहोस्');
+      btn.disabled = !isValid;
+      btn.style.opacity = isValid ? '1' : '0.6';
+      btn.style.cursor = isValid ? 'pointer' : 'not-allowed';
+    }
+
+    async function executePurgeTenantVoters(tenantId) {
+      if (!isSuperAdminUser()) {
+        showToast('⛔ यो कार्य गर्न केवल Super Admin लाई अनुमति छ।', 'error');
+        return;
+      }
+      const t = (state.tenants || []).find(x => x.TenantID === tenantId);
+      if (!t) {
+        showToast('पालिका फेला परेन।', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btnExecutePurgeVoters');
+      const statusDiv = document.getElementById('purgeStatusMsg');
+      const input = document.getElementById('purgeVoterConfirmInput');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ क्लाउड डाटाबेसबाट मतदाता मेटाइँदैछ... कृपया पर्खनुहोस्...';
+        btn.style.cursor = 'wait';
+      }
+      if (input) input.disabled = true;
+      if (statusDiv) {
+        statusDiv.style.display = 'block';
+        statusDiv.textContent = 'Supabase क्लाउड डाटाबेसबाट मतदाता रेकर्डहरू स्थायी रूपमा मेटाइँदैछ...';
+      }
+
+      const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+      const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+
+      try {
+        const headers = {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`
+        };
+
+        // 1. Delete all voters of this tenant from Supabase
+        let deleteOk = false;
+        try {
+          const delRes = await fetch(`${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}`, {
+            method: 'DELETE',
+            headers: { ...headers, 'Prefer': 'count=exact' }
+          });
+          deleteOk = delRes.ok;
+        } catch(err) {
+          console.warn('Direct bulk DELETE warning:', err);
+        }
+
+        // 1b. Fallback chunk deletion if direct bulk was not completely cleared
+        if (!deleteOk) {
+          if (statusDiv) statusDiv.textContent = 'ठूलो डाटा भएकोले ब्याचमा डिलिट गरिँदैछ...';
+          let more = true;
+          let safetyCount = 0;
+          while (more && safetyCount < 60) {
+            safetyCount++;
+            const check = await fetch(`${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&select=voter_id&limit=1000`, { headers });
+            if (!check.ok) break;
+            const rows = await check.json();
+            if (!rows || rows.length === 0) {
+              more = false;
+              break;
+            }
+            const ids = rows.map(r => `"${String(r.voter_id).replace(/"/g, '')}"`).join(',');
+            await fetch(`${url}/rest/v1/voters?voter_id=in.(${encodeURIComponent(ids)})`, {
+              method: 'DELETE',
+              headers
+            });
+            if (statusDiv) statusDiv.textContent = `${safetyCount * 1000} मतदाता हटाइयो...`;
+          }
+        }
+
+        // 2. Reset / purge summary in Supabase system_settings
+        const zeroSummary = {
+          tenant_id: tenantId,
+          total_voters: 0,
+          total_wards: 0,
+          male: 0,
+          female: 0,
+          other: 0,
+          wards: [],
+          last_updated: new Date().toISOString()
+        };
+        try {
+          await fetch(`${url}/rest/v1/system_settings`, {
+            method: 'POST',
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify({
+              key: `tenant_summary_${tenantId}`,
+              value: zeroSummary,
+              updated_at: new Date().toISOString()
+            })
+          });
+        } catch(e) {
+          console.warn('Reset summary cloud failed:', e);
+        }
+
+        // 3. Clear local state and cache
+        if (!state.tenantSummaries) state.tenantSummaries = {};
+        state.tenantSummaries[tenantId] = zeroSummary;
+        try { localStorage.setItem('tenant_summary_' + tenantId, JSON.stringify(zeroSummary)); } catch(e) {}
+
+        // 4. Update tenant in state
+        t.CloudVoterCount = 0;
+        t.VoterCount = 0;
+
+        // 5. Remove voters from memory state
+        if (Array.isArray(state.voters)) {
+          state.voters = state.voters.filter(v => (v.TenantID || 'TNT_HELAMBU') !== tenantId);
+        }
+
+        // 6. Remove import batches for this tenant
+        if (Array.isArray(state.importBatches)) {
+          state.importBatches = state.importBatches.filter(b => b.tenantId !== tenantId);
+        }
+
+        // 7. Persist to storage & cloud
+        saveState(true);
+        await saveTenantsToCloud();
+
+        // 8. Re-render UI
+        closeModal();
+        if (typeof renderTenantsManagement === 'function') renderTenantsManagement();
+        if (typeof renderSuperAdminBatchesTable === 'function') renderSuperAdminBatchesTable();
+        if (typeof refreshDashboardMetrics === 'function') refreshDashboardMetrics();
+        if (typeof renderDashboard === 'function') renderDashboard();
+        if (typeof renderVotersTable === 'function') renderVotersTable();
+        if (typeof updateVoterCount === 'function') updateVoterCount();
+
+        logActivity('voter_purge', `👑 Super Admin ले ${t.PalikaName} (${t.TenantID}) का सम्पूर्ण मतदाता सूची क्लाउडबाट स्थायी रूपमा हटाउनुभयो।`, {
+          Scope: 'SUPER_ADMIN',
+          TenantID: tenantId,
+          Role: 'Super Admin'
+        });
+
+        showToast(`🎉 ${t.TenantName || t.PalikaName} का सम्पूर्ण मतदाता क्लाउडबाट स्थायी रूपमा हटाइयो! (डाटाबेस खाली भयो)`, 'success');
+      } catch (err) {
+        console.error('executePurgeTenantVoters error:', err);
+        showToast('मतदाता हटाउँदा त्रुटि भयो: ' + err.message, 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '🗑️ पुनः प्रयास गर्नुहोस्';
+          btn.style.cursor = 'pointer';
+        }
+      }
     }
 
     function deleteTenant(tenantId) {
