@@ -8046,6 +8046,24 @@
       // Multi-Tenant SaaS Subscriptions & Palikas (Super Admin Management)
       tenants: [
         {
+          TenantID: 'TNT_MVG3WXFX',
+          Province: 'बागमती प्रदेश',
+          District: 'काठमाडौं',
+          PalikaName: 'गोकर्णेश्वर नगरपालिका',
+          TenantName: 'नेपाली काँग्रेस गोकर्णेश्वर नगरपालिका निर्वाचन अभियान समिति',
+          TotalWards: 9,
+          TotalPollingLocations: 17,
+          WardsConfig: Array.from({length: 9}, (_, i) => ({ number: i + 1, name: `वडा नं. ${i + 1}` })),
+          Party: 'NC',
+          Slug: 'gokarna',
+          AdminUsername: 'gokarneshwor_admin',
+          AdminPassword: 'pass@123',
+          ContactPerson: 'hari',
+          Phone: '9704853168',
+          Status: 'Active',
+          PlanType: 'Full Palika Suite'
+        },
+        {
           TenantID: 'TNT_GOKARNESHWOR_RSP',
           Province: 'बागमती प्रदेश',
           District: 'काठमाडौं',
@@ -8055,7 +8073,7 @@
           TotalPollingLocations: 12,
           WardsConfig: Array.from({length: 9}, (_, i) => ({ number: i + 1, name: `वडा नं. ${i + 1}` })),
           Party: 'RSP',
-          Slug: 'gokarna',
+          Slug: 'gokarneshwor_rsp',
           AdminUsername: 'gokarna',
           AdminPassword: 'pass@123',
           ContactPerson: 'Gokarneshwor Head',
@@ -8163,6 +8181,44 @@
           if (!state.tenants || !state.tenants.length) {
             state.tenants = [];
           }
+          // Ensure NC Gokarneshwor Campaign Tenant TNT_MVG3WXFX is always available in state
+          if (!state.tenants.some(t => t.TenantID === 'TNT_MVG3WXFX')) {
+            state.tenants.unshift({
+              TenantID: 'TNT_MVG3WXFX',
+              Province: 'बागमती प्रदेश',
+              District: 'काठमाडौं',
+              PalikaName: 'गोकर्णेश्वर नगरपालिका',
+              TenantName: 'नेपाली काँग्रेस गोकर्णेश्वर नगरपालिका निर्वाचन अभियान समिति',
+              TotalWards: 9,
+              TotalPollingLocations: 17,
+              WardsConfig: Array.from({length: 9}, (_, i) => ({ number: i + 1, name: `वडा नं. ${i + 1}` })),
+              Party: 'NC',
+              Slug: 'gokarna',
+              AdminUsername: 'gokarneshwor_admin',
+              AdminPassword: 'pass@123',
+              ContactPerson: 'hari',
+              Phone: '9704853168',
+              Status: 'Active',
+              PlanType: 'Full Palika Suite'
+            });
+          }
+          if (!state.users.some(u => u.UserID === 'USR_TNT_MVG3WXFX')) {
+            state.users.push({
+              UserID: 'USR_TNT_MVG3WXFX',
+              Name: 'नेपाली काँग्रेस गोकर्णेश्वर Admin',
+              Phone: '9704853168',
+              Role: 'Palika Admin',
+              Password: 'pass@123',
+              PIN: 'pass@123',
+              AccessToken: 'TOKEN_MVG3WXFX',
+              Ward: 'All',
+              Tole: '',
+              BoothNo: '',
+              Active: true,
+              TenantID: 'TNT_MVG3WXFX'
+            });
+          }
+
           // Ensure RSP Helambu Campaign Tenant TNT_MVF9LYO3 is always available in state
           const hasRspTenant = state.tenants.some(t => t.TenantID === 'TNT_MVF9LYO3');
           if (!hasRspTenant) {
@@ -8220,12 +8276,8 @@
               TenantID: 'TNT_MVF9LYO3'
             });
           }
-          // Strictly purge any legacy Gokarneshwor demo tenant from LocalStorage
-          state.tenants = (state.tenants || []).filter(t => 
-            t.TenantID !== 'TNT_GOKARNESHWOR' && 
-            t.Slug !== 'gokarneshwor' && 
-            !(t.PalikaName && t.PalikaName.toLowerCase().includes('gokarneshwor'))
-          );
+          // Strictly purge legacy demo dummy tenants only
+          state.tenants = (state.tenants || []).filter(t => t.TenantID !== 'TNT_GOKARNESHWOR_MOCK');
           state.tenants.forEach(t => {
             if (!t.TenantName) t.TenantName = t.PalikaName || 'हेलाम्बु गाउँ कार्यसमिति';
             if (!t.PalikaName) t.PalikaName = 'हेलाम्बु गाउँपालिका';
@@ -9243,17 +9295,6 @@
               }
             }).catch(() => null).finally(() => {
               _isResolvingCloudTenant = false;
-              if (Array.isArray(data) && data[0] && data[0].value) {
-                const cloudTenants = typeof data[0].value === 'string' ? JSON.parse(data[0].value) : data[0].value;
-                if (Array.isArray(cloudTenants) && cloudTenants.length > 0) {
-                  const localMap = new Map((state.tenants || []).map(t => [t.TenantID, t]));
-                  cloudTenants.forEach(ct => {
-                    if (ct && ct.TenantID) localMap.set(ct.TenantID, { ...(localMap.get(ct.TenantID) || {}), ...ct });
-                  });
-                  state.tenants = Array.from(localMap.values());
-                  saveState();
-                }
-              }
               handleUrlRouting(preserveInputs);
             }).catch(() => {
               _isResolvingCloudTenant = false;
@@ -10591,11 +10632,15 @@
         }
         if (allVoters.length >= total) {
           try {
-            localStorage.setItem('EMS_SUPABASE_FULL_SYNC_DONE', String(Date.now()));
+            const scopedTenantId = getCurrentScopedTenantId();
+            const syncKey = scopedTenantId ? ('EMS_SUPABASE_FULL_SYNC_DONE_' + scopedTenantId) : 'EMS_SUPABASE_FULL_SYNC_DONE';
+            localStorage.setItem(syncKey, String(Date.now()));
           } catch(e) {}
         } else {
           try {
-            localStorage.removeItem('EMS_SUPABASE_FULL_SYNC_DONE');
+            const scopedTenantId = getCurrentScopedTenantId();
+            const syncKey = scopedTenantId ? ('EMS_SUPABASE_FULL_SYNC_DONE_' + scopedTenantId) : 'EMS_SUPABASE_FULL_SYNC_DONE';
+            localStorage.removeItem(syncKey);
           } catch(e) {}
         }
       }
@@ -10631,10 +10676,12 @@
       try {
         const headers = { 'apikey': key, 'Authorization': `Bearer ${key}` };
 
-        // Delta sync by default when local cache already has complete voter roll; Full download if fresh browser or seed dummy (<18900 voters)
-        const hasFullSynced = !!localStorage.getItem('EMS_SUPABASE_FULL_SYNC_DONE');
-        const localCount = (state.voters && Array.isArray(state.voters)) ? state.voters.length : 0;
-        const shouldFullFetch = forceFull || !state.voters || localCount < 18900 || !hasFullSynced;
+        // Per-tenant sync check: Full download if this specific tenant has 0 local voters or has not completed full sync
+        const scopedTenantId = getCurrentScopedTenantId();
+        const tenantVoterCount = scopedTenantId ? (state.voters || []).filter(v => (v.TenantID || 'TNT_HELAMBU') === scopedTenantId).length : (state.voters || []).length;
+        const syncKey = scopedTenantId ? ('EMS_SUPABASE_FULL_SYNC_DONE_' + scopedTenantId) : 'EMS_SUPABASE_FULL_SYNC_DONE';
+        const hasFullSynced = !!localStorage.getItem(syncKey);
+        const shouldFullFetch = forceFull || !state.voters || tenantVoterCount === 0 || !hasFullSynced;
 
         if (interactive || shouldFullFetch) {
           if (badge) {
@@ -10866,7 +10913,12 @@
                 realVoters.push(mappedVoter);
               }
             });
-            state.voters = realVoters;
+            // Keep voters belonging to other tenants, update current tenant's roll
+            const currentScopedId = getCurrentScopedTenantId();
+            const otherTenantsVoters = currentScopedId 
+              ? (state.voters || []).filter(v => (v.TenantID || 'TNT_HELAMBU') !== currentScopedId && !String(v.VoterID).startsWith('VOT_00'))
+              : [];
+            state.voters = [...otherTenantsVoters, ...realVoters];
             saveState();
             if (typeof _voterIdMap !== 'undefined') _voterIdMap = null;
           } else {
@@ -11293,6 +11345,42 @@
             value: JSON.stringify(state.tenants)
           })
         });
+
+        // Also synchronize each tenant row to public.tenants table to prevent foreign key errors
+        for (const t of (state.tenants || [])) {
+          if (!t.TenantID) continue;
+          try {
+            await cloudFetch(`${url}/rest/v1/tenants`, {
+              method: 'POST',
+              headers: {
+                'apikey': key,
+                'Authorization': `Bearer ${key}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'resolution=merge-duplicates'
+              },
+              body: JSON.stringify({
+                tenant_id: t.TenantID,
+                province: t.Province || 'बागमती प्रदेश',
+                district: t.District || 'काठमाडौं',
+                palika_name: t.PalikaName || '',
+                tenant_name: t.TenantName || t.PalikaName || '',
+                total_wards: Number(t.TotalWards) || 9,
+                wards_config: t.WardsConfig || [],
+                party: t.Party || 'NC',
+                slug: t.Slug || t.TenantID.toLowerCase(),
+                admin_username: t.AdminUsername || '',
+                admin_password: t.AdminPassword || 'pass@123',
+                contact_person: t.ContactPerson || '',
+                phone: t.Phone || '',
+                status: t.Status || 'Active',
+                plan_type: t.PlanType || 'Full Palika Suite',
+                sms_credits: Number(t.SmsCredits) || 5000,
+                sms_used: Number(t.SmsUsed) || 0
+              })
+            });
+          } catch(err) {}
+        }
+
         if (typeof broadcastTenantsUpdated === 'function') {
           broadcastTenantsUpdated(state.tenants);
         }
@@ -11504,6 +11592,37 @@
 
       if (showProgressToast) {
         showToast(`☁️ Supabase मा ${totalVoters} मतदाता हाई-स्पीड ब्याचमा अपलोड हुँदैछ...`, 'info');
+      }
+
+      // Ensure target tenant exists in public.tenants table to satisfy foreign key constraint
+      const sampleTenantId = (votersList[0] && (votersList[0].TenantID || votersList[0].tenant_id)) || 'TNT_HELAMBU';
+      const targetT = (state.tenants || []).find(t => t.TenantID === sampleTenantId);
+      if (targetT) {
+        try {
+          await cloudFetch(`${url}/rest/v1/tenants`, {
+            method: 'POST',
+            headers: {
+              'apikey': key,
+              'Authorization': `Bearer ${key}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify({
+              tenant_id: targetT.TenantID,
+              province: targetT.Province || 'बागमती प्रदेश',
+              district: targetT.District || 'काठमाडौं',
+              palika_name: targetT.PalikaName || '',
+              tenant_name: targetT.TenantName || targetT.PalikaName || '',
+              total_wards: Number(targetT.TotalWards) || 9,
+              party: targetT.Party || 'NC',
+              slug: targetT.Slug || targetT.TenantID.toLowerCase(),
+              admin_username: targetT.AdminUsername || '',
+              admin_password: targetT.AdminPassword || 'pass@123',
+              phone: targetT.Phone || '',
+              status: targetT.Status || 'Active'
+            })
+          });
+        } catch(e) {}
       }
 
       const headers = {
@@ -11822,8 +11941,9 @@
 
       // Automatic live Cloud Sync from Supabase on every login (forces full if local roll is incomplete)
       if (typeof syncSupabaseData === 'function') {
-        const localCount = (state.voters && Array.isArray(state.voters)) ? state.voters.length : 0;
-        const needsFull = !state.voters || localCount === 0 || localCount < 18900;
+        const scopedTenantId = getCurrentScopedTenantId();
+        const tenantVoterCount = scopedTenantId ? (state.voters || []).filter(v => (v.TenantID || 'TNT_HELAMBU') === scopedTenantId).length : (state.voters || []).length;
+        const needsFull = !state.voters || tenantVoterCount === 0;
         syncSupabaseData(false, needsFull).then(() => {
           refreshDashboardMetrics();
           const activeSec = document.querySelector('.view-section.active');
@@ -28406,9 +28526,10 @@
                   <label style="font-size: 10.5px; font-weight: 800; color: #1e3a6e; display: block; margin-bottom: 2px;">🏛️ लक्ष्य पालिका (Target Palika / Tenant):</label>
                   <select id="bulkTargetTenant" onchange="onBulkTargetTenantChanged(this.value)" class="form-control" style="font-weight: 800; font-size: 12px; min-height: 32px; height: 32px; padding: 2px 6px; border: 1.5px solid #2563eb; background: #eff6ff; color: #1e3a6e;">
                     ${(state.tenants && state.tenants.length ? state.tenants : [
-                      { TenantID: 'TNT_GOKARNESHWOR_RSP', PalikaName: 'गोकर्णेश्वर नगरपालिका', TotalWards: 9 },
-                      { TenantID: 'TNT_HELAMBU_RSP', PalikaName: 'हेलम्बु गाउँपालिका', TotalWards: 7 }
-                    ]).map(t => `<option value="${t.TenantID}">${t.PalikaName || t.TenantName} (${t.TenantID})</option>`).join('')}
+                      { TenantID: 'TNT_MVG3WXFX', PalikaName: 'गोकर्णेश्वर नगरपालिका', TenantName: 'नेपाली काँग्रेस गोकर्णेश्वर', Party: 'NC', TotalWards: 9 },
+                      { TenantID: 'TNT_GOKARNESHWOR_RSP', PalikaName: 'गोकर्णेश्वर नगरपालिका', TenantName: 'रास्वपा गोकर्णेश्वर', Party: 'RSP', TotalWards: 9 },
+                      { TenantID: 'TNT_MVF9LYO3', PalikaName: 'हेलम्बु गाउँपालिका', TenantName: 'रास्वपा हेलम्बु', Party: 'RSP', TotalWards: 7 }
+                    ]).map(t => `<option value="${t.TenantID}">${t.TenantName || t.PalikaName} [${t.Party || 'All'}] (${t.TotalWards || 9} वडा) - ${t.TenantID}</option>`).join('')}
                   </select>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
