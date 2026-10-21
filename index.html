@@ -9125,20 +9125,63 @@
     let _voterIdMap = null;
     function getVoterById(voterId) {
       if (!voterId) return null;
-      const sId = String(voterId);
+      const sId = String(voterId).trim();
+      
+      // 1. Live page active map cache
       if (window._currentLivePageVoters && window._currentLivePageVoters.has(sId)) {
         return window._currentLivePageVoters.get(sId);
       }
+      
+      // 2. Last loaded 50-row array
+      if (window._lastLiveVotersRows && Array.isArray(window._lastLiveVotersRows)) {
+        const found = window._lastLiveVotersRows.find(v => String(v.VoterID).trim() === sId || String(v.OfficialVoterID).trim() === sId);
+        if (found) return found;
+      }
+      
+      // 3. Caste hub cached live voters
+      if (window._currentLiveCasteVoters && Array.isArray(window._currentLiveCasteVoters)) {
+        const found = window._currentLiveCasteVoters.find(v => String(v.voter_id).trim() === sId || String(v.official_voter_id).trim() === sId || String(v.VoterID).trim() === sId);
+        if (found) return (typeof mapCloudVoterToLocal === 'function') ? mapCloudVoterToLocal(found) : found;
+      }
+
+      // 4. In-memory state cache
       if (!_voterIdMap || _voterIdMap.size !== (state.voters ? state.voters.length : 0)) {
         _voterIdMap = new Map();
         if (state.voters && Array.isArray(state.voters)) {
           for (let i = 0; i < state.voters.length; i++) {
             const v = state.voters[i];
-            if (v && v.VoterID) _voterIdMap.set(v.VoterID, v);
+            if (v && v.VoterID) _voterIdMap.set(String(v.VoterID), v);
           }
         }
       }
-      return _voterIdMap.get(voterId) || (state.voters || []).find(x => x.VoterID === voterId);
+      return _voterIdMap.get(sId) || (state.voters || []).find(x => String(x.VoterID).trim() === sId || String(x.OfficialVoterID).trim() === sId) || null;
+    }
+
+    async function getVoterByIdAsync(voterId) {
+      const local = getVoterById(voterId);
+      if (local) return local;
+      if (!navigator.onLine) return null;
+      try {
+        const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+        const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+        const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+        if (!url || !key) return null;
+        const sId = encodeURIComponent(String(voterId).trim());
+        const res = await fetch(`${url}/rest/v1/voters?or=(voter_id.eq.${sId},official_voter_id.eq.${sId})&limit=1`, {
+          headers: { apikey: key, Authorization: 'Bearer ' + key }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const mapped = (typeof mapCloudVoterToLocal === 'function') ? mapCloudVoterToLocal(data[0]) : data[0];
+            if (window._currentLivePageVoters) window._currentLivePageVoters.set(String(voterId), mapped);
+            return mapped;
+          }
+        }
+      } catch(e) {
+        console.warn('getVoterByIdAsync error:', e);
+      }
+      return null;
     }
 
     function invalidateVoterIndex() {
@@ -12102,6 +12145,7 @@
         sentiment: tier,
         support_level: v.SelfReportedResponse || (tier === 'solid' || tier === 'lean' ? 'Support' : (tier === 'hard_opponent' ? 'Not Support' : 'Neutral')),
         influence_level: v.IsInfluencer ? 'High' : 'Normal',
+        is_influencer: !!v.IsInfluencer,
         facebook_url: v.FacebookUrl || '',
         tiktok_url: v.TiktokUrl || '',
         address: houseAddress,
@@ -17775,10 +17819,10 @@ async function saveQuickCreatedTole(e) {
         if (pUnvisited) pUnvisited.textContent = (sumObj && sumObj.unvisited !== undefined ? sumObj.unvisited : grandTotal).toLocaleString();
 
         const pVip = document.getElementById('pillCountVip');
-        if (pVip) pVip.textContent = (sumObj && sumObj.vip !== undefined ? sumObj.vip : 42).toLocaleString();
+        if (pVip) pVip.textContent = (sumObj && sumObj.vip !== undefined ? sumObj.vip : 0).toLocaleString();
 
         const pMissingP = document.getElementById('pillCountMissingParents');
-        if (pMissingP) pMissingP.textContent = (sumObj && (sumObj.missing_parents !== undefined ? sumObj.missing_parents : sumObj.missingParents) !== undefined ? (sumObj.missing_parents || sumObj.missingParents) : 22).toLocaleString();
+        if (pMissingP) pMissingP.textContent = (sumObj && (sumObj.missing_parents !== undefined ? sumObj.missing_parents : sumObj.missingParents) !== undefined ? (sumObj.missing_parents || sumObj.missingParents) : 0).toLocaleString();
 
         const resultsEl = document.getElementById('voterResultsCount');
         if (resultsEl) resultsEl.textContent = `देखाउँदै ${totalFiltered > 0 ? (startIdx + 1) + '–' + endIdx : 0} (फिल्टर: ${totalFiltered.toLocaleString()} / कुल: ${grandTotal.toLocaleString()} मतदाता)`;
@@ -19610,9 +19654,15 @@ async function saveQuickCreatedTole(e) {
     // ==========================================
     // 7. MODERN 4-TAB VOTER PROFILE MODAL
     // ==========================================
-    function viewVoterProfile(id, activeTab = 'overview') {
-      const v = state.voters.find(x => x.VoterID === id);
-      if (!v) return;
+    async function viewVoterProfile(id, activeTab = 'overview') {
+      let v = (typeof getVoterById === 'function' ? getVoterById(id) : null) || (state.voters || []).find(x => String(x.VoterID) === String(id));
+      if (!v && navigator.onLine && typeof getVoterByIdAsync === 'function') {
+        v = await getVoterByIdAsync(id);
+      }
+      if (!v) {
+        showToast('मतदाता विवरण फेला परेन। कृपया पुनः प्रयास गर्नुहोस्।', 'warning');
+        return;
+      }
 
       const visits = state.visits.filter(x => x.VoterID === id);
       const followups = state.followups.filter(x => x.VoterID === id);
@@ -19939,7 +19989,10 @@ async function saveQuickCreatedTole(e) {
     }
 
     async function toggleVoterInfluencerStatus(voterId) {
-      const v = state.voters.find(x => x.VoterID === voterId);
+      let v = (typeof getVoterById === 'function' ? getVoterById(voterId) : null) || (state.voters || []).find(x => String(x.VoterID) === String(voterId));
+      if (!v && navigator.onLine && typeof getVoterByIdAsync === 'function') {
+        v = await getVoterByIdAsync(voterId);
+      }
       if (!v) return;
       v.IsInfluencer = !v.IsInfluencer;
       if (v.IsInfluencer && !v.InfluencerSphere) {
@@ -19949,16 +20002,26 @@ async function saveQuickCreatedTole(e) {
         v.InfluencerDemands = 'विकास योजना र स्थानीय पूर्वाधार';
         v.InfluencerStance = 'सकारात्मक / सम्पर्कमा';
       }
+
+      // Update tenant summary live count
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+      const sumObj = (state.tenantSummaries && state.tenantSummaries[activeTId]) || null;
+      if (sumObj) {
+        sumObj.vip = Math.max(0, (sumObj.vip || 0) + (v.IsInfluencer ? 1 : -1));
+        const pVip = document.getElementById('pillCountVip');
+        if (pVip) pVip.textContent = sumObj.vip.toLocaleString();
+      }
+
       saveState();
       if (typeof pushVoterToSupabase === 'function') await pushVoterToSupabase(v);
-      showToast(v.IsInfluencer ? `${v.Name} लाई प्रभावकारी व्यक्ति (Influencer) मा दर्ता गरियो` : `${v.Name} लाई सामान्य मतदातामा सारियो।`, 'success');
+      showToast(v.IsInfluencer ? `${v.Name} लाई प्रभावकारी व्यक्ति (Influencer / VIP) मा दर्ता गरियो!` : `${v.Name} लाई सामान्य मतदातामा सारियो।`, 'success');
       viewVoterProfile(voterId, 'influencer');
       renderVotersList();
       if (typeof renderCandidateWarRoom === 'function') renderCandidateWarRoom();
     }
 
     function openEditInfluencerModal(voterId) {
-      const v = state.voters.find(x => x.VoterID === voterId);
+      const v = (typeof getVoterById === 'function' ? getVoterById(voterId) : null) || (state.voters || []).find(x => String(x.VoterID) === String(voterId));
       if (!v) return;
       openModal(
         `प्रभावकारी व्यक्ति विवरण: ${v.Name}`,
@@ -20023,7 +20086,7 @@ async function saveQuickCreatedTole(e) {
       e.preventDefault();
       const form = e.target;
       const formData = new FormData(form);
-      const v = state.voters.find(x => x.VoterID === voterId);
+      const v = (typeof getVoterById === 'function' ? getVoterById(voterId) : null) || (state.voters || []).find(x => String(x.VoterID) === String(voterId));
       if (!v) return;
 
       v.IsInfluencer = true;
@@ -21481,7 +21544,7 @@ async function saveQuickCreatedTole(e) {
     }
 
     function openEditVoterModal(id) {
-      const v = state.voters.find(x => x.VoterID === id);
+      const v = (typeof getVoterById === 'function' ? getVoterById(id) : null) || (state.voters || []).find(x => String(x.VoterID) === String(id));
       if (!v) return;
       const tier = (typeof getSupportTier === 'function') ? getSupportTier(v).key : (v.SupportTier || 'swing');
 
@@ -33226,7 +33289,7 @@ function renderElectionDayStrikeSheet() {
     // 23. PRINT VOTER SLIP (मतदाता परिचय पर्चा)
     // ==========================================
     function printVoterSlip(voterId) {
-      const v = state.voters.find(x => x.VoterID === voterId);
+      const v = (typeof getVoterById === 'function' ? getVoterById(voterId) : null) || (state.voters || []).find(x => String(x.VoterID) === String(voterId));
       if (!v) return;
 
       const printArea = document.getElementById('printableSlipArea');
@@ -33348,7 +33411,7 @@ function renderElectionDayStrikeSheet() {
     }
 
     function shareVoterSlipWhatsApp(voterId) {
-      const v = state.voters.find(x => x.VoterID === voterId);
+      const v = (typeof getVoterById === 'function' ? getVoterById(voterId) : null) || (state.voters || []).find(x => String(x.VoterID) === String(voterId));
       if (!v) return;
       const municipality = state.settings.MUNICIPALITY || 'हेलम्बु गाउँपालिका';
       const text = `🇳🇵 *${municipality} - स्थानीय तह निर्वाचन २०८४*\n` +
