@@ -4178,241 +4178,393 @@
             </div>
           </div>
 
-          <!-- WIN MARGIN & PLURALITY SIMULATOR CONTROLS -->
-          <div class="card" style="margin-bottom: 24px; padding: 22px; border-radius: var(--radius-lg); background: #ffffff; border: 1.5px solid #cbd5e1; box-shadow: 0 4px 18px rgba(15,23,42,0.05);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
-              <div>
-                <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-                  <span>🎛️</span> चुनावी समीकरण तथा जित सिमुलेटर (Interactive Election Simulation)
-                </h3>
-                <p style="margin: 3px 0 0; font-size: 12px; color: #64748b;">
-                  मतदान दर, बदर मत र प्रतिस्पर्धी दलको मत प्रतिशत सारेर वास्तविक जितको मार्जिन लाइभ हेर्नुहोस्।
-                </p>
-              </div>
-              <div style="display: flex; gap: 8px;">
-                <button type="button" class="btn btn-sm btn-secondary" onclick="resetWarRoomSliders()" style="font-size: 11.5px; font-weight: 700;">🔄 रिसेट</button>
-              </div>
-            </div>
+          <!-- SUB-NAVIGATION TABS: PALIKA MACRO SIMULATOR VS WARD MICRO ENGINE -->
+          <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #cbd5e1; padding-bottom: 10px; flex-wrap: wrap;">
+            <button type="button" id="wrSubTab_palika" class="btn" style="background: #1e3a6e; color: white; font-weight: 800; font-size: 13.5px; padding: 10px 22px; border-radius: 8px; box-shadow: 0 2px 6px rgba(30,58,110,0.3); border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;" onclick="switchWarRoomSubTab('palika')">
+              <span>🏛️</span> १. पालिका स्तर समग्र सिमुलेटर (Palika Macro Simulator)
+            </button>
+            <button type="button" id="wrSubTab_ward" class="btn" style="background: #ffffff; color: #334155; font-weight: 800; font-size: 13.5px; padding: 10px 22px; border-radius: 8px; border: 1.5px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; gap: 8px;" onclick="switchWarRoomSubTab('ward')">
+              <span>🗺️</span> २. वडागत विस्तृत बहुदलीय सिमुलेटर (Ward-by-Ward Micro Simulator)
+              <span id="wrWardsBadgeCount" class="badge" style="background: #3b82f6; color: white; margin-left: 4px; font-size: 11px;">वडा</span>
+            </button>
+          </div>
 
-            <!-- Interactive Sliders Grid -->
-            <!-- 1. Turnout & Badar Dual Controls -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 18px;">
-              <!-- Expected Turnout Slider -->
-              <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                  <label style="font-size: 12px; font-weight: 800; color: #1e3a8a;">🗳️ अपेक्षित मतदान दर (Turnout %):</label>
-                  <span id="wrTurnoutSliderVal" style="font-size: 13px; font-weight: 900; color: #1d4ed8; background: #dbeafe; padding: 2px 8px; border-radius: 6px;">68%</span>
+          <!-- PANE 1: PALIKA MACRO SIMULATOR -->
+          <div id="wrPane_palika">
+            <div class="card" style="margin-bottom: 24px; padding: 22px; border-radius: var(--radius-lg); background: #ffffff; border: 1.5px solid #cbd5e1; box-shadow: 0 4px 18px rgba(15,23,42,0.05);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>🎛️</span> पालिका समग्र समीकरण तथा जित सिमुलेटर (Palika-Level Simulation)
+                  </h3>
+                  <p style="margin: 3px 0 0; font-size: 12px; color: #64748b;">
+                    समग्र पालिकाको मतदान दर, बदर मत र प्रतिस्पर्धी दलहरूको मत हिस्सा (%) सारेर जितको मार्जिन लाइभ हेर्नुहोस्।
+                  </p>
                 </div>
-                <input type="range" id="wrTurnoutSlider" min="40" max="95" value="68" step="1" oninput="onWarRoomSimulatorSliderChanged()" style="width: 100%; cursor: pointer;">
-                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #64748b; margin-top: 3px;">
-                  <span>४०% (न्यून)</span>
-                  <span>६८% (औसत)</span>
-                  <span>९५% (उच्च)</span>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="resetWarRoomSliders()" style="font-size: 11.5px; font-weight: 700;">🔄 रिसेट</button>
                 </div>
               </div>
 
-              <!-- Badar / Invalid Votes Dual Linked Input -->
-              <div style="background: #ffffff; border: 1.5px solid #fecaca; border-radius: 10px; padding: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                  <label style="font-size: 12px; font-weight: 800; color: #991b1b;">❌ अनुमानित बदर मत (Invalid):</label>
-                  <div style="display: flex; align-items: center; gap: 4px;">
-                    <input type="number" id="wrBadarPctInput" min="0" max="25" step="0.1" value="4.2" oninput="onWarRoomBadarPctInput(this.value)" style="width: 52px; padding: 2px 4px; font-size: 12px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; color: #b91c1c;">
-                    <span style="font-size: 11.5px; font-weight: 800; color: #991b1b;">%</span>
-                    <span style="font-size: 11px; color: #64748b; margin: 0 2px;">=</span>
-                    <input type="number" id="wrBadarCountInput" min="0" value="0" oninput="onWarRoomBadarCountInput(this.value)" style="width: 60px; padding: 2px 4px; font-size: 12px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; color: #b91c1c;">
-                    <span style="font-size: 11px; color: #64748b;">मत</span>
+              <!-- Interactive Sliders Grid: 1. Turnout & Badar Dual Controls -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 18px;">
+                <!-- Expected Turnout Slider -->
+                <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label style="font-size: 12px; font-weight: 800; color: #1e3a8a;">🗳️ अपेक्षित मतदान दर (Turnout %):</label>
+                    <span id="wrTurnoutSliderVal" style="font-size: 13px; font-weight: 900; color: #1d4ed8; background: #dbeafe; padding: 2px 8px; border-radius: 6px;">68%</span>
+                  </div>
+                  <input type="range" id="wrTurnoutSlider" min="40" max="95" value="68" step="1" oninput="onWarRoomSimulatorSliderChanged()" style="width: 100%; cursor: pointer;">
+                  <div style="display: flex; justify-content: space-between; font-size: 10px; color: #64748b; margin-top: 3px;">
+                    <span>४०% (न्यून)</span>
+                    <span>६८% (औसत)</span>
+                    <span>९५% (उच्च)</span>
                   </div>
                 </div>
-                <input type="range" id="wrBadarSlider" min="0" max="15" value="4.2" step="0.1" oninput="onWarRoomBadarSliderChanged(this.value)" style="width: 100%; cursor: pointer;">
-                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #64748b; margin-top: 3px;">
-                  <span>०% (उत्कृष्ट)</span>
-                  <span>४.२% (सामान्य)</span>
-                  <span>१५% (अत्यधिक)</span>
+
+                <!-- Badar / Invalid Votes Dual Linked Input -->
+                <div style="background: #ffffff; border: 1.5px solid #fecaca; border-radius: 10px; padding: 12px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label style="font-size: 12px; font-weight: 800; color: #991b1b;">❌ अनुमानित बदर मत (Invalid):</label>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                      <input type="number" id="wrBadarPctInput" min="0" max="25" step="0.1" value="4.2" oninput="onWarRoomBadarPctInput(this.value)" style="width: 52px; padding: 2px 4px; font-size: 12px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; color: #b91c1c;">
+                      <span style="font-size: 11.5px; font-weight: 800; color: #991b1b;">%</span>
+                      <span style="font-size: 11px; color: #64748b; margin: 0 2px;">=</span>
+                      <input type="number" id="wrBadarCountInput" min="0" value="0" oninput="onWarRoomBadarCountInput(this.value)" style="width: 60px; padding: 2px 4px; font-size: 12px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; color: #b91c1c;">
+                      <span style="font-size: 11px; color: #64748b;">मत</span>
+                    </div>
+                  </div>
+                  <input type="range" id="wrBadarSlider" min="0" max="15" value="4.2" step="0.1" oninput="onWarRoomBadarSliderChanged(this.value)" style="width: 100%; cursor: pointer;">
+                  <div style="display: flex; justify-content: space-between; font-size: 10px; color: #64748b; margin-top: 3px;">
+                    <span>०% (उत्कृष्ट)</span>
+                    <span>४.२% (सामान्य)</span>
+                    <span>१५% (अत्यधिक)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Multi-Party Vote Share Simulation Matrix -->
+              <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                  <div>
+                    <h4 style="margin: 0; font-size: 15px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                      <span>🗳️</span> बहुदलीय मत विभाजन तथा प्रतिस्पर्धी शक्ति (Multi-Party Vote Share Matrix)
+                    </h4>
+                    <p style="margin: 2px 0 0; font-size: 12px; color: #64748b;">
+                      सदर मतमा विपक्षी दलहरूको अनुमानित हिस्सा (%) परिवर्तन गरी मुख्य प्रतिस्पर्धी र जितको अन्तर सिमुलेट गर्नुहोस्।
+                    </p>
+                  </div>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openAddNewPartyModal()" style="font-size: 11.5px; font-weight: 800; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 5px 12px; border-radius: 6px; cursor: pointer;">
+                      ➕ नयाँ दल थप्नुहोस्
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Real-time Stacked Visual Vote Share Bar -->
+                <div style="margin-bottom: 12px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 700; color: #475569; margin-bottom: 5px;">
+                    <span>सदर मतको दलगत वितरण (Estimated Vote Share Breakdown)</span>
+                    <span id="wrStackedBarTotalPct">१००% सदर मत</span>
+                  </div>
+                  <div id="wrStackedVoteShareBar" style="display: flex; height: 28px; border-radius: 8px; overflow: hidden; background: #e2e8f0; box-shadow: inset 0 1px 3px rgba(0,0,0,0.12);">
+                    <!-- Dynamically populated party segments -->
+                  </div>
+                </div>
+
+                <!-- Top Rival Highlight Alert Banner -->
+                <div id="wrTopRivalBanner" style="margin-bottom: 14px;">
+                  <!-- Dynamically populated -->
+                </div>
+
+                <!-- Party Sliders Dynamic Grid -->
+                <div id="wrPartySlidersGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+                  <!-- Dynamically populated party sliders -->
+                </div>
+              </div>
+
+              <!-- Big Math Equation Cards (Plurality Margin Engine) -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 18px;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px;">
+                  <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: #64748b;">कुल मतदाता</div>
+                  <div style="font-size: 20px; font-weight: 900; color: #0f172a;" id="wrTotalVoters">0</div>
+                  <div style="font-size: 10px; color: #64748b;">नामावली सूची</div>
+                </div>
+
+                <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 10px;">
+                  <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: #e11d48;">विदेश / बाहिर (-)</div>
+                  <div style="font-size: 20px; font-weight: 900; color: #be123c;" id="wrAbroadAbsent">0</div>
+                  <div style="font-size: 10px; color: #64748b;">अनुपस्थित वर्ग</div>
+                </div>
+
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px;">
+                  <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: #1d4ed8;">अपेक्षित खस्ने (=)</div>
+                  <div style="font-size: 20px; font-weight: 900; color: #1e40af;" id="wrProjectedTurnout">0</div>
+                  <div style="font-size: 10px; color: #64748b;" id="wrProjectedTurnoutSub">मतदान अनुमान</div>
+                </div>
+
+                <div style="background: #fff5f5; border: 1.5px solid #fed7d7; border-radius: 10px; padding: 10px;">
+                  <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: #c53030;">बदर मत (-)</div>
+                  <div style="font-size: 20px; font-weight: 900; color: #9b2c2c;" id="wrBadarCalcDisplay">0</div>
+                  <div style="font-size: 10px; color: #64748b;" id="wrBadarCalcSub">खेर जाने मत</div>
+                </div>
+
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px;">
+                  <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: #15803d;">सदर मत (=)</div>
+                  <div style="font-size: 20px; font-weight: 900; color: #166534;" id="wrValidVotesDisplay">0</div>
+                  <div style="font-size: 10px; color: #64748b;">दलहरूले पाउने</div>
+                </div>
+
+                <div style="background: #fefce8; border: 2px solid #facc15; border-radius: 10px; padding: 10px; box-shadow: 0 2px 8px rgba(234,179,8,0.15);">
+                  <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: #854d0e;">🎯 जितको रेखा (+१)</div>
+                  <div style="font-size: 20px; font-weight: 900; color: #a16207;" id="wrMagicTarget">0</div>
+                  <div style="font-size: 10px; color: #854d0e; font-weight: 700;">विपक्षीभन्दा १ बढी</div>
+                </div>
+
+                <div style="background: #ecfdf5; border: 2px solid #86efac; border-radius: 10px; padding: 10px;">
+                  <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: #166534;">🟢 हाम्रो सुरक्षित मत</div>
+                  <div style="font-size: 20px; font-weight: 900; color: #15803d;" id="wrCurrentTotalVotes">0</div>
+                  <div style="font-size: 10px; color: #15803d; font-weight: 700;" id="wrTargetPctText">0% जित हासिल</div>
+                </div>
+              </div>
+
+              <!-- Visual Progress Bar to Victory -->
+              <div style="margin-bottom: 14px;">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; margin-bottom: 6px;">
+                  <span>जित तर्फको प्रगति (Progress to Victory)</span>
+                  <span id="wrWinProgressRatio">0 / 0 Votes</span>
+                </div>
+                <div style="background: #e2e8f0; height: 16px; border-radius: 999px; overflow: hidden; position: relative;">
+                  <div id="wrProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); transition: width 0.5s ease;"></div>
+                </div>
+              </div>
+
+              <!-- Status Banner & Fast Action Hub -->
+              <div id="warRoomStatusBadge" style="margin-bottom: 12px;"></div>
+
+              <!-- ACTION BUTTONS: Swing Voter Access, Target SMS, Voter Education -->
+              <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;">
+                <button type="button" id="wrBtnFilterSwing" class="btn btn-primary" onclick="openWarRoomSwingVotersList()" style="font-size: 13px; font-weight: 800; padding: 10px 18px; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(37,99,235,0.25);">
+                  <span>👉</span> <span id="wrBtnFilterSwingText">दोधार (Swing) मतदाता सूची खोल्नुहोस्</span>
+                </button>
+
+                <button type="button" class="btn btn-secondary" onclick="openWarRoomSwingSmsModal()" style="font-size: 12.5px; font-weight: 700; padding: 10px 16px; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; border: none;">
+                  <span>📲</span> <span>Swing मतदातालाई लक्षित SMS/अपील</span>
+                </button>
+
+                <button type="button" class="btn btn-secondary" onclick="openWarRoomVoterEducationList()" style="font-size: 12.5px; font-weight: 700; padding: 10px 16px; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px; background: #fff1f2; color: #991b1b; border: 1.5px solid #fecdd3;">
+                  <span>⚠️</span> <span>बदर मत रोकथाम (मतदाता शिक्षा) सूची</span>
+                </button>
+              </div>
+
+              <!-- AI / Tactical Win Advisory Box -->
+              <div id="wrTacticalAdvisory" style="background: #f8fafc; border-left: 4px solid #4f46e5; padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13px; color: var(--slate-700); line-height: 1.6;">
+                <!-- Tactical advice inserted here -->
+              </div>
+            </div>
+
+            <!-- 2-COLUMN GRID: FIELD PRESENCE BASKETS & LIVE AREA TIMELINE -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; margin-bottom: 24px;">
+              <!-- COLUMN A: REAL FIELD PRESENCE & MIGRATION BASKETS -->
+              <div class="card" style="padding: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                  <div>
+                    <h4 style="margin: 0; font-size: 15.5px; font-weight: 800; color: var(--navy-900);">
+                      📍 स्थलगत बसोबास वर्गीकरण (Field Presence Baskets)
+                    </h4>
+                    <p style="margin: 2px 0 0; font-size: 12px; color: var(--slate-600);">
+                      मतदानको दिन को कहाँ हुन्छन्? र कसलाई कसरी परिचालन गर्ने?
+                    </p>
+                  </div>
+                  <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px;">
+                    👆 कुनै पनि वर्गमा क्लिक गरी सूची हेर्नुहोस्
+                  </span>
+                </div>
+
+                <!-- Location Baskets List -->
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  <!-- 1. On-Ground -->
+                  <div class="presence-basket-card" onclick="openOnGroundVotersModal()" style="border: 1.5px solid #bbf7d0; border-radius: 8px; padding: 12px; background: #f0fdf4; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                    <div>
+                      <div style="font-weight: 800; color: #0f172a; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
+                        <span>🟢 गाउँमै उपस्थित (On-Ground)</span>
+                        <span class="badge" style="background: #dcfce7; color: #166534; font-size: 11px;">१००% भोट हाल्ने</span>
+                      </div>
+                      <div style="font-size: 11.5px; color: var(--slate-600); margin-top: 2px;">घरदैलो र बुथ स्तरमा प्रत्यक्ष परिचालन</div>
+                    </div>
+                    <div style="text-align: right;">
+                      <div style="font-size: 18px; font-weight: 900; color: #15803d;" id="wrLocOnGroundCount">0</div>
+                      <div style="display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 2px;">
+                        <span style="font-size: 11px; color: var(--slate-600);" id="wrLocOnGroundPct">0%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 2. Kathmandu / Regional Outstation -->
+                  <div class="presence-basket-card" onclick="openKathmanduClusterVotersModal()" style="border: 1.5px solid #fed7aa; border-radius: 8px; padding: 12px; background: #fff7ed; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                    <div>
+                      <div style="font-weight: 800; color: #0f172a; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
+                        <span>🟡 काठमाडौं / बाहिर क्लस्टर</span>
+                        <span class="badge" style="background: #ffedd5; color: #c2410c; font-size: 11px;">पिकअप बस आवश्यक</span>
+                      </div>
+                      <div style="font-size: 11.5px; color: var(--slate-600); margin-top: 2px;">सम्पर्क भेला र गाडी रिजर्भ टोली परिचालन</div>
+                    </div>
+                    <div style="text-align: right;">
+                      <div style="font-size: 18px; font-weight: 900; color: #c2410c;" id="wrLocKtmCount">0</div>
+                      <div style="display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 2px;">
+                        <span style="font-size: 11px; color: var(--slate-600);" id="wrLocKtmPct">0%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 3. Diaspora / Abroad -->
+                  <div class="presence-basket-card" onclick="openDiasporaVotersModal()" style="border: 1.5px solid #fecdd3; border-radius: 8px; padding: 12px; background: #fff1f2; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                    <div>
+                      <div style="font-weight: 800; color: #0f172a; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
+                        <span>⚪ प्रवास / विदेश (Diaspora)</span>
+                        <span class="badge" style="background: #ffe4e6; color: #be123c; font-size: 11px;">अनुपस्थित</span>
+                      </div>
+                      <div style="font-size: 11.5px; color: var(--slate-600); margin-top: 2px;">परिवारलाई प्रभाव पार्ने डिजिटल क्याम्पेन</div>
+                    </div>
+                    <div style="text-align: right;">
+                      <div style="font-size: 18px; font-weight: 900; color: #be123c;" id="wrLocAbroadCount">0</div>
+                      <div style="display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 2px;">
+                        <span style="font-size: 11px; color: var(--slate-600);" id="wrLocAbroadPct">0%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- COLUMN B: WAR ROOM CAMPAIGN TIMELINE -->
+              <div class="card" style="padding: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                  <div>
+                    <h4 style="margin: 0; font-size: 15.5px; font-weight: 800; color: var(--navy-900);">
+                      ⏱️ कमान्ड सेन्टर लाइभ टाइमलाइन (War Room Feed)
+                    </h4>
+                    <p style="margin: 2px 0 0; font-size: 12px; color: var(--slate-600);">
+                      चुनावी परिचालन र रणनीति सम्बन्धी पछिल्ला गतिविधिहरू
+                    </p>
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto;" id="wrActivityTimelineFeed">
+                  <div style="padding: 10px; background: #f8fafc; border-radius: 8px; border-left: 3px solid #3b82f6; font-size: 12.5px;">
+                    <div style="font-weight: 800; color: #0f172a;">🗳️ चुनावी समीकरण सक्रिय</div>
+                    <div style="color: #64748b; font-size: 11px; margin-top: 2px;">सबै वडाहरूको मत अनुपात सिमुलेटरमा अपडेट गरिएको छ।</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- END PANE 1 -->
+
+          <!-- PANE 2: WARD-BY-WARD MICRO MULTI-PARTY SIMULATOR -->
+          <div id="wrPane_ward" style="display: none;">
+            <!-- Top Ward Simulator Toolbar -->
+            <div class="card" style="padding: 16px 20px; margin-bottom: 20px; background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1.5px solid #bfdbfe; border-radius: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                <div>
+                  <h3 style="margin: 0; font-size: 18px; font-weight: 900; color: #1e3a8a; display: flex; align-items: center; gap: 8px;">
+                    <span>🗺️</span> वडागत विस्तृत रणनीति तथा बहुदलीय सिमुलेटर (Ward-by-Ward Multi-Party Engine)
+                  </h3>
+                  <p style="margin: 4px 0 0; font-size: 12.5px; color: #475569;">
+                    प्रत्येक वडाको मतदान दर (Turnout) र सबै दलहरूको मत हिस्सा (%) मिलाउनुहोस्। सबै वडाको मत स्वतः जोडेर पालिकाको कुल जित/हार निर्धारण हुन्छ।
+                  </p>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="resetWardsToPalikaBaseline()" style="font-weight: 800; background: #ffffff; color: #1e40af; border: 1.5px solid #93c5fd; padding: 7px 14px;" title="सबै वडाका स्लाइडरहरूलाई पालिकाको औसत अनुपातमा सेट गर्नुहोस्">
+                    🔄 सबै वडालाई पालिका औसतमा रिसेट गर्नुहोस्
+                  </button>
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="lockAllWarRoomWards(true)" style="font-size: 12px; font-weight: 800; padding: 6px 12px; border-radius: 6px; background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe;">
+                    🔒 सबै वडा लक
+                  </button>
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="lockAllWarRoomWards(false)" style="font-size: 12px; font-weight: 800; padding: 6px 12px; border-radius: 6px;">
+                    🔓 सबै वडा अनलक
+                  </button>
                 </div>
               </div>
             </div>
 
-            <!-- 2. Multi-Party Vote Share Simulation Matrix -->
-            <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+            <!-- EXECUTIVE WARD-BY-WARD ROLL-UP 5 KPI CARDS -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 22px;">
+              <!-- KPI 1: Wards Scorecard -->
+              <div class="card" style="padding: 14px 16px; border-left: 4px solid #1e3a6e; margin: 0; background: #ffffff;">
+                <div style="font-size: 11.5px; font-weight: 800; color: #64748b; text-transform: uppercase;">🏆 वडा समीकरण (Scorecard)</div>
+                <div style="font-size: 18px; font-weight: 900; color: #0f172a; margin-top: 3px;" id="wrKpiWardScorecard">० जित • ० कडा • ० हार</div>
+                <div style="font-size: 11px; color: #1e3a6e; font-weight: 700; margin-top: 2px;" id="wrKpiWardScorecardSub">वडागत अग्रता स्थिति</div>
+              </div>
+
+              <!-- KPI 2: Our Total Sum Votes -->
+              <div class="card" style="padding: 14px 16px; border-left: 4px solid #16a34a; margin: 0; background: #ffffff;">
+                <div style="font-size: 11.5px; font-weight: 800; color: #64748b; text-transform: uppercase;">🟢 हाम्रो कुल मत (All Wards Sum)</div>
+                <div style="font-size: 20px; font-weight: 900; color: #15803d; margin-top: 3px;" id="wrKpiOurTotalVotes">0 मत (0%)</div>
+                <div style="font-size: 11px; color: #166534; font-weight: 700; margin-top: 2px;" id="wrKpiOurTotalVotesSub">सबै वडाको जम्मा भोट</div>
+              </div>
+
+              <!-- KPI 3: Rival Total Sum Votes -->
+              <div class="card" style="padding: 14px 16px; border-left: 4px solid #ea580c; margin: 0; background: #ffffff;">
+                <div style="font-size: 11.5px; font-weight: 800; color: #64748b; text-transform: uppercase;">⚔️ मुख्य प्रतिस्पर्धी मत</div>
+                <div style="font-size: 20px; font-weight: 900; color: #c2410c; margin-top: 3px;" id="wrKpiRivalTotalVotes">0 मत (0%)</div>
+                <div style="font-size: 11px; color: #c2410c; font-weight: 700; margin-top: 2px;" id="wrKpiRivalTotalVotesSub">निकटतम प्रतिद्वन्द्वी</div>
+              </div>
+
+              <!-- KPI 4: Palika Net Margin -->
+              <div class="card" style="padding: 14px 16px; border-left: 4px solid #2563eb; margin: 0; background: #ffffff;">
+                <div style="font-size: 11.5px; font-weight: 800; color: #64748b; text-transform: uppercase;">⚡ कुल पालिका जित अन्तर</div>
+                <div style="font-size: 20px; font-weight: 900; color: #1d4ed8; margin-top: 3px;" id="wrKpiNetMargin">+0 मत अग्रता</div>
+                <div style="font-size: 11px; color: #1d4ed8; font-weight: 700; margin-top: 2px;" id="wrKpiNetMarginSub">जितको रेखा: ० मत</div>
+              </div>
+
+              <!-- KPI 5: Safe vs Battleground Wards -->
+              <div class="card" style="padding: 14px 16px; border-left: 4px solid #8b5cf6; margin: 0; background: #ffffff;">
+                <div style="font-size: 11.5px; font-weight: 800; color: #64748b; text-transform: uppercase;">🛡️ वडा वर्गीकरण</div>
+                <div style="font-size: 17px; font-weight: 900; color: #6d28d9; margin-top: 4px;" id="wrKpiWardBreakdown">० सुरक्षित • ० दोधार • ० पछाडि</div>
+                <div style="font-size: 11px; color: #6d28d9; font-weight: 700; margin-top: 2px;">चुनावी जोखिम विश्लेषण</div>
+              </div>
+            </div>
+
+            <!-- ALL-PARTY WARD CARDS GRID -->
+            <div id="wrWardCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; margin-bottom: 24px;">
+              <!-- Dynamically populated via renderCandidateWarRoom() -->
+            </div>
+
+            <!-- WARD BY WARD STRATEGY ROLL-UP TABLE -->
+            <div class="card" style="margin-bottom: 24px; padding: 20px; border-radius: var(--radius-lg); background: #ffffff; border: 1.5px solid #e2e8f0;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                 <div>
-                  <h4 style="margin: 0; font-size: 15px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px;">
-                    <span>🗳️</span> बहुदलीय मत विभाजन तथा प्रतिस्पर्धी शक्ति (Multi-Party Vote Share Matrix)
+                  <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                    <span>📊</span> वडागत रणनीति तथा जित-हार रोल-अप (Ward-by-Ward Tactical Roll-Up)
                   </h4>
                   <p style="margin: 2px 0 0; font-size: 12px; color: #64748b;">
-                    सदर मतमा विपक्षी दलहरूको अनुमानित हिस्सा (%) परिवर्तन गरी मुख्य प्रतिस्पर्धी र जितको अन्तर सिमुलेट गर्नुहोस्।
+                    प्रत्येक वडाको खस्ने मत, बदर मत, र अग्रता/घाटाको समष्टिगत विश्लेषण।
                   </p>
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                  <button type="button" class="btn btn-sm btn-secondary" onclick="openAddNewPartyModal()" style="font-size: 11.5px; font-weight: 800; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 5px 12px; border-radius: 6px; cursor: pointer;">
-                    ➕ नयाँ दल थप्नुहोस्
-                  </button>
-                </div>
+                <button class="btn btn-sm btn-secondary" onclick="renderCandidateWarRoom()" style="font-weight: 700;">🔄 अपडेट</button>
               </div>
-
-              <!-- Real-time Stacked Visual Vote Share Bar -->
-              <div style="margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 700; color: #475569; margin-bottom: 5px;">
-                  <span>सदर मतको दलगत वितरण (Estimated Vote Share Breakdown)</span>
-                  <span id="wrStackedBarTotalPct">१००% सदर मत</span>
-                </div>
-                <div id="wrStackedVoteShareBar" style="display: flex; height: 28px; border-radius: 8px; overflow: hidden; background: #e2e8f0; box-shadow: inset 0 1px 3px rgba(0,0,0,0.12);">
-                  <!-- Dynamically populated party segments -->
-                </div>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;" id="wrWardRollupTable">
+                  <thead>
+                    <tr style="background: #f1f5f9; color: #334155; font-weight: 800; border-bottom: 2px solid #cbd5e1;">
+                      <th style="padding: 10px 12px;">वडा नं.</th>
+                      <th style="padding: 10px 12px;">कुल मतदाता</th>
+                      <th style="padding: 10px 12px;">अपेक्षित खस्ने</th>
+                      <th style="padding: 10px 12px;">बदर मत (-)</th>
+                      <th style="padding: 10px 12px;">सदर मत (=)</th>
+                      <th style="padding: 10px 12px;">हाम्रो मत</th>
+                      <th style="padding: 10px 12px;">प्रतिस्पर्धी मत</th>
+                      <th style="padding: 10px 12px;">अग्रता / अपुग (Margin)</th>
+                      <th style="padding: 10px 12px;">अवस्था</th>
+                    </tr>
+                  </thead>
+                  <tbody id="wrWardRollupTbody">
+                    <!-- Generated dynamically in renderCandidateWarRoom -->
+                  </tbody>
+                </table>
               </div>
-
-              <!-- Top Rival Highlight Alert Banner -->
-              <div id="wrTopRivalBanner" style="margin-bottom: 14px;">
-                <!-- Dynamically populated -->
-              </div>
-
-              <!-- Party Sliders Dynamic Grid -->
-              <div id="wrPartySlidersGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
-                <!-- Dynamically populated party sliders -->
-              </div>
-            </div>
-
-            <!-- DUAL INTERACTIVE WARD STRATEGY ENGINE WITH 🔒 LOCK -->
-            <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 18px; margin-bottom: 20px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
-                <div>
-                  <h5 style="margin: 0; font-size: 15.5px; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                    <span>🏛️</span> वडागत सूक्ष्म रणनीति तथा 🔒 लक प्रणाली (Ward-by-Ward Control with Lock)
-                  </h5>
-                  <p style="margin: 3px 0 0; font-size: 12px; color: #64748b;">
-                    कुनै वडाको भोट निश्चित भए <b>🔒 Lock</b> गर्नुहोस्। माथि पालिका स्लाइडर चलाउँदा लक भएका वडा यथावत रहन्छन् र खुला वडाहरूमा मात्र मत समायोजन हुन्छ।
-                  </p>
-                </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                  <button type="button" class="btn btn-sm btn-secondary" onclick="lockAllWarRoomWards(false)" style="font-size: 11.5px; font-weight: 700; padding: 5px 12px; border-radius: 6px;">
-                    🔓 सबै अनलक
-                  </button>
-                  <button type="button" class="btn btn-sm btn-secondary" onclick="lockAllWarRoomWards(true)" style="font-size: 11.5px; font-weight: 700; padding: 5px 12px; border-radius: 6px; background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe;">
-                    🔒 सबै लक
-                  </button>
-                </div>
-              </div>
-
-              <!-- 9 Ward Grid Cards with Sliders and Lock Buttons -->
-              <div id="wrWardCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px;">
-                <!-- Dynamically populated via renderCandidateWarRoom() -->
-              </div>
-            </div>
-
-            <!-- Big Math Equation Cards (Plurality Margin Engine) -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 18px;">
-              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px;">
-                <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: #64748b;">कुल मतदाता</div>
-                <div style="font-size: 20px; font-weight: 900; color: #0f172a;" id="wrTotalVoters">0</div>
-                <div style="font-size: 10px; color: #64748b;">नामावली सूची</div>
-              </div>
-
-              <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 10px;">
-                <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: #e11d48;">विदेश / बाहिर (-)</div>
-                <div style="font-size: 20px; font-weight: 900; color: #be123c;" id="wrAbroadAbsent">0</div>
-                <div style="font-size: 10px; color: #64748b;">अनुपस्थित वर्ग</div>
-              </div>
-
-              <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px;">
-                <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: #1d4ed8;">अपेक्षित खस्ने (=)</div>
-                <div style="font-size: 20px; font-weight: 900; color: #1e40af;" id="wrProjectedTurnout">0</div>
-                <div style="font-size: 10px; color: #64748b;" id="wrProjectedTurnoutSub">मतदान अनुमान</div>
-              </div>
-
-              <div style="background: #fff5f5; border: 1.5px solid #fed7d7; border-radius: 10px; padding: 10px;">
-                <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: #c53030;">बदर मत (-)</div>
-                <div style="font-size: 20px; font-weight: 900; color: #9b2c2c;" id="wrBadarCalcDisplay">0</div>
-                <div style="font-size: 10px; color: #64748b;" id="wrBadarCalcSub">खेर जाने मत</div>
-              </div>
-
-              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px;">
-                <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: #15803d;">सदर मत (=)</div>
-                <div style="font-size: 20px; font-weight: 900; color: #166534;" id="wrValidVotesDisplay">0</div>
-                <div style="font-size: 10px; color: #64748b;">दलहरूले पाउने</div>
-              </div>
-
-              <div style="background: #fefce8; border: 2px solid #facc15; border-radius: 10px; padding: 10px; box-shadow: 0 2px 8px rgba(234,179,8,0.15);">
-                <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: #854d0e;">🎯 जितको रेखा (+१)</div>
-                <div style="font-size: 20px; font-weight: 900; color: #a16207;" id="wrMagicTarget">0</div>
-                <div style="font-size: 10px; color: #854d0e; font-weight: 700;">विपक्षीभन्दा १ बढी</div>
-              </div>
-
-              <div style="background: #ecfdf5; border: 2px solid #86efac; border-radius: 10px; padding: 10px;">
-                <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; color: #166534;">🟢 हाम्रो सुरक्षित मत</div>
-                <div style="font-size: 20px; font-weight: 900; color: #15803d;" id="wrCurrentTotalVotes">0</div>
-                <div style="font-size: 10px; color: #15803d; font-weight: 700;" id="wrTargetPctText">0% जित हासिल</div>
-              </div>
-            </div>
-
-            <!-- Visual Progress Bar to Victory -->
-            <div style="margin-bottom: 14px;">
-              <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; margin-bottom: 6px;">
-                <span>जित तर्फको प्रगति (Progress to Victory)</span>
-                <span id="wrWinProgressRatio">0 / 0 Votes</span>
-              </div>
-              <div style="background: #e2e8f0; height: 16px; border-radius: 999px; overflow: hidden; position: relative;">
-                <div id="wrProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); transition: width 0.5s ease;"></div>
-              </div>
-            </div>
-
-            <!-- Status Banner & Fast Action Hub -->
-            <div id="warRoomStatusBadge" style="margin-bottom: 12px;"></div>
-
-            <!-- ACTION BUTTONS: Swing Voter Access, Target SMS, Voter Education -->
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;">
-              <button type="button" id="wrBtnFilterSwing" class="btn btn-primary" onclick="openWarRoomSwingVotersList()" style="font-size: 13px; font-weight: 800; padding: 10px 18px; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(37,99,235,0.25);">
-                <span>👉</span> <span id="wrBtnFilterSwingText">दोधार (Swing) मतदाता सूची खोल्नुहोस्</span>
-              </button>
-
-              <button type="button" class="btn btn-secondary" onclick="openWarRoomSwingSmsModal()" style="font-size: 12.5px; font-weight: 700; padding: 10px 16px; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; border: none;">
-                <span>📲</span> <span>Swing मतदातालाई लक्षित SMS/अपील</span>
-              </button>
-
-              <button type="button" class="btn btn-secondary" onclick="openWarRoomVoterEducationList()" style="font-size: 12.5px; font-weight: 700; padding: 10px 16px; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px; background: #fff1f2; color: #991b1b; border: 1.5px solid #fecdd3;">
-                <span>⚠️</span> <span>बदर मत रोकथाम (मतदाता शिक्षा) सूची</span>
-              </button>
-            </div>
-
-            <!-- AI / Tactical Win Advisory Box -->
-            <div id="wrTacticalAdvisory" style="background: #f8fafc; border-left: 4px solid #4f46e5; padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13px; color: var(--slate-700); line-height: 1.6;">
-              <!-- Tactical advice inserted here -->
             </div>
           </div>
-
-          <!-- WARD BY WARD STRATEGY ROLL-UP TABLE -->
-          <div class="card" style="margin-bottom: 24px; padding: 20px; border-radius: var(--radius-lg); background: #ffffff; border: 1.5px solid #e2e8f0;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-              <div>
-                <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-                  <span>📊</span> वडागत रणनीति तथा जित-हार रोल-अप (Ward-by-Ward Tactical Roll-Up)
-                </h4>
-                <p style="margin: 2px 0 0; font-size: 12px; color: #64748b;">
-                  प्रत्येक वडाको खस्ने मत, बदर मत, र अग्रता/घाटाको समष्टिगत विश्लेषण।
-                </p>
-              </div>
-              <button class="btn btn-sm btn-secondary" onclick="renderCandidateWarRoom()" style="font-weight: 700;">🔄 अपडेट</button>
-            </div>
-            <div style="overflow-x: auto;">
-              <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;" id="wrWardRollupTable">
-                <thead>
-                  <tr style="background: #f1f5f9; color: #334155; font-weight: 800; border-bottom: 2px solid #cbd5e1;">
-                    <th style="padding: 10px 12px;">वडा नं.</th>
-                    <th style="padding: 10px 12px;">कुल मतदाता</th>
-                    <th style="padding: 10px 12px;">अपेक्षित खस्ने</th>
-                    <th style="padding: 10px 12px;">बदर मत (-)</th>
-                    <th style="padding: 10px 12px;">सदर मत (=)</th>
-                    <th style="padding: 10px 12px;">जितको रेखा (+१)</th>
-                    <th style="padding: 10px 12px;">हाम्रो सुरक्षित मत</th>
-                    <th style="padding: 10px 12px;">अग्रता / अपुग (Margin)</th>
-                    <th style="padding: 10px 12px;">अवस्था</th>
-                  </tr>
-                </thead>
-                <tbody id="wrWardRollupTbody">
-                  <!-- Generated dynamically in renderCandidateWarRoom -->
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <!-- END PANE 2 -->
 
           <!-- 2-COLUMN GRID: FIELD PRESENCE BASKETS & LIVE AREA TIMELINE -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; margin-bottom: 24px;">
@@ -35842,6 +35994,7 @@ function renderElectionDayStrikeSheet() {
       }
     }
 
+    let _warRoomActiveSubTab = 'palika';
     let _warRoomTurnoutPct = 68;
     let _warRoomBadarPct = 4.2;
     let _warRoomPartyShares = {
@@ -35853,9 +36006,151 @@ function renderElectionDayStrikeSheet() {
       SSP: 3,
       INDEPENDENT: 3
     };
-    let _warRoomWardShares = {}; // e.g. { 1: 52, 2: 38, ... }
-    let _warRoomWardLocks = {};  // e.g. { 1: true, 2: false, ... }
+    let _warRoomWardPartyShares = {}; // e.g. { 1: { NC: 48, UML: 28, ... }, 2: { ... } }
+    let _warRoomWardTurnout = {};     // e.g. { 1: 68, 2: 70, ... }
+    let _warRoomWardBadar = {};       // e.g. { 1: 4.2, 2: 3.5, ... }
+    let _warRoomWardShares = {};      // backward compatibility
+    let _warRoomWardLocks = {};       // e.g. { 1: true, 2: false, ... }
     let _wrSliderRafId = null;
+
+    function switchWarRoomSubTab(tab) {
+      _warRoomActiveSubTab = tab;
+      const panePalika = document.getElementById('wrPane_palika');
+      const paneWard = document.getElementById('wrPane_ward');
+      const btnPalika = document.getElementById('wrSubTab_palika');
+      const btnWard = document.getElementById('wrSubTab_ward');
+
+      if (tab === 'ward') {
+        if (panePalika) panePalika.style.display = 'none';
+        if (paneWard) paneWard.style.display = 'block';
+
+        if (btnPalika) {
+          btnPalika.style.background = '#ffffff';
+          btnPalika.style.color = '#334155';
+          btnPalika.style.border = '1.5px solid #cbd5e1';
+          btnPalika.style.boxShadow = 'none';
+        }
+        if (btnWard) {
+          btnWard.style.background = '#1e3a6e';
+          btnWard.style.color = '#ffffff';
+          btnWard.style.border = 'none';
+          btnWard.style.boxShadow = '0 2px 6px rgba(30,58,110,0.3)';
+        }
+      } else {
+        if (panePalika) panePalika.style.display = 'block';
+        if (paneWard) paneWard.style.display = 'none';
+
+        if (btnPalika) {
+          btnPalika.style.background = '#1e3a6e';
+          btnPalika.style.color = '#ffffff';
+          btnPalika.style.border = 'none';
+          btnPalika.style.boxShadow = '0 2px 6px rgba(30,58,110,0.3)';
+        }
+        if (btnWard) {
+          btnWard.style.background = '#ffffff';
+          btnWard.style.color = '#334155';
+          btnWard.style.border = '1.5px solid #cbd5e1';
+          btnWard.style.boxShadow = 'none';
+        }
+      }
+
+      renderCandidateWarRoom();
+    }
+
+    function resetWarRoomSliders() {
+      _warRoomTurnoutPct = 68;
+      _warRoomBadarPct = 4.2;
+      _warRoomPartyShares = {
+        NC: 48,
+        UML: 24,
+        MAOIST: 10,
+        RSP: 8,
+        RPP: 4,
+        SSP: 3,
+        INDEPENDENT: 3
+      };
+      _warRoomWardPartyShares = {};
+      _warRoomWardTurnout = {};
+      _warRoomWardBadar = {};
+      _warRoomWardShares = {};
+      _warRoomWardLocks = {};
+      renderCandidateWarRoom();
+      showToast('सिमुलेटरका सबै वडा तथा बहुदलीय स्लाइडरहरू रिसेट गरियो।', 'info');
+    }
+
+    function resetWardsToPalikaBaseline() {
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+      const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+      const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
+      const wards = (s && s.wards) || [
+        { ward: 1 }, { ward: 2 }, { ward: 3 }, { ward: 4 }, { ward: 5 }, { ward: 6 }, { ward: 7 }, { ward: 8 }, { ward: 9 }
+      ];
+
+      wards.forEach(w => {
+        _warRoomWardTurnout[w.ward] = _warRoomTurnoutPct;
+        _warRoomWardBadar[w.ward] = _warRoomBadarPct;
+        _warRoomWardPartyShares[w.ward] = { ..._warRoomPartyShares };
+      });
+
+      renderCandidateWarRoom();
+      showToast('✅ सबै वडाका स्लाइडरहरू पालिका औसत अनुपातमा रिसेट गरियो!', 'success');
+    }
+
+    function onWardTurnoutSliderChanged(wardNo, val) {
+      const p = parseFloat(val);
+      if (isNaN(p)) return;
+      _warRoomWardTurnout[wardNo] = Math.min(95, Math.max(40, Math.round(p)));
+      renderCandidateWarRoom();
+    }
+
+    function onWardBadarSliderChanged(wardNo, val) {
+      const p = parseFloat(val);
+      if (isNaN(p)) return;
+      _warRoomWardBadar[wardNo] = Math.min(20, Math.max(0, Math.round(p * 10) / 10));
+      renderCandidateWarRoom();
+    }
+
+    function onWardPartyShareSliderChanged(wardNo, partyCode, val) {
+      const p = parseFloat(val);
+      if (isNaN(p)) return;
+      const cleanVal = Math.min(95, Math.max(0, Math.round(p * 10) / 10));
+
+      balanceWardParties100(wardNo, partyCode, cleanVal);
+      renderCandidateWarRoom();
+    }
+
+    function onWardPartyShareInputChanged(wardNo, partyCode, val) {
+      const p = parseFloat(val);
+      if (isNaN(p) || p < 0 || p > 100) return;
+      onWardPartyShareSliderChanged(wardNo, partyCode, p);
+    }
+
+    function balanceWardParties100(wardNo, activeParty, targetVal) {
+      const allPalettes = getAllPartyPalettes();
+      const keys = Object.keys(allPalettes);
+      if (!keys.includes(activeParty)) keys.push(activeParty);
+
+      if (!_warRoomWardPartyShares[wardNo]) {
+        _warRoomWardPartyShares[wardNo] = { ..._warRoomPartyShares };
+      }
+
+      targetVal = Math.min(95, Math.max(0, targetVal));
+      _warRoomWardPartyShares[wardNo][activeParty] = targetVal;
+
+      const remainingBudget = Math.max(0, 100 - targetVal);
+      const otherKeys = keys.filter(k => k !== activeParty);
+      const currentOtherSum = otherKeys.reduce((acc, k) => acc + (_warRoomWardPartyShares[wardNo][k] !== undefined ? _warRoomWardPartyShares[wardNo][k] : 5), 0);
+
+      if (currentOtherSum > 0) {
+        otherKeys.forEach(k => {
+          const cur = _warRoomWardPartyShares[wardNo][k] !== undefined ? _warRoomWardPartyShares[wardNo][k] : 5;
+          _warRoomWardPartyShares[wardNo][k] = Math.round((cur / currentOtherSum) * remainingBudget * 10) / 10;
+        });
+      } else {
+        const equalShare = Math.round((remainingBudget / otherKeys.length) * 10) / 10;
+        otherKeys.forEach(k => { _warRoomWardPartyShares[wardNo][k] = equalShare; });
+      }
+    }
 
     function resetWarRoomSliders() {
       _warRoomTurnoutPct = 68;
@@ -36078,7 +36373,7 @@ function renderElectionDayStrikeSheet() {
 
       const activePalikaLabel = (state.settings && state.settings.MUNICIPALITY) || 'गोकर्णेश्वर नगरपालिका';
       const isAllWard = cand.Ward === 'All';
-      const wardScopeText = isAllWard ? `${activePalikaLabel} (समग्र ९ वडा कार्यक्षेत्र)` : `${activePalikaLabel} वडा नं. ${cand.Ward} कार्यक्षेत्र`;
+      const wardScopeText = isAllWard ? `${activePalikaLabel} (समग्र कार्यक्षेत्र)` : `${activePalikaLabel} वडा नं. ${cand.Ward} कार्यक्षेत्र`;
       if (scopeEl) {
         scopeEl.textContent = `📍 कार्यक्षेत्र: ${wardScopeText} • चिन्ह: ${cand.Symbol} | 🎯 लक्षित मत: ${(cand.TargetVotes || 0).toLocaleString()} मत`;
       }
@@ -36086,83 +36381,158 @@ function renderElectionDayStrikeSheet() {
       const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
       const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
       const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
-      const totalVoters = (s && s.total_voters) || 37759;
+      const totalVoters = (s && s.total_voters) || (tenantId === 'TNT_MVF9LYO3' ? 18907 : 37759);
 
-      const wards = (s && s.wards) || [
-        { ward: 1, count: 3734, booths: 4 },
-        { ward: 2, count: 3130, booths: 3 },
-        { ward: 3, count: 4694, booths: 4 },
-        { ward: 4, count: 4735, booths: 5 },
-        { ward: 5, count: 6436, booths: 6 },
-        { ward: 6, count: 6074, booths: 6 },
-        { ward: 7, count: 1500, booths: 2 },
-        { ward: 8, count: 5463, booths: 5 },
-        { ward: 9, count: 1993, booths: 2 }
-      ];
+      // Determine wards list dynamically for this tenant
+      let wards = (s && s.wards) || [];
+      if (!wards.length) {
+        if (tenantId === 'TNT_MVF9LYO3') {
+          wards = [
+            { ward: 1, count: 2850 }, { ward: 2, count: 2420 }, { ward: 3, count: 2980 },
+            { ward: 4, count: 2650 }, { ward: 5, count: 3120 }, { ward: 6, count: 2740 }, { ward: 7, count: 2147 }
+          ];
+        } else {
+          wards = [
+            { ward: 1, count: 3734, booths: 4 }, { ward: 2, count: 3130, booths: 3 }, { ward: 3, count: 4694, booths: 4 },
+            { ward: 4, count: 4735, booths: 5 }, { ward: 5, count: 6436, booths: 6 }, { ward: 6, count: 6074, booths: 6 },
+            { ward: 7, count: 1500, booths: 2 }, { ward: 8, count: 5463, booths: 5 }, { ward: 9, count: 1993, booths: 2 }
+          ];
+        }
+      }
 
-      // Turnout & Badar Calculations
-      const projectedTurnout = Math.round(totalVoters * (_warRoomTurnoutPct / 100));
-      const badarVotes = Math.round(projectedTurnout * (_warRoomBadarPct / 100));
-      const validVotes = Math.max(1, projectedTurnout - badarVotes);
+      // Update Wards badge in SubTab
+      const wBadge = document.getElementById('wrWardsBadgeCount');
+      if (wBadge) wBadge.textContent = `${wards.length} वडा`;
 
       // Candidate Party & Palettes
       const allPalettes = getAllPartyPalettes();
+      const partyKeys = Object.keys(allPalettes);
       const candPartyKey = (cand && cand.Party) ? normalizePartyCode(cand.Party) : 'NC';
       const candPalette = allPalettes[candPartyKey] || allPalettes.NC || PARTY_PALETTES.NC;
 
-      // Initialize default ward shares if empty
+      // Initialize any missing ward structures
       wards.forEach(w => {
-        if (_warRoomWardShares[w.ward] === undefined) {
-          _warRoomWardShares[w.ward] = _warRoomPartyShares[candPartyKey] || 48;
+        if (!_warRoomWardTurnout[w.ward]) _warRoomWardTurnout[w.ward] = _warRoomTurnoutPct;
+        if (!_warRoomWardBadar[w.ward]) _warRoomWardBadar[w.ward] = _warRoomBadarPct;
+        if (!_warRoomWardPartyShares[w.ward]) {
+          _warRoomWardPartyShares[w.ward] = { ..._warRoomPartyShares };
         }
       });
 
-      // Calculate Weighted Sum of our votes from all wards
-      let ourTotalVotes = 0;
-      let wardValidTotals = {};
+      // =========================================================================
+      // WARD-BY-WARD CALCULATION & ROLL-UP TO PALIKA TOTALS
+      // =========================================================================
+      let palikaTotalVoters = 0;
+      let palikaTurnoutVotes = 0;
+      let palikaBadarVotes = 0;
+      let palikaValidVotes = 0;
+      let palikaOurPartyVotes = 0;
+      const palikaRivalPartyVotes = {};
+      partyKeys.forEach(k => { palikaRivalPartyVotes[k] = 0; });
+
+      let ourWinsCount = 0;
+      let ourTiesCount = 0;
+      let ourLossesCount = 0;
+      let safeWardsCount = 0;
+      let battlegroundWardsCount = 0;
+      let deficitWardsCount = 0;
+
+      const wardRollupResults = [];
+
       wards.forEach(w => {
-        const wCount = w.count || Math.round(totalVoters / 9);
-        const wTurn = Math.round(wCount * (_warRoomTurnoutPct / 100));
-        const wVal = Math.max(1, wTurn - Math.round(wTurn * (_warRoomBadarPct / 100)));
-        wardValidTotals[w.ward] = wVal;
-        const wPct = _warRoomWardShares[w.ward] !== undefined ? _warRoomWardShares[w.ward] : 48;
-        ourTotalVotes += Math.round(wVal * (wPct / 100));
+        const wCount = w.count || Math.round(totalVoters / wards.length);
+        const wTurnPct = _warRoomWardTurnout[w.ward] !== undefined ? _warRoomWardTurnout[w.ward] : _warRoomTurnoutPct;
+        const wBadarPct = _warRoomWardBadar[w.ward] !== undefined ? _warRoomWardBadar[w.ward] : _warRoomBadarPct;
+        const wTurn = Math.round(wCount * (wTurnPct / 100));
+        const wBadar = Math.round(wTurn * (wBadarPct / 100));
+        const wValid = Math.max(1, wTurn - wBadar);
+
+        palikaTotalVoters += wCount;
+        palikaTurnoutVotes += wTurn;
+        palikaBadarVotes += wBadar;
+        palikaValidVotes += wValid;
+
+        // Calculate votes for each party in this ward
+        const wardVotes = {};
+        const wShares = _warRoomWardPartyShares[w.ward] || _warRoomPartyShares;
+        partyKeys.forEach(k => {
+          const pct = wShares[k] !== undefined ? wShares[k] : 5;
+          const votes = Math.round(wValid * (pct / 100));
+          wardVotes[k] = votes;
+          palikaRivalPartyVotes[k] += votes;
+        });
+
+        const ourVotes = wardVotes[candPartyKey] || 0;
+        palikaOurPartyVotes += ourVotes;
+
+        // Determine top rival in this ward
+        const rivalKeys = partyKeys.filter(k => k !== candPartyKey);
+        let wardTopRivalKey = rivalKeys[0] || 'UML';
+        let wardTopRivalVotes = 0;
+        rivalKeys.forEach(k => {
+          if (wardVotes[k] > wardTopRivalVotes) {
+            wardTopRivalVotes = wardVotes[k];
+            wardTopRivalKey = k;
+          }
+        });
+
+        const wardMargin = ourVotes - wardTopRivalVotes;
+        const isWin = ourVotes > wardTopRivalVotes;
+        const isTie = ourVotes === wardTopRivalVotes;
+
+        if (isWin) ourWinsCount++;
+        else if (isTie) ourTiesCount++;
+        else ourLossesCount++;
+
+        if (wardMargin >= 150) safeWardsCount++;
+        else if (wardMargin < 150 && wardMargin >= -100) battlegroundWardsCount++;
+        else deficitWardsCount++;
+
+        wardRollupResults.push({
+          wardNo: w.ward,
+          voters: wCount,
+          turnout: wTurn,
+          turnoutPct: wTurnPct,
+          badar: wBadar,
+          badarPct: wBadarPct,
+          valid: wValid,
+          ourVotes: ourVotes,
+          ourPct: wShares[candPartyKey] || 0,
+          topRivalKey: wardTopRivalKey,
+          topRivalVotes: wardTopRivalVotes,
+          topRivalPct: wShares[wardTopRivalKey] || 0,
+          margin: wardMargin,
+          isWin: isWin,
+          isTie: isTie,
+          isLocked: !!_warRoomWardLocks[w.ward],
+          partyShares: wShares,
+          partyVotes: wardVotes
+        });
       });
 
-      // Aggregate Our Vote Share at Palika Level
-      const ourOverallPct = Math.min(100, Math.max(1, Math.round((ourTotalVotes / validVotes) * 1000) / 10));
+      // Overall Palika Level Aggregates
+      const ourOverallPct = palikaValidVotes > 0 ? Math.round((palikaOurPartyVotes / palikaValidVotes) * 1000) / 10 : 0;
       _warRoomPartyShares[candPartyKey] = ourOverallPct;
 
-      // Balance rival parties to strictly equal 100%
-      const remainingBudget = Math.max(0, 100 - ourOverallPct);
-      const rivalKeys = Object.keys(allPalettes).filter(k => k !== candPartyKey);
-      const currentRivalSum = rivalKeys.reduce((acc, k) => acc + (_warRoomPartyShares[k] || 5), 0);
-
-      if (currentRivalSum > 0) {
-        rivalKeys.forEach(k => {
-          const cur = _warRoomPartyShares[k] || 5;
-          _warRoomPartyShares[k] = Math.round((cur / currentRivalSum) * remainingBudget * 10) / 10;
-        });
-      }
-
-      // Determine Top Rival Party
+      const rivalKeys = partyKeys.filter(k => k !== candPartyKey);
       let topRivalKey = rivalKeys[0] || 'UML';
-      let topRivalPct = 0;
+      let topRivalVotes = 0;
       rivalKeys.forEach(k => {
-        const pct = _warRoomPartyShares[k] || 0;
-        if (pct > topRivalPct) {
-          topRivalPct = pct;
+        if (palikaRivalPartyVotes[k] > topRivalVotes) {
+          topRivalVotes = palikaRivalPartyVotes[k];
           topRivalKey = k;
         }
       });
 
+      const topRivalPct = palikaValidVotes > 0 ? Math.round((topRivalVotes / palikaValidVotes) * 1000) / 10 : 0;
       const topRivalInfo = allPalettes[topRivalKey] || allPalettes.UML || PARTY_PALETTES.UML;
-      const opponentEstimatedVotes = Math.round(validVotes * (topRivalPct / 100));
-      const magicTarget = opponentEstimatedVotes + 1;
-      const leadMargin = ourTotalVotes - magicTarget;
-      const shortfall = Math.max(0, magicTarget - ourTotalVotes);
+      const magicTarget = topRivalVotes + 1;
+      const leadMargin = palikaOurPartyVotes - magicTarget;
+      const shortfall = Math.max(0, magicTarget - palikaOurPartyVotes);
 
-      // 1. Update Turnout & Badar Controls
+      // =========================================================================
+      // 1. UPDATE PANE 1 (PALIKA MACRO) CONTROLS & KPIS
+      // =========================================================================
       const sTurnout = document.getElementById('wrTurnoutSlider');
       const sTurnoutVal = document.getElementById('wrTurnoutSliderVal');
       const inBadarPct = document.getElementById('wrBadarPctInput');
@@ -36172,23 +36542,23 @@ function renderElectionDayStrikeSheet() {
       if (sTurnout) sTurnout.value = _warRoomTurnoutPct;
       if (sTurnoutVal) sTurnoutVal.textContent = _warRoomTurnoutPct + '%';
       if (inBadarPct) inBadarPct.value = _warRoomBadarPct;
-      if (inBadarCount) inBadarCount.value = badarVotes;
+      if (inBadarCount) inBadarCount.value = palikaBadarVotes;
       if (sBadar) sBadar.value = _warRoomBadarPct;
 
-      // 2. Render Stacked 100% Balanced Vote Share Bar
+      // Render Stacked Bar in Palika Tab
       const stackedBarEl = document.getElementById('wrStackedVoteShareBar');
       if (stackedBarEl) {
         let stackedHtml = `
-          <div style="width: ${ourOverallPct}%; background: ${candPalette.primary}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; overflow: hidden; white-space: nowrap; padding: 0 4px; border-right: 1.5px solid #ffffff; transition: width 0.2s ease;" title="हाम्रो मत: ${ourTotalVotes.toLocaleString()} (${ourOverallPct}%)">
+          <div style="width: ${ourOverallPct}%; background: ${candPalette.primary}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; overflow: hidden; white-space: nowrap; padding: 0 4px; border-right: 1.5px solid #ffffff; transition: width 0.2s ease;" title="हाम्रो मत: ${palikaOurPartyVotes.toLocaleString()} (${ourOverallPct}%)">
             ${candPalette.symbol} ${candPalette.id} ${ourOverallPct}%
           </div>
         `;
         rivalKeys.forEach(k => {
           const pInfo = allPalettes[k] || { symbol: '🚩', id: k, primary: '#64748b' };
-          const rPct = _warRoomPartyShares[k] || 0;
+          const rPct = palikaValidVotes > 0 ? Math.round((palikaRivalPartyVotes[k] / palikaValidVotes) * 1000) / 10 : 0;
           if (rPct <= 0) return;
           stackedHtml += `
-            <div style="width: ${rPct}%; background: ${pInfo.primary || '#64748b'}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; overflow: hidden; white-space: nowrap; padding: 0 4px; border-right: 1.5px solid #ffffff; transition: width 0.2s ease;" title="${pInfo.name}: ${Math.round(validVotes * (rPct / 100)).toLocaleString()} मत (${rPct}%)">
+            <div style="width: ${rPct}%; background: ${pInfo.primary || '#64748b'}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; overflow: hidden; white-space: nowrap; padding: 0 4px; border-right: 1.5px solid #ffffff; transition: width 0.2s ease;" title="${pInfo.name}: ${palikaRivalPartyVotes[k].toLocaleString()} मत (${rPct}%)">
               ${pInfo.symbol} ${pInfo.id} ${rPct}%
             </div>
           `;
@@ -36198,10 +36568,10 @@ function renderElectionDayStrikeSheet() {
 
       const barTotalEl = document.getElementById('wrStackedBarTotalPct');
       if (barTotalEl) {
-        barTotalEl.innerHTML = `<span style="color:#10b981; font-weight:800;">✓ कुल सदर मत: ${validVotes.toLocaleString()} मत (ठ्याक्कै १००% सन्तुलित)</span>`;
+        barTotalEl.innerHTML = `<span style="color:#10b981; font-weight:800;">✓ कुल सदर मत: ${palikaValidVotes.toLocaleString()} मत (ठ्याक्कै १००% सन्तुलित)</span>`;
       }
 
-      // 3. Render Top Rival Banner
+      // Top Rival Banner
       const topRivalBannerEl = document.getElementById('wrTopRivalBanner');
       if (topRivalBannerEl) {
         topRivalBannerEl.innerHTML = `
@@ -36210,7 +36580,7 @@ function renderElectionDayStrikeSheet() {
               <span style="font-size: 26px;">${topRivalInfo.symbol || '⚔️'}</span>
               <div>
                 <div style="font-size: 13.5px; font-weight: 800; color: #0f172a;">
-                  हालको मुख्य प्रतिस्पर्धी (Top Rival): <span style="color: ${topRivalInfo.primary || '#c2410c'}; font-size: 14.5px;">${topRivalInfo.symbol} ${topRivalInfo.name}</span> (${topRivalPct}% — ${opponentEstimatedVotes.toLocaleString()} मत)
+                  हालको मुख्य प्रतिस्पर्धी (Top Rival): <span style="color: ${topRivalInfo.primary || '#c2410c'}; font-size: 14.5px;">${topRivalInfo.symbol} ${topRivalInfo.name}</span> (${topRivalPct}% — ${topRivalVotes.toLocaleString()} मत)
                 </div>
                 <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">
                   नेपालको निर्वाचन नियम: मुख्य प्रतिद्वन्द्वी भन्दा १ मत बढी (<b>${magicTarget.toLocaleString()} मत</b>) ल्याए जित सुनिश्चित हुन्छ।
@@ -36226,12 +36596,10 @@ function renderElectionDayStrikeSheet() {
         `;
       }
 
-      // 4. Render Palika Multi-Party Sliders (including Our Party)
+      // Palika Sliders Grid
       const slidersGridEl = document.getElementById('wrPartySlidersGrid');
       if (slidersGridEl) {
         let gridHtml = '';
-
-        // Our Party Master Palika Slider
         gridHtml += `
           <div style="background: #f0fdf4; border: 2px solid #22c55e; border-radius: 10px; padding: 12px; position: relative; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);">
             <div style="position: absolute; top: -10px; right: 10px; background: #16a34a; color: #ffffff; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 6px;">
@@ -36249,18 +36617,17 @@ function renderElectionDayStrikeSheet() {
             </div>
             <input type="range" id="wrPartySlider_${candPartyKey}" min="1" max="95" step="0.5" value="${ourOverallPct}" oninput="onWarRoomPartyShareSliderChanged('${candPartyKey}', this.value)" style="width: 100%; cursor: pointer; accent-color: #16a34a;">
             <div style="display: flex; justify-content: space-between; font-size: 11px; color: #166534; margin-top: 3px; font-weight: 700;">
-              <span>${ourTotalVotes.toLocaleString()} मत</span>
+              <span>${palikaOurPartyVotes.toLocaleString()} मत</span>
               <span>${ourOverallPct}% समग्र हिस्सा</span>
             </div>
           </div>
         `;
 
-        // Rival Parties Sliders
         rivalKeys.forEach(k => {
           const pInfo = allPalettes[k] || { name: k, symbol: '🚩', primary: '#64748b' };
           const isTop = (k === topRivalKey);
-          const rPct = _warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 5;
-          const rVotes = Math.round(validVotes * (rPct / 100));
+          const rVotes = palikaRivalPartyVotes[k] || 0;
+          const rPct = palikaValidVotes > 0 ? Math.round((rVotes / palikaValidVotes) * 1000) / 10 : 0;
 
           gridHtml += `
             <div style="background: ${isTop ? '#fffbeb' : '#ffffff'}; border: 1.5px solid ${isTop ? '#f59e0b' : '#cbd5e1'}; border-radius: 10px; padding: 12px; position: relative; box-shadow: ${isTop ? '0 2px 8px rgba(245, 158, 11, 0.18)' : 'none'};">
@@ -36286,55 +36653,7 @@ function renderElectionDayStrikeSheet() {
         slidersGridEl.innerHTML = gridHtml;
       }
 
-      // 5. Render 9-Ward Strategy Cards with 🔒 Lock / 🔓 Unlock
-      const wardCardsEl = document.getElementById('wrWardCardsGrid');
-      if (wardCardsEl) {
-        wardCardsEl.innerHTML = wards.map(w => {
-          const wVoters = w.count || Math.round(totalVoters / 9);
-          const wVal = wardValidTotals[w.ward] || Math.round(wVoters * 0.65);
-          const wPct = _warRoomWardShares[w.ward] !== undefined ? _warRoomWardShares[w.ward] : ourOverallPct;
-          const wOurVotes = Math.round(wVal * (wPct / 100));
-          const wRivalVotes = Math.round(wVal * (topRivalPct / 100));
-          const isWin = wOurVotes > wRivalVotes;
-          const isLocked = !!_warRoomWardLocks[w.ward];
-
-          return `
-            <div style="background: ${isLocked ? '#fefce8' : '#ffffff'}; border: ${isLocked ? '2px solid #eab308' : (isWin ? '1.5px solid #86efac' : '1.5px solid #fed7aa')}; border-radius: 10px; padding: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); position: relative;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-size: 13.5px; font-weight: 900; color: #0f172a;">
-                  वडा नं. ${w.ward}
-                </span>
-                <button type="button" class="btn btn-sm" onclick="toggleWarRoomWardLock(${w.ward})" style="font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 800; border: 1px solid ${isLocked ? '#ca8a04' : '#cbd5e1'}; background: ${isLocked ? '#fef08a' : '#f8fafc'}; color: ${isLocked ? '#854d0e' : '#475569'};" title="${isLocked ? 'वडा लक गरिएको छ (अनलक गर्न क्लिक गर्नुहोस्)' : 'वडा अनलक छ (लक गर्न क्लिक गर्नुहोस्)'}">
-                  ${isLocked ? '🔒 Locked' : '🔓 Unlocked'}
-                </button>
-              </div>
-
-              <div style="font-size: 11px; color: #64748b; margin-bottom: 8px;">
-                मतदाता: <b>${wVoters.toLocaleString()}</b> • सदर: <b>${wVal.toLocaleString()}</b> मत
-              </div>
-
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <label style="font-size: 11.5px; font-weight: 800; color: #166534;">हाम्रो हिस्सा:</label>
-                <div style="display: flex; align-items: center; gap: 2px;">
-                  <input type="number" id="wrWardInput_${w.ward}" min="0" max="100" step="0.5" value="${wPct}" oninput="onWarRoomWardSliderChanged(${w.ward}, this.value)" style="width: 48px; padding: 2px 4px; font-size: 12px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; color: #166534; background: #fff;">
-                  <span style="font-size: 11px; font-weight: 800; color: #166534;">%</span>
-                </div>
-              </div>
-
-              <input type="range" min="0" max="100" step="0.5" value="${wPct}" oninput="onWarRoomWardSliderChanged(${w.ward}, this.value)" style="width: 100%; cursor: pointer; accent-color: #16a34a;">
-
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; pt: 4px; border-top: 1px dashed #e2e8f0; font-size: 11px;">
-                <span style="font-weight: 800; color: #166534;">${wOurVotes.toLocaleString()} मत</span>
-                <span class="badge" style="background: ${isWin ? '#dcfce7' : '#fee2e2'}; color: ${isWin ? '#166534' : '#991b1b'}; font-weight: 800; font-size: 10.5px;">
-                  ${isWin ? `🟢 अग्रता (+${(wOurVotes - wRivalVotes).toLocaleString()})` : `🔴 कडा (-${(wRivalVotes - wOurVotes).toLocaleString()})`}
-                </span>
-              </div>
-            </div>
-          `;
-        }).join('');
-      }
-
-      // 6. Update Big Math Equation Cards
+      // Equation KPI Cards
       const elTot = document.getElementById('wrTotalVoters');
       const elAbs = document.getElementById('wrAbroadAbsent');
       const elTurn = document.getElementById('wrProjectedTurnout');
@@ -36348,91 +36667,185 @@ function renderElectionDayStrikeSheet() {
       const elRatio = document.getElementById('wrWinProgressRatio');
       const elProgBar = document.getElementById('wrProgressBar');
 
-      if (elTot) elTot.textContent = totalVoters.toLocaleString();
+      if (elTot) elTot.textContent = palikaTotalVoters.toLocaleString();
       if (elAbs) elAbs.textContent = '०';
-      if (elTurn) elTurn.textContent = projectedTurnout.toLocaleString();
+      if (elTurn) elTurn.textContent = palikaTurnoutVotes.toLocaleString();
       if (elTurnSub) elTurnSub.textContent = _warRoomTurnoutPct + '% खस्ने दर';
-      if (elBadar) elBadar.textContent = badarVotes.toLocaleString();
+      if (elBadar) elBadar.textContent = palikaBadarVotes.toLocaleString();
       if (elBadarSub) elBadarSub.textContent = _warRoomBadarPct + '% बदर दर';
-      if (elValid) elValid.textContent = validVotes.toLocaleString();
+      if (elValid) elValid.textContent = palikaValidVotes.toLocaleString();
       if (elMag) elMag.textContent = magicTarget.toLocaleString();
-      if (elSure) elSure.textContent = ourTotalVotes.toLocaleString();
+      if (elSure) elSure.textContent = palikaOurPartyVotes.toLocaleString();
       if (elPctText) {
-        const achPct = Math.round((ourTotalVotes / magicTarget) * 100);
+        const achPct = Math.round((palikaOurPartyVotes / magicTarget) * 100);
         elPctText.textContent = `${achPct}% जित लक्ष्य हासिल`;
       }
       if (elRatio) {
-        elRatio.textContent = `${ourTotalVotes.toLocaleString()} / ${magicTarget.toLocaleString()} जित लक्ष्य मत`;
+        elRatio.textContent = `${palikaOurPartyVotes.toLocaleString()} / ${magicTarget.toLocaleString()} जित लक्ष्य मत`;
       }
       if (elProgBar) {
-        const pWidth = Math.min(100, Math.round((ourTotalVotes / magicTarget) * 100));
+        const pWidth = Math.min(100, Math.round((palikaOurPartyVotes / magicTarget) * 100));
         elProgBar.style.width = pWidth + '%';
         elProgBar.style.background = leadMargin >= 0 ? 'linear-gradient(90deg, #10b981, #059669)' : 'linear-gradient(90deg, #f59e0b, #d97706)';
       }
 
-      // 7. Update Ward Rollup Table below
-      renderWardByWardRollupTable(cand, topRivalPct, topRivalInfo);
-    }
+      // =========================================================================
+      // 2. UPDATE PANE 2 (WARD-BY-WARD SIMULATOR) EXECUTIVE KPIS & ALL-PARTY CARDS
+      // =========================================================================
+      const kpiScorecard = document.getElementById('wrKpiWardScorecard');
+      const kpiScorecardSub = document.getElementById('wrKpiWardScorecardSub');
+      const kpiOurVotes = document.getElementById('wrKpiOurTotalVotes');
+      const kpiOurVotesSub = document.getElementById('wrKpiOurTotalVotesSub');
+      const kpiRivalVotes = document.getElementById('wrKpiRivalTotalVotes');
+      const kpiRivalVotesSub = document.getElementById('wrKpiRivalTotalVotesSub');
+      const kpiNetMargin = document.getElementById('wrKpiNetMargin');
+      const kpiNetMarginSub = document.getElementById('wrKpiNetMarginSub');
+      const kpiBreakdown = document.getElementById('wrKpiWardBreakdown');
 
-    function renderWardByWardRollupTable(cand, topOpponentPct, topOpponentInfo) {
-      const tbody = document.getElementById('wrWardRollupTbody');
-      if (!tbody) return;
+      if (kpiScorecard) kpiScorecard.textContent = `🏆 ${ourWinsCount} जित • ⚖️ ${ourTiesCount} कडा • 🔴 ${ourLossesCount} पछाडि`;
+      if (kpiScorecardSub) kpiScorecardSub.textContent = `कुल ${wards.length} वडामध्ये हाम्रो अग्रता`;
+      if (kpiOurVotes) kpiOurVotes.textContent = `${palikaOurPartyVotes.toLocaleString()} मत (${ourOverallPct}%)`;
+      if (kpiOurVotesSub) kpiOurVotesSub.textContent = `सदर मत: ${palikaValidVotes.toLocaleString()} मध्ये`;
+      if (kpiRivalVotes) kpiRivalVotes.textContent = `${topRivalVotes.toLocaleString()} मत (${topRivalPct}%)`;
+      if (kpiRivalVotesSub) kpiRivalVotesSub.textContent = `निकटतम: ${topRivalInfo.name}`;
+      if (kpiNetMargin) {
+        kpiNetMargin.textContent = leadMargin >= 0 ? `🏆 +${leadMargin.toLocaleString()} मत अग्रता` : `⚠️ -${shortfall.toLocaleString()} मत अपुग`;
+        kpiNetMargin.style.color = leadMargin >= 0 ? '#15803d' : '#b91c1c';
+      }
+      if (kpiNetMarginSub) kpiNetMarginSub.textContent = `जित रेखा: ${magicTarget.toLocaleString()} मत`;
+      if (kpiBreakdown) kpiBreakdown.textContent = `${safeWardsCount} सुरक्षित • ${battlegroundWardsCount} दोधार • ${deficitWardsCount} जोखिम`;
 
-      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
-      const sSummary = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(activeTId) : null;
-      const totalVoters = (sSummary && sSummary.total_voters) || 37759;
+      // Render All-Party Ward Cards Grid
+      const wardCardsEl = document.getElementById('wrWardCardsGrid');
+      if (wardCardsEl) {
+        wardCardsEl.innerHTML = wardRollupResults.map(r => {
+          const cardBorder = r.isLocked
+            ? '2px solid #eab308'
+            : (r.isWin ? '2px solid #22c55e' : (r.isTie ? '2px solid #f59e0b' : '2px solid #ef4444'));
+          const cardBg = r.isLocked ? '#fefce8' : '#ffffff';
 
-      const wards = (sSummary && sSummary.wards) || [
-        { ward: 1, count: 3734, booths: 4 },
-        { ward: 2, count: 3130, booths: 3 },
-        { ward: 3, count: 4694, booths: 4 },
-        { ward: 4, count: 4735, booths: 5 },
-        { ward: 5, count: 6436, booths: 6 },
-        { ward: 6, count: 6074, booths: 6 },
-        { ward: 7, count: 1500, booths: 2 },
-        { ward: 8, count: 5463, booths: 5 },
-        { ward: 9, count: 1993, booths: 2 }
-      ];
+          // Sliders for each party in this ward
+          let partySlidersHtml = '';
+          partyKeys.forEach(k => {
+            const pInfo = allPalettes[k] || { name: k, symbol: '🚩', primary: '#64748b' };
+            const isOur = (k === candPartyKey);
+            const pPct = r.partyShares[k] !== undefined ? r.partyShares[k] : 0;
+            const pVotes = r.partyVotes[k] || 0;
 
-      tbody.innerHTML = wards.map(w => {
-        const wCount = w.count || Math.round(totalVoters / 9);
-        const wTurn = Math.round(wCount * (_warRoomTurnoutPct / 100));
-        const wBadar = Math.round(wTurn * (_warRoomBadarPct / 100));
-        const wValid = Math.max(1, wTurn - wBadar);
+            partySlidersHtml += `
+              <div style="margin-bottom: 8px; background: ${isOur ? '#f0fdf4' : '#f8fafc'}; padding: 6px 8px; border-radius: 8px; border: 1px solid ${isOur ? '#86efac' : '#e2e8f0'};">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                  <span style="font-size: 11.5px; font-weight: ${isOur ? '900' : '700'}; color: ${isOur ? '#166534' : '#1e293b'}; display: flex; align-items: center; gap: 4px;">
+                    <span>${pInfo.symbol || '🚩'}</span>
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px;">${pInfo.name}</span>
+                  </span>
+                  <div style="display: flex; align-items: center; gap: 2px;">
+                    <input type="number" min="0" max="95" step="0.5" value="${pPct}" oninput="onWardPartyShareInputChanged(${r.wardNo}, '${k}', this.value)" style="width: 44px; padding: 1px 3px; font-size: 11px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px; color: ${isOur ? '#166534' : '#0f172a'}; background: #fff;">
+                    <span style="font-size: 10px; font-weight: 700; color: #64748b;">%</span>
+                    <span style="font-size: 11px; font-weight: 800; color: ${pInfo.primary || '#334155'}; margin-left: 4px;">${pVotes.toLocaleString()} मत</span>
+                  </div>
+                </div>
+                <input type="range" min="0" max="95" step="0.5" value="${pPct}" oninput="onWardPartyShareSliderChanged(${r.wardNo}, '${k}', this.value)" style="width: 100%; cursor: pointer; accent-color: ${pInfo.primary || '#3b82f6'}; height: 5px;">
+              </div>
+            `;
+          });
 
-        const wOurPct = _warRoomWardShares[w.ward] !== undefined ? _warRoomWardShares[w.ward] : 48;
-        const wOurVotes = Math.round(wValid * (wOurPct / 100));
-        const wRivalVotes = Math.round(wValid * (topOpponentPct / 100));
-        const wMagic = wRivalVotes + 1;
-        const wMargin = wOurVotes - wMagic;
-        const isWin = wOurVotes > wRivalVotes;
-        const isLocked = !!_warRoomWardLocks[w.ward];
+          // Mini Stacked Progress Bar in this Ward
+          let miniStackedHtml = '';
+          partyKeys.forEach(k => {
+            const pInfo = allPalettes[k] || { primary: '#64748b' };
+            const pPct = r.partyShares[k] || 0;
+            if (pPct > 0) {
+              miniStackedHtml += `<div style="width: ${pPct}%; background: ${pInfo.primary}; height: 8px;" title="${pInfo.name}: ${pPct}%"></div>`;
+            }
+          });
 
-        return `
-          <tr style="border-bottom: 1px solid var(--border-color); background: ${isLocked ? 'rgba(254, 240, 138, 0.15)' : 'transparent'};">
+          const verdictBadge = r.isWin
+            ? `<span class="badge" style="background: #dcfce7; color: #166534; font-weight: 900; font-size: 11.5px; padding: 4px 10px; border: 1px solid #86efac;">🏆 हाम्रो जित: +${r.margin.toLocaleString()} मत</span>`
+            : (r.isTie
+              ? `<span class="badge" style="background: #fefce8; color: #854d0e; font-weight: 900; font-size: 11.5px; padding: 4px 10px;">⚖️ कडा टक्कर (बराबरी)</span>`
+              : `<span class="badge" style="background: #fee2e2; color: #991b1b; font-weight: 900; font-size: 11.5px; padding: 4px 10px; border: 1px solid #fca5a5;">🔴 पछाडि: ${r.margin.toLocaleString()} मत</span>`);
+
+          return `
+            <div class="card" style="margin: 0; background: ${cardBg}; border: ${cardBorder}; border-radius: 12px; padding: 14px; box-shadow: 0 4px 12px rgba(15,23,42,0.04); position: relative;">
+              <!-- Ward Card Header -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 8px;">
+                <div>
+                  <span style="font-size: 16px; font-weight: 900; color: #0f172a;">वडा नं. ${r.wardNo}</span>
+                  <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">
+                    मतदाता: <b>${r.voters.toLocaleString()}</b> • सदर: <b>${r.valid.toLocaleString()}</b> मत
+                  </div>
+                </div>
+                <button type="button" class="btn btn-xs" onclick="toggleWarRoomWardLock(${r.wardNo})" style="font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 800; border: 1px solid ${r.isLocked ? '#ca8a04' : '#cbd5e1'}; background: ${r.isLocked ? '#fef08a' : '#f8fafc'}; color: ${r.isLocked ? '#854d0e' : '#475569'};">
+                  ${r.isLocked ? '🔒 Locked' : '🔓 Unlocked'}
+                </button>
+              </div>
+
+              <!-- Ward Turnout & Badar Controls -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; background: #f8fafc; padding: 6px 8px; border-radius: 8px; font-size: 11px;">
+                <div>
+                  <div style="display: flex; justify-content: space-between; color: #1e3a8a; font-weight: 700;">
+                    <span>मतदान:</span>
+                    <span style="font-weight: 900;">${r.turnoutPct}%</span>
+                  </div>
+                  <input type="range" min="40" max="95" step="1" value="${r.turnoutPct}" oninput="onWardTurnoutSliderChanged(${r.wardNo}, this.value)" style="width: 100%; height: 4px; cursor: pointer;">
+                </div>
+                <div>
+                  <div style="display: flex; justify-content: space-between; color: #991b1b; font-weight: 700;">
+                    <span>बदर:</span>
+                    <span style="font-weight: 900;">${r.badarPct}%</span>
+                  </div>
+                  <input type="range" min="0" max="15" step="0.5" value="${r.badarPct}" oninput="onWardBadarSliderChanged(${r.wardNo}, this.value)" style="width: 100%; height: 4px; cursor: pointer;">
+                </div>
+              </div>
+
+              <!-- All Party Sliders Box -->
+              <div style="max-height: 260px; overflow-y: auto; padding-right: 2px; margin-bottom: 10px;">
+                ${partySlidersHtml}
+              </div>
+
+              <!-- Mini Stacked Bar -->
+              <div style="display: flex; border-radius: 4px; overflow: hidden; height: 8px; margin-bottom: 8px; background: #e2e8f0;">
+                ${miniStackedHtml}
+              </div>
+
+              <!-- Ward Verdict Pill -->
+              <div style="display: flex; justify-content: space-between; align-items: center; pt: 4px;">
+                ${verdictBadge}
+                <span style="font-size: 11px; color: #64748b;">मुख्य: <b>${allPalettes[r.topRivalKey]?.name || r.topRivalKey}</b></span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 3. Update Ward Rollup Table
+      const rollupTbody = document.getElementById('wrWardRollupTbody');
+      if (rollupTbody) {
+        rollupTbody.innerHTML = wardRollupResults.map(r => `
+          <tr style="border-bottom: 1px solid var(--border-color); background: ${r.isLocked ? 'rgba(254, 240, 138, 0.15)' : 'transparent'};">
             <td style="padding: 10px 12px; font-weight: 800; color: #0f172a;">
-              वडा ${w.ward} ${isLocked ? '🔒' : ''}
+              वडा ${r.wardNo} ${r.isLocked ? '🔒' : ''}
             </td>
-            <td style="padding: 10px 12px; font-weight: 700; color: #1e3a8a;">${wCount.toLocaleString()}</td>
-            <td style="padding: 10px 12px; text-align: center;">${wTurn.toLocaleString()}</td>
-            <td style="padding: 10px 12px; text-align: center; color: #b91c1c;">${wBadar.toLocaleString()}</td>
-            <td style="padding: 10px 12px; text-align: center; font-weight: 700; color: #166534;">${wValid.toLocaleString()}</td>
-            <td style="padding: 10px 12px; text-align: center; font-weight: 800; color: #a16207;">${wMagic.toLocaleString()}</td>
-            <td style="padding: 10px 12px; text-align: center; font-weight: 900; color: #15803d;">${wOurVotes.toLocaleString()} (${wOurPct}%)</td>
-            <td style="padding: 10px 12px; text-align: center; font-weight: 800; color: ${isWin ? '#16a34a' : '#dc2626'};">
-              ${isWin ? '+' + wMargin.toLocaleString() : wMargin.toLocaleString()}
+            <td style="padding: 10px 12px; font-weight: 700; color: #1e3a8a;">${r.voters.toLocaleString()}</td>
+            <td style="padding: 10px 12px; text-align: center;">${r.turnout.toLocaleString()} (${r.turnoutPct}%)</td>
+            <td style="padding: 10px 12px; text-align: center; color: #b91c1c;">${r.badar.toLocaleString()} (${r.badarPct}%)</td>
+            <td style="padding: 10px 12px; text-align: center; font-weight: 700; color: #166534;">${r.valid.toLocaleString()}</td>
+            <td style="padding: 10px 12px; text-align: center; font-weight: 900; color: #15803d;">${r.ourVotes.toLocaleString()} (${r.ourPct}%)</td>
+            <td style="padding: 10px 12px; text-align: center; font-weight: 800; color: #c2410c;">${r.topRivalVotes.toLocaleString()} (${r.topRivalPct}%)</td>
+            <td style="padding: 10px 12px; text-align: center; font-weight: 800; color: ${r.isWin ? '#16a34a' : (r.isTie ? '#854d0e' : '#dc2626')};">
+              ${r.isWin ? '+' + r.margin.toLocaleString() : r.margin.toLocaleString()}
             </td>
             <td style="padding: 10px 12px; text-align: center;">
-              <span class="badge" style="background: ${isWin ? '#dcfce7' : '#fee2e2'}; color: ${isWin ? '#166534' : '#991b1b'}; font-weight: 800;">
-                ${isWin ? '🟢 सुरक्षित' : '🔴 प्रतिस्पर्धा'}
+              <span class="badge" style="background: ${r.isWin ? '#dcfce7' : (r.isTie ? '#fefce8' : '#fee2e2')}; color: ${r.isWin ? '#166534' : (r.isTie ? '#854d0e' : '#991b1b')}; font-weight: 800;">
+                ${r.isWin ? '🟢 सुरक्षित जित' : (r.isTie ? '🟡 बराबरी' : '🔴 प्रतिस्पर्धा')}
               </span>
             </td>
           </tr>
-        `;
-      }).join('');
+        `).join('');
+      }
     }
-
-    function renderWarRoomLiveTimeline(cand) {
+function renderWarRoomLiveTimeline(cand) {
       const container = document.getElementById('warRoomLiveTimelineContainer');
       if (!container) return;
 
