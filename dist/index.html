@@ -17183,42 +17183,141 @@ async function saveQuickCreatedTole(e) {
       if (!state.candidates || !Array.isArray(state.candidates)) state.candidates = [];
       const partyCode = normalizePartyCode(tenant.Party || 'NC');
       const pInfo = PARTY_PALETTES[partyCode] || PARTY_PALETTES.NC;
-      const existingForTenant = state.candidates.filter(c => c.TenantID === tenant.TenantID);
+      const tId = tenant.TenantID;
+      const isHelambu = (tId === 'TNT_MVF9LYO3' || tId === 'TNT_HELAMBU');
+      const isGokarna = (tId === 'TNT_MVG3WXFX' || tId === 'TNT_GOKARNA');
+      const palikaLabel = tenant.PalikaName || (isHelambu ? 'हेलम्बु गाउँपालिका' : 'गोकर्णेश्वर नगरपालिका');
+      const isMun = palikaLabel.includes('नगरपालिका') || palikaLabel.includes('महानगरपालिका') || palikaLabel.includes('उपमहानगरपालिका');
+
+      // Check if tenant candidates already exist
+      const existingForTenant = state.candidates.filter(c => c.TenantID === tId);
       if (existingForTenant.length > 0) {
         existingForTenant.forEach(c => {
           c.Party = pInfo.name;
           c.Symbol = pInfo.symbol;
         });
-      } else {
-        const palikaLabel = tenant.PalikaName || 'पालिका';
-        state.candidates.push(
+        return;
+      }
+
+      // Generate complete, localized candidate slate for this tenant
+      const newSlate = [];
+      if (isGokarna) {
+        // Gokarneshwor Municipality (37,759 voters, 9 wards)
+        newSlate.push(
           {
-            CandidateID: 'CND_' + tenant.TenantID + '_01',
+            CandidateID: 'CND_' + tId + '_01',
+            Name: `दीपक कुमार रिसाल (Deepak K. Risal)`,
+            Post: 'पालिका प्रमुख / मेयर (Mayor)',
+            Level: 'स्थानीय तह (Local Level)',
+            Ward: 'All',
+            Party: pInfo.name,
+            Symbol: pInfo.symbol,
+            PIN: '2026',
+            Phone: tenant.Phone || '9851011111',
+            TargetVotes: 13500,
+            Slogan: 'समृद्ध गोकर्णेश्वर नगर, सुशासन, हरित पूर्वाधार र जनमुखी विकास - हाम्रो अटल संकल्प!',
+            TenantID: tId
+          },
+          {
+            CandidateID: 'CND_' + tId + '_02',
+            Name: `शान्ति नेपाल (Shanti Nepal)`,
+            Post: 'पालिका उपप्रमुख / उपमेयर (Deputy Mayor)',
+            Level: 'स्थानीय तह (Local Level)',
+            Ward: 'All',
+            Party: pInfo.name,
+            Symbol: pInfo.symbol,
+            PIN: '2027',
+            Phone: tenant.Phone || '9851022222',
+            TargetVotes: 13200,
+            Slogan: 'महिला सशक्तीकरण, सामाजिक न्याय र सभ्य नगर निर्माण!',
+            TenantID: tId
+          },
+          { CandidateID: 'CND_' + tId + '_W01', Name: 'जयराम महत (Jayaram Mahat)', Post: 'वडा अध्यक्ष (वडा १)', Level: 'वडा तह', Ward: '1', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1001', Phone: '9841001001', TargetVotes: 1400, TenantID: tId },
+          { CandidateID: 'CND_' + tId + '_W02', Name: 'सुरेन्द्र श्रेष्ठ (Surendra Shrestha)', Post: 'वडा अध्यक्ष (वडा २)', Level: 'वडा तह', Ward: '2', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1002', Phone: '9841001002', TargetVotes: 1200, TenantID: tId },
+          { CandidateID: 'CND_' + tId + '_W03', Name: 'मुरारी प्रसाद कुइँकेल (Murari Kuinkel)', Post: 'वडा अध्यक्ष (वडा ३)', Level: 'वडा तह', Ward: '3', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1003', Phone: '9841001003', TargetVotes: 1750, TenantID: tId },
+          { CandidateID: 'CND_' + tId + '_W04', Name: 'कुमार श्रेष्ठ (Kumar Shrestha)', Post: 'वडा अध्यक्ष (वडा ४)', Level: 'वडा तह', Ward: '4', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1004', Phone: '9841001004', TargetVotes: 1800, TenantID: tId },
+          { CandidateID: 'CND_' + tId + '_W05', Name: 'नारायण सुवेदी (Narayan Subedi)', Post: 'वडा अध्यक्ष (वडा ५)', Level: 'वडा तह', Ward: '5', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1005', Phone: '9841001005', TargetVotes: 2400, TenantID: tId },
+          { CandidateID: 'CND_' + tId + '_W06', Name: 'नवराज लामा (Nawaraj Lama)', Post: 'वडा अध्यक्ष (वडा ६)', Level: 'वडा तह', Ward: '6', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1006', Phone: '9841001006', TargetVotes: 2300, TenantID: tId },
+          { CandidateID: 'CND_' + tId + '_W07', Name: 'केशव गुरुङ (Keshav Gurung)', Post: 'वडा अध्यक्ष (वडा ७)', Level: 'वडा तह', Ward: '7', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1007', Phone: '9841001007', TargetVotes: 600, TenantID: tId },
+          { CandidateID: 'CND_' + tId + '_W08', Name: 'नन्दलाल श्रेष्ठ (Nandalal Shrestha)', Post: 'वडा अध्यक्ष (वडा ८)', Level: 'वडा तह', Ward: '8', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1008', Phone: '9841001008', TargetVotes: 2100, TenantID: tId },
+          { CandidateID: 'CND_' + tId + '_W09', Name: 'राजेन्द्र भण्डारी (Rajendra Bhandari)', Post: 'वडा अध्यक्ष (वडा ९)', Level: 'वडा तह', Ward: '9', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1009', Phone: '9841001009', TargetVotes: 800, TenantID: tId }
+        );
+      } else if (isHelambu) {
+        // Helambu Rural Municipality (18,907 voters, 7 wards)
+        newSlate.push(
+          {
+            CandidateID: 'CND_' + tId + '_01',
+            Name: `निमा ग्याल्जेन शेर्पा (Nima G. Sherpa)`,
+            Post: 'पालिका अध्यक्ष (Chairperson)',
+            Level: 'स्थानीय तह (Local Level)',
+            Ward: 'All',
+            Party: pInfo.name,
+            Symbol: pInfo.symbol,
+            PIN: '2026',
+            Phone: tenant.Phone || '9851011111',
+            TargetVotes: 5800,
+            Slogan: 'समृद्ध हेलम्बु, पर्यटन, कृषि, दिगो पूर्वाधार र सुशासन - हाम्रो अटल संकल्प!',
+            TenantID: tId
+          },
+          {
+            CandidateID: 'CND_' + tId + '_02',
+            Name: `अप्सरा लामिछाने (Apsara Lamichhane)`,
+            Post: 'पालिका उपाध्यक्ष (Vice Chairperson)',
+            Level: 'स्थानीय तह (Local Level)',
+            Ward: 'All',
+            Party: pInfo.name,
+            Symbol: pInfo.symbol,
+            PIN: '2027',
+            Phone: tenant.Phone || '9851022222',
+            TargetVotes: 5600,
+            Slogan: 'समावेशी विकास, गुणस्तरीय शिक्षा र आत्मनिर्भर महिला!',
+            TenantID: tId
+          },
+          { CandidateID: 'CND_' + tId + '_W01', Name: 'दावा जाङ्बु शेर्पा', Post: 'वडा अध्यक्ष (वडा १, मेलम्चीघ्याङ)', Level: 'वडा तह', Ward: '1', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1001', Phone: '9841101001', TargetVotes: 950, TenantID: tId },
+          { CandidateID: 'CND_' + tId + '_W02', Name: 'छिरिङ ग्याल्पो लामा', Post: 'वडा अध्यक्ष (वडा २, सेर्माथाङ)', Level: 'वडा तह', Ward: '2', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1002', Phone: '9841101002', TargetVotes: 800, TenantID: tId },
+          { CandidateID: 'CND_' + tId + '_W03', Name: 'शम्भु प्रसाद भट्टराई', Post: 'वडा अध्यक्ष (वडा ३, पाल्चोक)', Level: 'वडा तह', Ward: '3', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1003', Phone: '9841101003', TargetVotes: 1000, TenantID: tId },
+          { CandidateID: 'CND_' + tId + '_W04', Name: 'राम बहादुर तामाङ', Post: 'वडा अध्यक्ष (वडा ४, तिम्बु)', Level: 'वडा तह', Ward: '4', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1004', Phone: '9841101004', TargetVotes: 900, TenantID: tId },
+          { CandidateID: 'CND_' + tId + '_W05', Name: 'राजेश लामा', Post: 'वडा अध्यक्ष (वडा ५, महाँकाल)', Level: 'वडा तह', Ward: '5', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1005', Phone: '9841101005', TargetVotes: 1050, TenantID: tId },
+          { CandidateID: 'CND_' + tId + '_W06', Name: 'सुकमान तामाङ', Post: 'वडा अध्यक्ष (वडा ६, इचोक)', Level: 'वडा तह', Ward: '6', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1006', Phone: '9841101006', TargetVotes: 920, TenantID: tId },
+          { CandidateID: 'CND_' + tId + '_W07', Name: 'गोपाल भण्डारी', Post: 'वडा अध्यक्ष (वडा ७, किउल)', Level: 'वडा तह', Ward: '7', Party: pInfo.name, Symbol: pInfo.symbol, PIN: '1007', Phone: '9841101007', TargetVotes: 750, TenantID: tId }
+        );
+      } else {
+        // Generic Palika
+        const postMayor = isMun ? 'पालिका प्रमुख / मेयर (Mayor)' : 'पालिका अध्यक्ष (Chairperson)';
+        const postDeputy = isMun ? 'पालिका उपप्रमुख / उपमेयर (Deputy Mayor)' : 'पालिका उपाध्यक्ष (Vice Chairperson)';
+        newSlate.push(
+          {
+            CandidateID: 'CND_' + tId + '_01',
             Name: `${palikaLabel} प्रमुख उम्मेदवार (${pInfo.name})`,
-            Post: 'पालिका प्रमुख / अध्यक्ष (Mayor/Chair)',
+            Post: postMayor,
             Level: 'स्थानीय तह (Local Level)',
             Ward: 'All',
             Party: pInfo.name,
             Symbol: pInfo.symbol,
             PIN: '2026',
             Phone: tenant.Phone || '9851000000',
-            TargetVotes: 4500,
-            TenantID: tenant.TenantID
+            TargetVotes: 6000,
+            TenantID: tId
           },
           {
-            CandidateID: 'CND_' + tenant.TenantID + '_02',
+            CandidateID: 'CND_' + tId + '_02',
             Name: `${palikaLabel} उपप्रमुख उम्मेदवार (${pInfo.name})`,
-            Post: 'पालिका उपप्रमुख / उपाध्यक्ष (Deputy)',
+            Post: postDeputy,
             Level: 'स्थानीय तह (Local Level)',
             Ward: 'All',
             Party: pInfo.name,
             Symbol: pInfo.symbol,
             PIN: '2027',
             Phone: tenant.Phone || '9851000000',
-            TargetVotes: 4500,
-            TenantID: tenant.TenantID
+            TargetVotes: 5800,
+            TenantID: tId
           }
         );
+      }
+
+      state.candidates.push(...newSlate);
+      if (!state.selectedCandidateId || !state.candidates.some(c => c.CandidateID === state.selectedCandidateId && c.TenantID === tId)) {
+        state.selectedCandidateId = newSlate[0]?.CandidateID;
       }
     }
 
@@ -26197,6 +26296,21 @@ async function loadLiveHouseholdsPage() {
     // ==========================================
     // CANDIDATE CRUD MANAGEMENT (Admin Only)
     // ==========================================
+    function autoSuggestCandTargetVotes(wardVal) {
+      const targetInput = document.querySelector('input[name="TargetVotes"]');
+      if (!targetInput) return;
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+      const isHelambu = (activeTId === 'TNT_MVF9LYO3' || activeTId === 'TNT_HELAMBU');
+      const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(activeTId) : null;
+      if (wardVal === 'All') {
+        targetInput.value = isHelambu ? 5800 : 13500;
+      } else {
+        const wInfo = (s && s.wards) ? s.wards.find(w => String(w.ward) === String(wardVal)) : null;
+        const wCount = wInfo ? wInfo.count : (isHelambu ? 2500 : 4000);
+        targetInput.value = Math.round(wCount * 0.38);
+      }
+    }
+
     function openAddCandidateModal() {
       const palette = getActivePartyPalette();
       const wardNums = getActivePalikaWardNumbers();
@@ -27403,24 +27517,27 @@ async function loadLiveHouseholdsPage() {
     // Rich WhatsApp & Clipboard Share Message Generator (Ensures COMPLETE content)
     function getFullBrochureSharePayload(candId) {
       const pal = getActivePartyPalette();
-      const c = (state.candidates || []).find(x => x.CandidateID === candId) || 
-          (typeof getScopedCandidates === 'function' && getScopedCandidates()[0]) || 
-          (state.candidates && state.candidates[0]) || {
-            CandidateID: 'CND_001',
-            Name: 'राम बहादुर लामा (Ram B. Lama)',
-            Post: 'पालिका प्रमुख / मेयर (Mayor)',
-            Party: pal.name,
-            Symbol: pal.symbol,
-            Phone: '9851011111',
-            TargetVotes: 4800,
-            Slogan: 'समृद्ध हेलम्बु, सुशासन र जनमुखी विकास - हाम्रो अटल संकल्प!',
-            Appeal: `आदरणीय मतदाता आमाबुबा तथा दाजुभाइ-दिदीबहिनीहरूमा ${pal.symbol} चिन्हमा अमूल्य मतदान गरी विजयी गराउनुहुन विनम्र अपिल!`
-          };
-      const slogan = c.Slogan || 'समृद्ध हेलम्बु, सुशासन र जनमुखी विकास - हाम्रो अटल संकल्प!';
-      const appeal = c.Appeal || `आदरणीय मतदाता आमाबुबा तथा दाजुभाइ-दिदीबहिनीहरूमा ${c.Symbol || pal.symbol} चिन्हमा अमूल्य मतदान गरी विजयी गराउनुहुन विनम्र अपिल!`;
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+      const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+      const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+      const palikaName = (state.settings && state.settings.MUNICIPALITY) || (isHelambu ? 'हेलम्बु गाउँपालिका' : 'गोकर्णेश्वर नगरपालिका');
+
+      const scopedCandidates = getScopedCandidates();
+      const c = (scopedCandidates || []).find(x => x.CandidateID === candId) || scopedCandidates[0] || getSelectedCandidate();
+
+      const defaultSlogan = isHelambu
+        ? 'समृद्ध हेलम्बु, पर्यटन, कृषि, दिगो पूर्वाधार र सुशासन - हाम्रो अटल संकल्प!'
+        : 'समृद्ध गोकर्णेश्वर नगर, सुशासन, हरित पूर्वाधार र जनमुखी विकास - हाम्रो अटल संकल्प!';
+      const slogan = c.Slogan || defaultSlogan;
+
+      const defaultAppeal = `आदरणीय मतदाता आमाबुबा तथा दाजुभाइ-दिदीबहिनीहरूमा ${c.Symbol || pal.symbol} चिन्हमा अमूल्य मतदान गरी विजयी गराउनुहुन विनम्र अपिल!`;
+      const appeal = c.Appeal || defaultAppeal;
       const shareUrl = window.location.origin + window.location.pathname + '?brochure=' + encodeURIComponent(c.CandidateID);
 
-      const text = `🇳🇵 *हेलम्बु गाउँपालिका स्थानीय तह निर्वाचन २०८४*\n━━━━━━━━━━━━━━━━━━━━\n👤 *उम्मेदवार:* ${c.Name} (${c.Post})\n🗳️ *दल / चिन्ह:* ${c.Party || pal.name} - *${c.Symbol || pal.symbol}*\n📢 *मुख्य चुनावी नारा:* "${slogan}"\n\n📌 *हाम्रा प्रमुख ६ विकास तथा जनसेवा प्रतिबद्धताहरू:*\n१. 🏥 *स्वास्थ्य:* प्रत्येक वडामा १५ शय्याको प्राथमिक अस्पताल र निःशुल्क एम्बुलेन्स सेवा।\n२. 🎓 *शिक्षा:* स्मार्ट कक्षाकोठा, प्राविधिक शिक्षा र गरिब विद्यार्थीलाई पूर्ण छात्रवृत्ति।\n३. 🛣️ *सडक/पूर्वाधार:* सबै वडा र बस्ती जोड्ने बाह्रैमास चल्ने पक्की सडक सञ्जाल।\n४. 💧 *खानेपानी:* 'एक घर - एक धारा' अभियान र स्वच्छ पिउने पानीको ग्यारेन्टी।\n५. 🌾 *कृषि र पर्यटन:* हेलम्बु स्याउ तथा ट्राउट माछा प्रवर्द्धन र स्थानीय युवा स्वरोजगार कोष।\n६. ⚖️ *सुशासन:* डिजिटल वडा कार्यालय र भ्रष्टाचारमा शून्य सहनशीलता।\n\n💌 *उम्मेदवारको विनम्र अपिल:*\n"${appeal}"\n\n🌐 *डिजिटल ब्रोसर पूर्ण रूपमा हेर्न तलको लिङ्क खोल्नुहोस्:*\n${shareUrl}\n━━━━━━━━━━━━━━━━━━━━\n🏢 *केन्द्रीय निर्वाचन परिचालन कमिटी, हेलम्बु* | सम्पर्क: ${c.Phone || '9851011111'}`;
+      const pledges = (c.pledges && c.pledges.length) ? c.pledges : getTenantPledgesForCandidate(c, tenantId);
+      const pledgesText = pledges.map((p, i) => `${i + 1}. ${p.icon || '📌'} *${p.title}:* ${p.text}`).join('\n');
+
+      const text = `🇳🇵 *${palikaName} स्थानीय तह निर्वाचन २०८४*\n━━━━━━━━━━━━━━━━━━━━\n👤 *उम्मेदवार:* ${c.Name} (${c.Post})\n🗳️ *दल / चिन्ह:* ${c.Party || pal.name} - *${c.Symbol || pal.symbol}*\n📢 *मुख्य चुनावी नारा:* "${slogan}"\n\n📌 *हाम्रा प्रमुख ६ विकास तथा जनसेवा प्रतिबद्धताहरू:*\n${pledgesText}\n\n💌 *उम्मेदवारको विनम्र अपिल:*\n"${appeal}"\n\n🌐 *डिजिटल ब्रोसर पूर्ण रूपमा हेर्न तलको लिङ्क खोल्नुहोस्:*\n${shareUrl}\n━━━━━━━━━━━━━━━━━━━━\n🏢 *केन्द्रीय निर्वाचन परिचालन कमिटी, ${palikaName}* | सम्पर्क: ${c.Phone || '९८५१०१११११'}`;
 
       return { text, url: shareUrl };
     }
@@ -27445,27 +27562,51 @@ async function loadLiveHouseholdsPage() {
 
     function openCandidateProfileModal(candId) {
       const palette = getActivePartyPalette();
-      const cId = candId || state.selectedCandidateId || 'CND_001';
-      const c = (state.candidates || []).find(x => x.CandidateID === cId) || (state.candidates && state.candidates[0]) || {
-        CandidateID: 'CND_001',
-        Name: 'राम बहादुर लामा (Ram B. Lama)',
-        Post: 'पालिका प्रमुख / मेयर (Mayor)',
-        Party: palette.name,
-        Symbol: palette.symbol,
-        Phone: '9851011111',
-        TargetVotes: 4800
-      };
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+      const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+      const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+      const palikaName = (state.settings && state.settings.MUNICIPALITY) || (isHelambu ? 'हेलम्बु गाउँपालिका' : 'गोकर्णेश्वर नगरपालिका');
+      const districtName = isHelambu ? 'सिन्धुपाल्चोक' : 'काठमाडौँ';
 
-      if (!c.events) c.events = [...DEFAULT_CANDIDATE_EVENTS];
-      const slogan = c.Slogan || 'समृद्ध हेलम्बु, सुशासन र जनमुखी विकास - हाम्रो अटल संकल्प!';
-      const appeal = c.Appeal || `आदरणीय आमाबुबा, दाजुभाइ तथा दिदीबहिनीहरू! हेलम्बुको सर्वाङ्गीण विकास, युवाहरूको उज्ज्वल भविष्य र निष्पक्ष जनमुखी सुशासनका लागि आफ्नो अमूल्य मत ${esc(c.Symbol || palette.symbol)} चिन्हमा दिई मलाई भारी बहुमतले विजयी गराउनुहुन विनम्र अपिल गर्दछु।`;
-      const pledges = c.pledges || DEFAULT_PLEDGES;
+      const scopedCandidates = getScopedCandidates();
+      const cId = candId || state.selectedCandidateId;
+      const c = (scopedCandidates || []).find(x => x.CandidateID === cId) || scopedCandidates[0] || getSelectedCandidate();
 
-      // Winning Election Math
-      const scopedVotersForCand = (typeof getScopedVoters === 'function') ? getScopedVoters() : (state.voters || []);
-      const totalVotersCount = scopedVotersForCand.length;
-      const solidVotesCount = scopedVotersForCand.filter(v => (typeof getSupportTier === 'function' ? getSupportTier(v).key === 'solid' : (v.SupportTier === 'solid' || v.SupportLevel === 'Solid' || v.SelfReportedResponse === 'Support'))).length;
-      const targetVotes = c.TargetVotes || 4800;
+      // Ensure tenant-aware events & pledges
+      if (!c.events || !c.events.length) c.events = getTenantEventsForCandidate(c, tenantId);
+      const pledges = (c.pledges && c.pledges.length) ? c.pledges : getTenantPledgesForCandidate(c, tenantId);
+
+      const defaultSlogan = isHelambu
+        ? 'समृद्ध हेलम्बु, पर्यटन, कृषि, दिगो पूर्वाधार र सुशासन - हाम्रो अटल संकल्प!'
+        : 'समृद्ध गोकर्णेश्वर नगर, सुशासन, हरित पूर्वाधार र जनमुखी विकास - हाम्रो अटल संकल्प!';
+      const slogan = c.Slogan || defaultSlogan;
+
+      const defaultAppeal = `आदरणीय आमाबुबा, दाजुभाइ तथा दिदीबहिनीहरू! ${palikaName} ${c.Ward !== 'All' ? 'वडा नं. ' + c.Ward : ''} को सर्वाङ्गीण विकास, युवाहरूको उज्ज्वल भविष्य र निष्पक्ष जनमुखी सुशासनका लागि आफ्नो अमूल्य मत ${esc(c.Symbol || palette.symbol)} चिन्हमा दिई मलाई भारी बहुमतले विजयी गराउनुहुन विनम्र अपिल गर्दछु।`;
+      const appeal = c.Appeal || defaultAppeal;
+
+      // Real Winning Election Math from Tenant Demographics & War Room Simulation
+      const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
+      let totalVotersCount = 0;
+      if (c.Ward === 'All') {
+        totalVotersCount = (s && s.total_voters) || (isHelambu ? 18907 : 37759);
+      } else {
+        const wInfo = (s && s.wards) ? s.wards.find(w => String(w.ward) === String(c.Ward)) : null;
+        totalVotersCount = wInfo ? wInfo.count : Math.round(((s && s.total_voters) || (isHelambu ? 18907 : 37759)) / (isHelambu ? 7 : 9));
+      }
+
+      // Calculate Target Votes & Solid Votes accurately
+      const candPartyCode = normalizePartyCode(c.Party || 'NC');
+      let ourPct = 48;
+      if (c.Ward === 'All') {
+        ourPct = (_warRoomPartyShares && _warRoomPartyShares[candPartyCode] !== undefined) ? _warRoomPartyShares[candPartyCode] : 48;
+      } else {
+        const wShares = (_warRoomWardPartyShares && _warRoomWardPartyShares[c.Ward]) ? _warRoomWardPartyShares[c.Ward] : _warRoomPartyShares;
+        ourPct = (wShares && wShares[candPartyCode] !== undefined) ? wShares[candPartyCode] : 48;
+      }
+
+      const projectedTurnout = Math.round(totalVotersCount * 0.68);
+      const targetVotes = c.TargetVotes || Math.max(100, Math.round(projectedTurnout * 0.52));
+      const solidVotesCount = Math.round(projectedTurnout * (ourPct / 100));
       const progressPercent = Math.min(100, Math.round((solidVotesCount / targetVotes) * 100));
 
       const modalTitle = '🏛️ उम्मेदवार पूर्ण प्रोफाइल र डिजिटल कमान्ड';
@@ -27670,7 +27811,7 @@ async function loadLiveHouseholdsPage() {
                 🖨️ A4 प्रिन्ट / PDF डाउनलोड र डिजिटल सेयरिङ
               </div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button class="btn btn-primary" onclick="downloadElementAsPdf('printBrochureContainer', 'helambu_manifesto_${c.CandidateID}.pdf')" style="font-size: 12px; font-weight: 800; background: #4f46e5; border-color: #4338ca;">
+                <button class="btn btn-primary" onclick="downloadElementAsPdf('printBrochureContainer', '${tenantId.toLowerCase()}_brochure_${c.CandidateID}.pdf')" style="font-size: 12px; font-weight: 800; background: #4f46e5; border-color: #4338ca;">
                   📥 PDF डाउनलोड (फाइल डाउनलोड)
                 </button>
                 <button class="btn btn-secondary" onclick="window.print()" style="font-size: 12px; font-weight: 700;">
@@ -27750,7 +27891,7 @@ async function loadLiveHouseholdsPage() {
               <!-- Brochure Bottom Info & QR -->
               <div style="display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #e2e8f0; padding-top: 10px; font-size: 11.5px; color: #64748b; flex-wrap: wrap; gap: 8px;">
                 <div>
-                  <div><b>केन्द्रीय सम्पर्क कार्यालय:</b> हेलम्बु-५, सिन्धुपाल्चोक</div>
+                  <div><b>केन्द्रीय सम्पर्क कार्यालय:</b> ${esc(palikaName)} सम्पर्क सचिवालय, ${esc(districtName)}</div>
                   <div><b>उम्मेदवार सम्पर्क:</b> ${esc(c.Phone || '9851011111')}</div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -27951,28 +28092,22 @@ async function loadLiveHouseholdsPage() {
     // ==========================================================================
     function openEventInvitationCardModal(candId, eventId) {
       const palette = getActivePartyPalette();
-      const c = (state.candidates || []).find(x => x.CandidateID === candId) || (state.candidates && state.candidates[0]) || {
-        CandidateID: 'CND_001',
-        Name: 'राम बहादुर लामा',
-        Post: 'पालिका प्रमुख / मेयर',
-        Party: palette.name,
-        Symbol: palette.symbol,
-        Phone: '९८५१०१११११',
-        Slogan: 'समृद्ध हेलम्बु, सुशासन र जनमुखी विकास - हाम्रो संकल्प!'
-      };
-      const ev = (c.events || []).find(x => x.id === eventId) || (c.events && c.events[0]) || {
-        id: 'EV_DEF',
-        title: 'बृहत् चुनावी सभा तथा कार्यकर्ता संवाद',
-        venue: 'चनौटे बजार, वडा नं १',
-        date: '२०८४/०१/१५',
-        time: 'बिहान ११:०० बजे',
-        type: 'चुनावी सभा',
-        speaker: c.Name,
-        attendees: '५००+ नागरिक'
-      };
-
-      const municipality = state.settings.MUNICIPALITY || 'हेलम्बु गाउँपालिका';
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+      const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+      const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+      const municipality = (state.settings && state.settings.MUNICIPALITY) || (isHelambu ? 'हेलम्बु गाउँपालिका' : 'गोकर्णेश्वर नगरपालिका');
       const year = '२०८४';
+
+      const scopedCandidates = getScopedCandidates();
+      const c = (scopedCandidates || []).find(x => x.CandidateID === candId) || scopedCandidates[0] || getSelectedCandidate();
+
+      if (!c.events || !c.events.length) c.events = getTenantEventsForCandidate(c, tenantId);
+      const ev = (c.events || []).find(x => x.id === eventId) || c.events[0];
+
+      const defaultSlogan = isHelambu
+        ? 'समृद्ध हेलम्बु, पर्यटन, कृषि, दिगो पूर्वाधार र सुशासन - हाम्रो संकल्प!'
+        : 'समृद्ध गोकर्णेश्वर नगर, सुशासन, हरित पूर्वाधार र जनमुखी विकास - हाम्रो संकल्प!';
+      const slogan = c.Slogan || defaultSlogan;
 
       const cardHtml = `
         <div class="event-card-container">
@@ -28031,7 +28166,7 @@ async function loadLiveHouseholdsPage() {
 
             <!-- Slogan & Appeal -->
             <div style="background: #fffbeb; border: 1px dashed #f59e0b; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; font-weight: 800; color: #92400e;">
-              ✊ "${esc(c.Slogan || 'समृद्ध हेलम्बु, सुशासन र जनमुखी विकास - हाम्रो संकल्प!')}"
+              ✊ "${esc(slogan)}"
             </div>
 
             <!-- Footer -->
@@ -28059,13 +28194,23 @@ async function loadLiveHouseholdsPage() {
     }
 
     function shareEventWhatsApp(candId, eventId) {
-      const c = (state.candidates || []).find(x => x.CandidateID === candId) || (state.candidates && state.candidates[0]);
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+      const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+      const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+      const municipality = (state.settings && state.settings.MUNICIPALITY) || (isHelambu ? 'हेलम्बु गाउँपालिका' : 'गोकर्णेश्वर नगरपालिका');
+
+      const scopedCandidates = getScopedCandidates();
+      const c = (scopedCandidates || []).find(x => x.CandidateID === candId) || scopedCandidates[0] || getSelectedCandidate();
       if (!c) return;
-      const ev = (c.events || []).find(x => x.id === eventId) || (c.events && c.events[0]);
+
+      if (!c.events || !c.events.length) c.events = getTenantEventsForCandidate(c, tenantId);
+      const ev = (c.events || []).find(x => x.id === eventId) || c.events[0];
       if (!ev) return;
-      const municipality = state.settings.MUNICIPALITY || 'हेलम्बु गाउँपालिका';
 
       const pal = getActivePartyPalette();
+      const defaultSlogan = isHelambu ? 'समृद्ध हेलम्बु, हाम्रो संकल्प!' : 'समृद्ध गोकर्णेश्वर नगर, हाम्रो संकल्प!';
+      const slogan = c.Slogan || defaultSlogan;
+
       const text = `🌸 *हार्दिक निमन्त्रणा! (E-Invitation)* 🌸\n` +
         `🇳🇵 *${municipality} - स्थानीय तह निर्वाचन २०८४*\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -28076,8 +28221,8 @@ async function loadLiveHouseholdsPage() {
         `📍 *स्थान:* ${ev.venue}\n` +
         `🎙️ *प्रमुख वक्ता:* ${ev.speaker || c.Name}\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
-        `✊ *"समृद्ध गाउँपालिका, हाम्रो संकल्प!"*\n` +
-        `सम्पर्क: ${c.Phone || '९८५१०१११११'} | निर्वाचन परिचालन समिति`;
+        `✊ *"${slogan}"*\n` +
+        `सम्पर्क: ${c.Phone || '९८५१०१११११'} | निर्वाचन परिचालन समिति, ${municipality}`;
 
       const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
       window.open(url, '_blank');
@@ -35990,25 +36135,20 @@ function renderElectionDayStrikeSheet() {
     function getScopedCandidates() {
       if (!state.candidates || !Array.isArray(state.candidates)) state.candidates = [];
       const activePal = getActivePartyPalette();
-      const activeTenantId = (currentUser && currentUser.TenantID) || (state.tenants && state.tenants[0] && state.tenants[0].TenantID) || 'TNT_HELAMBU';
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+      const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+
+      // Ensure active tenant has its full localized party candidates seeded
+      const activeTenantObj = (state.tenants || []).find(t => t.TenantID === tenantId) || { TenantID: tenantId };
+      ensureTenantPartyCandidates(activeTenantObj);
 
       if (currentUser && currentUser.Role === 'Super Admin' && currentUser.TenantID === 'ALL') {
         return state.candidates;
       }
 
-      // Ensure active tenant has its own party candidates seeded
-      if (activeTenantId && activeTenantId !== 'ALL') {
-        const activeTenantObj = (state.tenants || []).find(t => t.TenantID === activeTenantId);
-        if (activeTenantObj) {
-          ensureTenantPartyCandidates(activeTenantObj);
-        }
-      }
-
       return state.candidates.filter(c => {
-        const matchesTenant = (c.TenantID === activeTenantId) || (!c.TenantID && activeTenantId === 'TNT_HELAMBU') || c.TenantID === 'ALL';
-        const cPartyCode = normalizePartyCode(c.PartyCode || c.Party || 'NC');
-        const matchesParty = (cPartyCode === activePal.id);
-        return matchesTenant && matchesParty;
+        const matchesTenant = (c.TenantID === tenantId) || (!c.TenantID && (tenantId === 'TNT_HELAMBU' || tenantId === 'TNT_MVF9LYO3')) || c.TenantID === 'ALL';
+        return matchesTenant;
       });
     }
 
