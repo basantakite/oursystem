@@ -4915,12 +4915,26 @@
                 <button type="button" class="btn btn-sm" style="background: #fffbeb; color: #92400e; border: 1px solid #fde68a; font-weight: 800;" onclick="sanitizeCorruptedHouseholdsAndLinks(false)" title="गलत वा धेरै संख्या (700+ जना) जोडिएका पुराना Household ID सफा गरी वास्तविक परिवार मात्र राख्नुहोस्">
                   🧹 गलत/ठूलो Household सफा र रिसेट
                 </button>
-                <button type="button" class="btn btn-sm" style="background: #2563eb; color: white; border: 1px solid #1d4ed8; font-weight: 800;" onclick="openTolesDirectoryModal()" title="टोलहरूको सूची र प्रोफाइल हेर्नुहोस्">
-                  🏘️ टोल व्यवस्थापन तथा कमान्ड हब (Toles Directory)
+                                <button type="button" class="btn btn-sm" style="background: #2563eb; color: white; border: 1px solid #1d4ed8; font-weight: 800;" onclick="switchHouseholdSubTab('toleHub')" title="टोल कमान्ड सेन्टर र पूर्ण प्रोफाइल खोल्नुहोस्">
+                  🏘️ टोल कमान्ड सेन्टर तथा प्रोफाइल हब
                 </button>
               </div>
             </div>
           </div>
+
+          <!-- SUB-NAVIGATION TABS: DIRECTORY VS FULL TOLE COMMAND CENTER -->
+          <div style="display: flex; gap: 10px; margin-bottom: 16px; border-bottom: 2px solid #cbd5e1; padding-bottom: 10px; flex-wrap: wrap;">
+            <button type="button" id="hhSubTab_directory" class="btn" style="background: #1e3a6e; color: white; font-weight: 800; font-size: 13.5px; padding: 10px 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(30,58,110,0.3); border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;" onclick="switchHouseholdSubTab('directory')">
+              <span>🏠</span> १. घरधुरी निर्देशिका तथा बल्क टोल आबद्धता
+            </button>
+            <button type="button" id="hhSubTab_toleHub" class="btn" style="background: #ffffff; color: #334155; font-weight: 800; font-size: 13.5px; padding: 10px 20px; border-radius: 8px; border: 1.5px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; gap: 8px;" onclick="switchHouseholdSubTab('toleHub')">
+              <span>🏘️</span> २. टोल कमान्ड सेन्टर तथा पूर्ण प्रोफाइल (Tole Command Center & Full Profiles)
+              <span id="hhToleCountBadge" class="badge" style="background: #3b82f6; color: white; margin-left: 4px; font-size: 11px;">0</span>
+            </button>
+          </div>
+
+          <!-- PANE 1: HOUSEHOLDS DIRECTORY -->
+          <div id="hhPane_directory">
 
           <!-- 4 Household KPI Summary Cards -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;" id="householdsKpiStrip">
@@ -5005,7 +5019,10 @@
                 <span style="font-size: 11.5px; color: #475569;">💡 घरधुरीहरू टिक (☑️) लगाएर एकैपटक टोलमा आबद्ध गर्नुहोस् वा सिधै तालिकाको <b>टोल (Tole)</b> कोलममा टाइप गर्नुहोस्।</span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <input type="text" id="hhBulkToleInput" list="hhExistingTolesDatalist" class="form-control" style="width: 210px; min-height: 32px; padding: 4px 10px; font-size: 12.5px; font-weight: 700; border-color: #3b82f6;" placeholder="🏘️ टोलको नाम लेख्नुहोस् वा छान्नुहोस्...">
+                <select id="hhSelectExistingToleDropdown" class="form-control" style="width: 190px; min-height: 34px; padding: 4px 8px; font-size: 12.5px; font-weight: 700; border-color: #3b82f6;" onchange="onSelectExistingToleDropdown(this.value)">
+                  <option value="">-- मौजुदा टोल छान्नुहोस् --</option>
+                </select>
+                <input type="text" id="hhBulkToleInput" list="hhExistingTolesDatalist" class="form-control" style="width: 190px; min-height: 34px; padding: 4px 10px; font-size: 12.5px; font-weight: 700; border-color: #3b82f6;" placeholder="वा नयाँ टोल लेख्नुहोस्...">
                 <datalist id="hhExistingTolesDatalist"></datalist>
                 <button type="button" class="btn btn-sm btn-primary" style="background: #1d4ed8; font-weight: 800; padding: 6px 12px;" onclick="assignSelectedHouseholdsToTole()">
                   🏘️ छानिएका घरधुरीलाई टोलमा राख्नुहोस्
@@ -5043,7 +5060,86 @@
             <div id="householdCardsContainer" class="cards-grid" style="display: none; padding: 4px 0;"></div>
 
             <div id="householdPaginationBottom" class="voter-pagination-bar"></div>
+            </div>
           </div>
+          <!-- END PANE 1: HOUSEHOLDS DIRECTORY -->
+
+          <!-- PANE 2: FULL TOLE COMMAND CENTER & PROFILES (DEDICATED FULL SECTION) -->
+          <div id="hhPane_toleHub" style="display: none;">
+            <!-- Top KPI Strip for Toles -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 16px;">
+              <div class="card" style="padding: 14px 16px; border-left: 4px solid #1e3a6e; margin: 0;">
+                <div style="font-size: 11.5px; font-weight: 700; color: #64748b;">🏘️ कुल टोल संख्या (Total Toles)</div>
+                <div style="font-size: 22px; font-weight: 900; color: #0f172a; margin-top: 2px;" id="toleKpiTotalCount">0</div>
+                <div style="font-size: 11px; color: #1e3a6e; font-weight: 700;" id="toleKpiActiveWards">० वडामा क्रियाशील</div>
+              </div>
+              <div class="card" style="padding: 14px 16px; border-left: 4px solid #16a34a; margin: 0;">
+                <div style="font-size: 11.5px; font-weight: 700; color: #64748b;">👥 टोलमा आबद्ध मतदाता (Assigned Voters)</div>
+                <div style="font-size: 22px; font-weight: 900; color: #15803d; margin-top: 2px;" id="toleKpiAssignedVoters">0</div>
+                <div style="font-size: 11px; color: #166534; font-weight: 700;" id="toleKpiAssignedPct">कुलको ०% टोलमा आबद्ध</div>
+              </div>
+              <div class="card" style="padding: 14px 16px; border-left: 4px solid #f59e0b; margin: 0;">
+                <div style="font-size: 11.5px; font-weight: 700; color: #64748b;">⚪ बाँकी टोल नतोकिएका (Unassigned)</div>
+                <div style="font-size: 22px; font-weight: 900; color: #b45309; margin-top: 2px;" id="toleKpiUnassignedVoters">0</div>
+                <div style="font-size: 11px; color: #92400e; font-weight: 700; cursor: pointer; text-decoration: underline;" onclick="switchHouseholdSubTab('directory'); document.getElementById('householdUnassignedOnlyChk').checked = true; renderHouseholdsList();">👉 १-क्लिकमा घरधुरी आबद्ध गर्नुहोस्</div>
+              </div>
+              <div class="card" style="padding: 14px 16px; border-left: 4px solid #2563eb; margin: 0;">
+                <div style="font-size: 11.5px; font-weight: 700; color: #64748b;">📞 सक्रिय टोल संयोजक (Field Coordinators)</div>
+                <div style="font-size: 22px; font-weight: 900; color: #1d4ed8; margin-top: 2px;" id="toleKpiTotalLeads">0</div>
+                <div style="font-size: 11px; color: #2563eb; font-weight: 700;" id="toleKpiDemandsRecorded">० स्थानीय माग दर्ता</div>
+              </div>
+            </div>
+
+            <!-- Toles Filter & Quick Actions Bar -->
+            <div class="card" style="padding: 12px 16px; margin-bottom: 16px; background: #f8fafc; border: 1.5px solid #e2e8f0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <span style="font-size: 13px; font-weight: 800; color: #1e3a6e;">🔍 टोल फिल्टर:</span>
+                  <select id="toleHubWardFilter" class="form-control" style="width: 140px; min-height: 34px; padding: 4px 8px; font-size: 12.5px; font-weight: 800;" onchange="renderToleCommandCenter()">
+                    <option value="">सबै वडा (All)</option>
+                    <option value="1">वडा नं १</option>
+                    <option value="2">वडा नं २</option>
+                    <option value="3">वडा नं ३</option>
+                    <option value="4">वडा नं ४</option>
+                    <option value="5">वडा नं ५</option>
+                    <option value="6">वडा नं ६</option>
+                    <option value="7">वडा नं ७</option>
+                    <option value="8">वडा नं ८</option>
+                    <option value="9">वडा नं ९</option>
+                  </select>
+                  <input type="text" id="toleHubSearchInput" class="form-control" style="width: 230px; min-height: 34px; padding: 4px 10px; font-size: 12.5px;" placeholder="🔍 टोलको नाम वा संयोजक खोज्नुहोस्..." oninput="filterToleCardsInDirectory()">
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-sm btn-primary" style="background: #16a34a; border-color: #22c55e; font-weight: 800; padding: 7px 16px;" onclick="openQuickCreateToleFromHouseholdsModal()">
+                    ➕ नयाँ टोल सिर्जना विजार्ड (1-2-3 Step)
+                  </button>
+                  <button type="button" class="btn btn-sm btn-secondary" style="font-weight: 700; padding: 7px 12px;" onclick="renderToleCommandCenter()">
+                    🔄 रिफ्रेस गर्नुहोस्
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Master-Detail 2-Column Split: Left Tole Cards List & Right Full Interactive Profile Dashboard -->
+            <div style="display: grid; grid-template-columns: 340px 1fr; gap: 16px; align-items: start;" id="toleCommandCenterSplitLayout">
+              <!-- Left Column: Tole Cards Directory -->
+              <div class="card" style="padding: 14px; margin: 0; min-height: 550px; max-height: calc(100vh - 200px); display: flex; flex-direction: column;">
+                <div style="font-size: 13px; font-weight: 800; color: #1e3a6e; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 8px;">
+                  <span>🏘️ टोलहरूको सूची (<span id="toleCardsCountBadge">0</span>)</span>
+                  <button type="button" class="btn btn-xs btn-primary" onclick="openQuickCreateToleFromHouseholdsModal()" style="font-size: 11px; padding: 3px 8px; font-weight: 800;">+ नयाँ टोल</button>
+                </div>
+                <div id="toleCardsListContainer" style="overflow-y: auto; display: flex; flex-direction: column; gap: 8px; flex: 1; padding-right: 2px;">
+                  <!-- Tole items rendered here -->
+                </div>
+              </div>
+
+              <!-- Right Column: Full 4-Tab Tole Command Dashboard -->
+              <div id="toleMainProfilePane" class="card" style="padding: 20px; margin: 0; min-height: 550px;">
+                <!-- Populated dynamically by renderToleFullProfileDashboard(toleName) -->
+              </div>
+            </div>
+          </div>
+          <!-- END PANE 2: FULL TOLE COMMAND CENTER -->
         </section>
 
         <!-- 3B. COMMUNITY GROUPS & LEADERSHIP NETWORKS (सामुदायिक संघ-संस्था तथा समूह) -->
@@ -6208,6 +6304,9 @@
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <button type="button" class="btn btn-sm" style="background: #16a34a; color: white; border: 1px solid #22c55e; font-weight: 800;" onclick="openBulkAssignAreaLocationModal()">
                   ⚡ १-क्लिक बल्क टोल / लोकेसन असाइन
+                </button>
+                <button type="button" class="btn btn-sm" style="background: #2563eb; color: white; border: 1px solid #1d4ed8; font-weight: 800;" onclick="openToleProfile('', 1)">
+                  🏘️ टोल कमान्ड सेन्टर तथा प्रोफाइल
                 </button>
                 <button type="button" class="btn btn-sm" style="background: rgba(255,255,255,0.14); color: white; border: 1px solid rgba(255,255,255,0.3); font-weight: 700;" onclick="openAddToleModal()">
                   ➕ नयाँ टोल
@@ -13830,21 +13929,73 @@
     }
 
     function toggleSelectAllHouseholdsOnPage(checked) {
-      if (!window.selectedHouseholdIds) window.selectedHouseholdIds = new Set();
-      document.querySelectorAll('.hh-row-select-chk').forEach(chk => {
+      document.querySelectorAll('.hh-row-checkbox').forEach(chk => {
         chk.checked = checked;
-        const id = chk.getAttribute('data-hhid');
-        if (id) {
-          if (checked) window.selectedHouseholdIds.add(id);
-          else window.selectedHouseholdIds.delete(id);
-        }
       });
       updateHouseholdSelectedCountUI();
     }
 
+    function onHouseholdCheckboxChange() {
+      updateHouseholdSelectedCountUI();
+    }
+
     function updateHouseholdSelectedCountUI() {
+      const checkedBoxes = document.querySelectorAll('.hh-row-checkbox:checked');
+      const count = checkedBoxes ? checkedBoxes.length : 0;
       const badge = document.getElementById('hhSelectedCountBadge');
-      if (badge) badge.textContent = window.selectedHouseholdIds ? window.selectedHouseholdIds.size : 0;
+      if (badge) badge.textContent = count;
+      const selectAllChk = document.getElementById('hhSelectAllPageChk');
+      const allBoxes = document.querySelectorAll('.hh-row-checkbox');
+      if (selectAllChk && allBoxes.length > 0) {
+        selectAllChk.checked = (count === allBoxes.length);
+      }
+    }
+
+    function onSelectExistingToleDropdown(val) {
+      const toleInput = document.getElementById('hhBulkToleInput');
+      if (toleInput && val) {
+        toleInput.value = val;
+      }
+    }
+
+    async function populateExistingTolesDropdown() {
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+      const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+      const profiles = await getTenantToleProfiles(tenantId);
+      const toleKeys = Object.keys(profiles).sort();
+
+      // Update bulk assign dropdown
+      const sel = document.getElementById('hhSelectExistingToleDropdown');
+      if (sel) {
+        const curVal = sel.value;
+        let optHtml = '<option value="">-- मौजुदा टोल छान्नुहोस् --</option>';
+        toleKeys.forEach(k => {
+          const p = profiles[k];
+          const wLabel = p && p.ward ? ` (वडा ${p.ward})` : '';
+          optHtml += `<option value="${esc(k)}">${esc(k)}${wLabel}</option>`;
+        });
+        sel.innerHTML = optHtml;
+        if (curVal && toleKeys.includes(curVal)) sel.value = curVal;
+      }
+
+      // Update directory tole filter
+      const fSel = document.getElementById('householdToleFilter');
+      if (fSel) {
+        const curFVal = fSel.value;
+        let fOptHtml = '<option value="">सबै टोल (All Toles)</option>';
+        toleKeys.forEach(k => {
+          fOptHtml += `<option value="${esc(k)}">🏘️ ${esc(k)}</option>`;
+        });
+        fSel.innerHTML = fOptHtml;
+        if (curFVal && toleKeys.includes(curFVal)) fSel.value = curFVal;
+      }
+
+      // Update tole count badges
+      const countBadges = ['hhToleCountBadge', 'toleCardsCountBadge', 'toleKpiTotalCount'];
+      countBadges.forEach(bId => {
+        const el = document.getElementById(bId);
+        if (el) el.textContent = toleKeys.length;
+      });
     }
 
     function ensureToleAreaRecordExists(wardNo, toleName, boothNo = 'A') {
@@ -13986,22 +14137,29 @@ async function assignSelectedHouseholdsToTole() {
   showToast('⏳ टोल आबद्ध गरिँदैछ...', 'info');
 
   try {
-    // 1. Update voters in Supabase in batches of 50
-    const chunkSize = 50;
+    // 1. Update voters in Supabase in batches of 40 with tenant_id filter
+    const chunkSize = 40;
     for (let i = 0; i < allVoterIds.length; i += chunkSize) {
       const chunk = allVoterIds.slice(i, i + chunkSize);
       const encodedIds = chunk.map(id => encodeURIComponent(id)).join(',');
-      await fetch(`${url}/rest/v1/voters?voter_id=in.(${encodedIds})`, {
+      await fetch(`${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&voter_id=in.(${encodedIds})`, {
         method: 'PATCH',
-        headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+        headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
         body: JSON.stringify({ tole: cleanTole })
+      });
+    }
+
+    // Update in-memory voters if present
+    if (window._currentLiveHouseholdsVoters) {
+      window._currentLiveHouseholdsVoters.forEach(v => {
+        if (allVoterIds.includes(String(v.voter_id))) v.tole = cleanTole;
       });
     }
 
     // 2. Ensure Tole Profile exists in system_settings
     const profiles = await getTenantToleProfiles(tenantId);
+    const wardFilter = document.getElementById('householdWardFilter')?.value || '1';
     if (!profiles[cleanTole]) {
-      const wardFilter = document.getElementById('householdWardFilter')?.value || '1';
       profiles[cleanTole] = {
         name: cleanTole,
         ward: Number(wardFilter) || 1,
@@ -14012,8 +14170,8 @@ async function assignSelectedHouseholdsToTole() {
         timeline_notes: [
           {
             id: 'NOTE_' + Date.now(),
-            author: 'प्रणाली',
-            role: 'सिस्टम',
+            author: 'सिस्टम',
+            role: 'प्रणाली',
             tag: 'positive',
             text: `${checkboxes.length} घरधुरी (${allVoterIds.length} मतदाता) यस टोलमा आबद्ध गरियो।`,
             timestamp: new Date().toISOString()
@@ -14022,11 +14180,24 @@ async function assignSelectedHouseholdsToTole() {
         created_at: new Date().toISOString()
       };
       await saveTenantToleProfiles(tenantId, profiles);
+    } else {
+      if (!profiles[cleanTole].timeline_notes) profiles[cleanTole].timeline_notes = [];
+      profiles[cleanTole].timeline_notes.push({
+        id: 'NOTE_' + Date.now(),
+        author: 'सिस्टम',
+        role: 'प्रणाली',
+        tag: 'positive',
+        text: `थप ${checkboxes.length} घरधुरी (${allVoterIds.length} मतदाता) यस टोलमा थपियो।`,
+        timestamp: new Date().toISOString()
+      });
+      await saveTenantToleProfiles(tenantId, profiles);
     }
 
     if (toleInput) toleInput.value = '';
     const selectAllChk = document.getElementById('hhSelectAllPageChk');
     if (selectAllChk) selectAllChk.checked = false;
+    updateHouseholdSelectedCountUI();
+    populateExistingTolesDropdown();
 
     showToast(`🏘️ ${checkboxes.length} घरधुरी (${allVoterIds.length} जना मतदाता) "${cleanTole}" टोलमा सफलतापूर्वक आबद्ध गरियो!`, 'success');
     renderHouseholdsList();
@@ -23188,7 +23359,7 @@ async function loadLiveHouseholdsPage() {
 
       htmlRows += `
         <tr>
-          <td style="text-align: center;"><input type="checkbox" class="hh-row-checkbox" value="${allIds}"></td>
+          <td style="text-align: center;"><input type="checkbox" class="hh-row-checkbox" value="${allIds}" onchange="onHouseholdCheckboxChange()"></td>
           <td style="text-align: center; font-weight: 700; color: #64748b;">${offset + idx + 1}</td>
           <td><span class="badge" style="background:#f1f5f9; color:#1e293b; font-family:monospace; font-weight:700;">${hh.id}</span></td>
           <td>
@@ -23273,6 +23444,8 @@ async function loadLiveHouseholdsPage() {
         </div>
       `;
     });
+    if (typeof updateHouseholdSelectedCountUI === 'function') updateHouseholdSelectedCountUI();
+    if (typeof populateExistingTolesDropdown === 'function') populateExistingTolesDropdown();
   } catch(e) {
     console.warn('loadLiveHouseholdsPage error:', e);
   }
@@ -39507,26 +39680,239 @@ function printCasteDemographicManifest() {
 
 
 // =========================================================================
-// 🏘️ MODERN 4-TAB TOLE PROFILE DASHBOARD & COMMAND HUB
+// 🏘️ FULL DEDICATED TOLE COMMAND CENTER & 4-TAB PROFILE ENGINE
 // =========================================================================
 let _currentToleProfileState = {
   toleName: '',
   wardNo: 1,
   activeTab: 'overview',
   profile: null,
-  voters: []
+  voters: [],
+  isLoading: false
 };
 
-async function openToleProfile(toleName, wardNo) {
-  if (!toleName) return;
+// Switch between Household Directory (Pane 1) and Full Tole Command Center (Pane 2)
+function switchHouseholdSubTab(subTab, preselectedTole = '', preselectedWard = null) {
+  const paneDir = document.getElementById('hhPane_directory');
+  const paneTole = document.getElementById('hhPane_toleHub');
+  const btnDir = document.getElementById('hhSubTab_directory');
+  const btnTole = document.getElementById('hhSubTab_toleHub');
+
+  if (subTab === 'toleHub') {
+    if (paneDir) paneDir.style.display = 'none';
+    if (paneTole) paneTole.style.display = 'block';
+
+    if (btnDir) {
+      btnDir.style.background = '#ffffff';
+      btnDir.style.color = '#334155';
+      btnDir.style.border = '1.5px solid #cbd5e1';
+      btnDir.style.boxShadow = 'none';
+    }
+    if (btnTole) {
+      btnTole.style.background = '#1e3a6e';
+      btnTole.style.color = '#ffffff';
+      btnTole.style.border = 'none';
+      btnTole.style.boxShadow = '0 2px 6px rgba(30,58,110,0.3)';
+    }
+
+    renderToleCommandCenter(preselectedTole, preselectedWard);
+  } else {
+    if (paneDir) paneDir.style.display = 'block';
+    if (paneTole) paneTole.style.display = 'none';
+
+    if (btnDir) {
+      btnDir.style.background = '#1e3a6e';
+      btnDir.style.color = '#ffffff';
+      btnDir.style.border = 'none';
+      btnDir.style.boxShadow = '0 2px 6px rgba(30,58,110,0.3)';
+    }
+    if (btnTole) {
+      btnTole.style.background = '#ffffff';
+      btnTole.style.color = '#334155';
+      btnTole.style.border = '1.5px solid #cbd5e1';
+      btnTole.style.boxShadow = 'none';
+    }
+
+    populateExistingTolesDropdown();
+    renderHouseholdsList();
+  }
+}
+
+// 1-Click wrapper to open a Tole Profile anywhere in the application
+function openToleProfile(toleName, wardNo) {
+  if (typeof switchView === 'function') switchView('households');
+  switchHouseholdSubTab('toleHub', toleName, wardNo);
+}
+
+function openTolesDirectoryModal() {
+  if (typeof switchView === 'function') switchView('households');
+  switchHouseholdSubTab('toleHub');
+}
+
+// Render the Left Tole Directory & Load the Selected Tole
+async function renderToleCommandCenter(targetTole = '', targetWard = null) {
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+  const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+
+  const wardFilterEl = document.getElementById('toleHubWardFilter');
+  if (targetWard && wardFilterEl) wardFilterEl.value = String(targetWard);
+  const selectedWard = wardFilterEl ? wardFilterEl.value : '';
+
+  const cardsContainer = document.getElementById('toleCardsListContainer');
+  if (cardsContainer) {
+    cardsContainer.innerHTML = '<div style="text-align:center; padding:30px;"><div class="spinner" style="margin:0 auto 10px;"></div><span style="font-size:12.5px; color:#64748b;">टोलहरू लोड हुँदैछ...</span></div>';
+  }
+
+  try {
+    const profiles = await getTenantToleProfiles(tenantId);
+    let toleKeys = Object.keys(profiles);
+
+    // Apply Ward Filter if selected
+    if (selectedWard) {
+      toleKeys = toleKeys.filter(k => String(profiles[k]?.ward || 1) === String(selectedWard));
+    }
+
+    // Update KPI badges
+    const totalTolesCount = Object.keys(profiles).length;
+    const activeWardsCount = new Set(Object.values(profiles).map(p => p.ward || 1)).size;
+    const leadsCount = Object.values(profiles).filter(p => p.lead && p.lead.trim()).length;
+    let totalDemandsCount = 0;
+    Object.values(profiles).forEach(p => { if (Array.isArray(p.demands)) totalDemandsCount += p.demands.length; });
+
+    const totalTolesEl = document.getElementById('toleKpiTotalCount');
+    if (totalTolesEl) totalTolesEl.textContent = totalTolesCount;
+    const activeWardsEl = document.getElementById('toleKpiActiveWards');
+    if (activeWardsEl) activeWardsEl.textContent = `${activeWardsCount} वडामा क्रियाशील`;
+    const leadsEl = document.getElementById('toleKpiTotalLeads');
+    if (leadsEl) leadsEl.textContent = leadsCount;
+    const demandsEl = document.getElementById('toleKpiDemandsRecorded');
+    if (demandsEl) demandsEl.textContent = `${totalDemandsCount} स्थानीय माग दर्ता`;
+    const toleBadgeEl = document.getElementById('hhToleCountBadge');
+    if (toleBadgeEl) toleBadgeEl.textContent = totalTolesCount;
+    const toleCardsBadgeEl = document.getElementById('toleCardsCountBadge');
+    if (toleCardsBadgeEl) toleCardsBadgeEl.textContent = toleKeys.length;
+
+    // Check if no toles exist
+    if (toleKeys.length === 0) {
+      if (cardsContainer) {
+        cardsContainer.innerHTML = `
+          <div style="text-align: center; padding: 36px 16px; color: #64748b;">
+            <div style="font-size: 34px; margin-bottom: 8px;">🏘️</div>
+            <div style="font-weight: 800; font-size: 14px; color: #0f172a; margin-bottom: 4px;">कुनै टोल फेला परेन</div>
+            <p style="font-size: 12px; margin-bottom: 14px;">यस वडा वा पालिकामा अहिलेसम्म कुनै टोल बनेको छैन।</p>
+            <button type="button" class="btn btn-sm btn-primary" onclick="openQuickCreateToleFromHouseholdsModal()" style="font-weight: 800; padding: 8px 16px;">
+              ➕ पहिलो टोल सिर्जना गर्नुहोस्
+            </button>
+          </div>
+        `;
+      }
+      const rightPane = document.getElementById('toleMainProfilePane');
+      if (rightPane) {
+        rightPane.innerHTML = `
+          <div style="text-align: center; padding: 60px 20px; color: #64748b;">
+            <span style="font-size: 48px; display: block; margin-bottom: 12px;">📊</span>
+            <h3 style="margin: 0 0 8px; color: #0f172a; font-weight: 900;">टोल प्रोफाइल कमान्ड सेन्टर</h3>
+            <p style="max-width: 420px; margin: 0 auto 16px; font-size: 13px; line-height: 1.5;">बायाँको सूचीबाट टोल छान्नुहोस् वा नयाँ टोल बनाउनुहोस्। टोल बन्नेबित्तिकै नेतृत्व कार्ड, भोट गणित र समयरेखा स्वतः तयार हुन्छ।</p>
+            <button type="button" class="btn btn-primary" onclick="openQuickCreateToleFromHouseholdsModal()" style="font-weight: 800; padding: 9px 20px;">
+              ➕ नयाँ टोल सिर्जना विजार्ड (1-2-3 Step)
+            </button>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    // Determine which tole to select
+    let toSelect = targetTole && toleKeys.includes(targetTole) ? targetTole : toleKeys[0];
+    _currentToleProfileState.toleName = toSelect;
+    _currentToleProfileState.wardNo = profiles[toSelect]?.ward || Number(selectedWard) || 1;
+
+    // Render Left Tole Cards
+    let cardsHtml = '';
+    toleKeys.forEach(k => {
+      const p = profiles[k] || {};
+      const isSelected = (k === toSelect);
+      const activeStyle = isSelected
+        ? 'background: #eff6ff; border: 2px solid #2563eb; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18); transform: translateY(-1px);'
+        : 'background: #ffffff; border: 1.5px solid #e2e8f0;';
+      const dCount = (p.demands && p.demands.length) || 0;
+      const notesCount = (p.timeline_notes && p.timeline_notes.length) || 0;
+
+      cardsHtml += `
+        <div class="tole-sidebar-card" data-tolename="${esc(k)}" onclick="selectToleInCommandCenter('${esc(k)}', ${p.ward || 1})" style="padding: 12px 14px; border-radius: 10px; cursor: pointer; transition: all 0.15s ease; ${activeStyle}">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <div style="font-weight: 900; font-size: 14px; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+              <span>🏘️</span>
+              <span>${esc(k)}</span>
+            </div>
+            <span class="badge" style="background: #1e3a6e; color: white; font-weight: 800; font-size: 10.5px;">वडा ${p.ward || 1}</span>
+          </div>
+          <div style="font-size: 11.5px; color: #475569; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+            <span>👤 ${esc(p.lead || 'संयोजक तोकिएको छैन')}</span>
+            ${p.phone ? `<span style="color:#16a34a; font-weight:700;">• 📞 ${esc(p.phone)}</span>` : ''}
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748b; border-top: 1px dashed #cbd5e1; padding-top: 5px; margin-top: 4px;">
+            <span>केन्द्र: <b>${esc(p.booth || 'A')}</b></span>
+            <div style="display: flex; gap: 6px;">
+              ${dCount > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-weight:700; font-size:10px;">⚠️ ${dCount} माग</span>` : ''}
+              ${notesCount > 0 ? `<span class="badge" style="background:#f1f5f9; color:#475569; font-size:10px;">⏱️ ${notesCount}</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    if (cardsContainer) cardsContainer.innerHTML = cardsHtml;
+
+    // Load full profile for selected tole
+    renderToleFullProfileDashboard(toSelect, profiles[toSelect]?.ward || 1);
+  } catch(e) {
+    console.error('renderToleCommandCenter error:', e);
+  }
+}
+
+function selectToleInCommandCenter(toleName, wardNo) {
+  _currentToleProfileState.toleName = toleName;
+  _currentToleProfileState.wardNo = wardNo;
+
+  // Highlight selected card
+  document.querySelectorAll('.tole-sidebar-card').forEach(card => {
+    if (card.getAttribute('data-tolename') === toleName) {
+      card.style.background = '#eff6ff';
+      card.style.border = '2px solid #2563eb';
+      card.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.18)';
+    } else {
+      card.style.background = '#ffffff';
+      card.style.border = '1.5px solid #e2e8f0';
+      card.style.boxShadow = 'none';
+    }
+  });
+
+  renderToleFullProfileDashboard(toleName, wardNo);
+}
+
+function filterToleCardsInDirectory() {
+  const q = (document.getElementById('toleHubSearchInput')?.value || '').trim().toLowerCase();
+  document.querySelectorAll('.tole-sidebar-card').forEach(card => {
+    const text = card.textContent.toLowerCase();
+    card.style.display = text.includes(q) ? 'block' : 'none';
+  });
+}
+
+// 4-TAB DASHBOARD RENDERER (RIGHT PANEL)
+async function renderToleFullProfileDashboard(toleName, wardNo) {
+  const rightPane = document.getElementById('toleMainProfilePane');
+  if (!rightPane) return;
+
   const cleanTole = (typeof normalizeToleName === 'function') ? normalizeToleName(toleName) : toleName.trim();
   const wNo = Number(wardNo) || 1;
 
   _currentToleProfileState.toleName = cleanTole;
   _currentToleProfileState.wardNo = wNo;
-  _currentToleProfileState.activeTab = 'overview';
 
-  openModal(`🏘️ ${esc(cleanTole)} — टोल कमान्ड प्रोफाइल`, '<div style="text-align:center; padding:36px;"><div class="spinner" style="margin:0 auto 12px;"></div>टोलको लाइभ डाटा तथा समयरेखा लोड हुँदैछ...</div>');
+  rightPane.innerHTML = '<div style="text-align:center; padding:60px 20px;"><div class="spinner" style="margin:0 auto 12px;"></div><span style="font-weight:700; color:#1e3a6e;">' + esc(cleanTole) + ' को लाइभ प्रोफाइल तथा भोट डेटा लोड हुँदैछ...</span></div>';
 
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
   const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
@@ -39534,13 +39920,13 @@ async function openToleProfile(toleName, wardNo) {
   const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
 
   try {
-    // 1. Fetch live voters assigned to this tole
-    let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&tole=eq.${encodeURIComponent(cleanTole)}&order=serial_no.asc`;
+    // 1. Fetch live voters assigned to this tole (scoped by ward_no to guarantee < 200ms index lookup)
+    let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&ward_no=eq.${wNo}&tole=eq.${encodeURIComponent(cleanTole)}&order=serial_no.asc`;
     const res = await fetch(q, { headers: { apikey: key, Authorization: 'Bearer ' + key } });
     const voters = res.ok ? await res.json() : [];
     _currentToleProfileState.voters = Array.isArray(voters) ? voters : [];
 
-    // 2. Fetch or initialize tole profile from system_settings
+    // 2. Fetch tole profile from system_settings
     const profiles = await getTenantToleProfiles(tenantId);
     if (!profiles[cleanTole]) {
       profiles[cleanTole] = {
@@ -39557,19 +39943,22 @@ async function openToleProfile(toleName, wardNo) {
     }
     _currentToleProfileState.profile = profiles[cleanTole];
 
-    renderToleProfileModalContent();
+    renderToleFullProfileUI();
   } catch(e) {
-    console.error('openToleProfile error:', e);
-    openModal('त्रुटि', 'टोल प्रोफाइल खोल्दा समस्या भयो।');
+    console.error('renderToleFullProfileDashboard error:', e);
+    rightPane.innerHTML = '<div style="padding:30px; text-align:center; color:#dc2626;">त्रुटि भयो। कृपया पुनः प्रयास गर्नुहोस्।</div>';
   }
 }
 
-function switchToleProfileTab(tabName) {
+function switchToleFullProfileTab(tabName) {
   _currentToleProfileState.activeTab = tabName;
-  renderToleProfileModalContent();
+  renderToleFullProfileUI();
 }
 
-function renderToleProfileModalContent() {
+function renderToleFullProfileUI() {
+  const rightPane = document.getElementById('toleMainProfilePane');
+  if (!rightPane) return;
+
   const { toleName, wardNo, activeTab, profile, voters } = _currentToleProfileState;
   const totalV = voters.length;
   const males = voters.filter(v => v.gender === 'Male' || v.gender === 'पुरुष').length;
@@ -39585,32 +39974,54 @@ function renderToleProfileModalContent() {
   const swingPct = totalV > 0 ? Math.round((swingV / totalV) * 100) : 0;
   const oppPct = totalV > 0 ? (100 - solidPct - swingPct) : 0;
 
-  // Approximate households from voters
   const uniqueSurnames = new Set(voters.map(v => (v.full_name || '').split(' ').pop())).size;
   const estHouseholds = Math.max(voters.length > 0 ? 1 : 0, Math.round(voters.length / 2.8) || uniqueSurnames);
 
   const pLead = profile.lead || 'संयोजक तोकिएको छैन';
   const pPhone = profile.phone || '';
-
   const demands = profile.demands || [];
   const notes = profile.timeline_notes || [];
 
   const tabBtnStyle = (tab) => activeTab === tab
-    ? 'background: #3b82f6; color: white; font-weight: 800; border-radius: 8px; padding: 8px 16px; border: none; cursor: pointer;'
-    : 'background: var(--bg-hover); color: var(--text-primary); font-weight: 700; border-radius: 8px; padding: 8px 16px; border: 1px solid var(--border-color); cursor: pointer;';
+    ? 'background: #1e3a6e; color: white; font-weight: 800; border-radius: 8px; padding: 9px 18px; border: none; cursor: pointer; box-shadow: 0 2px 4px rgba(30,58,110,0.25);'
+    : 'background: #f1f5f9; color: #475569; font-weight: 700; border-radius: 8px; padding: 9px 18px; border: 1px solid #cbd5e1; cursor: pointer;';
 
-  let bodyHtml = `
-    <div style="margin-bottom: 16px; display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; flex-wrap: wrap;">
-      <button type="button" style="${tabBtnStyle('overview')}" onclick="switchToleProfileTab('overview')">
+  let ui = `
+    <!-- TOP TOLE HEADER & ACTIONS -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 14px; margin-bottom: 16px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <h2 style="margin: 0; font-size: 22px; font-weight: 900; color: #0f172a;">🏘️ ${esc(toleName)}</h2>
+          <span class="badge" style="background: #1e3a6e; color: white; font-weight: 800; font-size: 12px; padding: 4px 10px;">वडा नं. ${wardNo}</span>
+          <span class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 800; font-size: 12px; padding: 4px 10px;">केन्द्र: ${esc(profile.booth || 'A')}</span>
+        </div>
+        <div style="font-size: 12.5px; color: #64748b; margin-top: 4px;">
+          गठन मिति: ${profile.created_at ? new Date(profile.created_at).toLocaleDateString('ne-NP') : 'अज्ञात'} • कुल पहिचान: <b>${estHouseholds} घरधुरी</b>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        ${pPhone ? `<a href="tel:${esc(pPhone)}" class="btn btn-sm" style="background:#16a34a; color:white; font-weight:800; text-decoration:none; padding:7px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;">📞 कल (${esc(pPhone)})</a>` : ''}
+        <button type="button" class="btn btn-sm btn-secondary" style="font-weight: 700; padding: 7px 12px;" onclick="openEditToleModal('${esc(toleName)}')">
+          ✏️ सम्पादन
+        </button>
+        <button type="button" class="btn btn-sm btn-danger" style="font-weight: 700; padding: 7px 12px;" onclick="deleteTole('${esc(toleName)}')">
+          🗑️ टोल मेटाउनुहोस्
+        </button>
+      </div>
+    </div>
+
+    <!-- 4 TABS NAVIGATION -->
+    <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+      <button type="button" style="${tabBtnStyle('overview')}" onclick="switchToleFullProfileTab('overview')">
         📊 १. समग्र स्थिति (Overview)
       </button>
-      <button type="button" style="${tabBtnStyle('households')}" onclick="switchToleProfileTab('households')">
+      <button type="button" style="${tabBtnStyle('households')}" onclick="switchToleFullProfileTab('households')">
         🏠 २. घरधुरी र मतदाता (${totalV})
       </button>
-      <button type="button" style="${tabBtnStyle('demands')}" onclick="switchToleProfileTab('demands')">
+      <button type="button" style="${tabBtnStyle('demands')}" onclick="switchToleFullProfileTab('demands')">
         ⚠️ ३. स्थानीय माग र समस्या (${demands.length})
       </button>
-      <button type="button" style="${tabBtnStyle('timeline')}" onclick="switchToleProfileTab('timeline')">
+      <button type="button" style="${tabBtnStyle('timeline')}" onclick="switchToleFullProfileTab('timeline')">
         ⏱️ ४. समयरेखा र सुराकी नोट (${notes.length})
       </button>
     </div>
@@ -39618,54 +40029,66 @@ function renderToleProfileModalContent() {
 
   // TAB 1: OVERVIEW
   if (activeTab === 'overview') {
-    bodyHtml += `
+    ui += `
       <!-- Leadership & Call Card -->
-      <div class="card" style="padding: 16px; border-radius: 12px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1.5px solid #93c5fd; margin-bottom: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-          <div>
-            <div style="font-size: 11.5px; font-weight: 800; color: #1e40af; text-transform: uppercase;">टोल कमान्डर / नेतृत्व</div>
-            <h3 style="margin: 2px 0 0; font-size: 18px; font-weight: 900; color: #0f172a;">👤 ${esc(pLead)}</h3>
-            <div style="font-size: 12.5px; color: #3b82f6; font-weight: 700; margin-top: 2px;">वडा नं. ${wardNo} • केन्द्र: ${esc(profile.booth || 'A')}</div>
+      <div class="card" style="padding: 16px 20px; border-radius: 12px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1.5px solid #93c5fd; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800;">
+              👤
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase;">टोल संयोजक / नेतृत्व</div>
+              <h3 style="margin: 2px 0 0; font-size: 18px; font-weight: 900; color: #0f172a;">${esc(pLead)}</h3>
+              <div style="font-size: 12px; color: #475569; margin-top: 2px;">
+                ${pPhone ? `सम्पर्क: <b>${esc(pPhone)}</b>` : 'सम्पर्क फोन नम्बर राखिएको छैन'}
+              </div>
+            </div>
           </div>
-          <div style="display: flex; gap: 8px;">
-            ${pPhone ? `<a href="tel:${esc(pPhone)}" class="btn btn-sm" style="background:#16a34a; color:white; font-weight:900; padding:8px 16px; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">📞 सिधै कल गर्नुहोस् (${esc(pPhone)})</a>` : '<span class="badge" style="background:#fffbeb; color:#92400e; padding:6px 12px;">फोन नं. राखिएको छैन</span>'}
+          <div>
+            ${pPhone ? `<a href="tel:${esc(pPhone)}" class="btn" style="background:#16a34a; color:white; font-weight:900; padding:9px 18px; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; box-shadow:0 2px 6px rgba(22,163,74,0.3);">📞 सिधै संयोजकलाई कल गर्नुहोस्</a>` : `<button class="btn btn-sm btn-secondary" onclick="openEditToleModal('${esc(toleName)}')">➕ फोन नम्बर थप्नुहोस्</button>`}
           </div>
         </div>
       </div>
 
       <!-- Voter Demographics Grid -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px;">
-        <div class="card" style="padding: 12px; text-align: center; border-left: 4px solid #1e3a6e; margin: 0;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 18px;">
+        <div class="card" style="padding: 14px; text-align: center; border-left: 4px solid #1e3a6e; margin: 0; background: #ffffff;">
           <div style="font-size: 11px; color: #64748b; font-weight: 700;">कुल घरधुरी</div>
-          <div style="font-size: 20px; font-weight: 900; color: #0f172a;">${estHouseholds}</div>
+          <div style="font-size: 22px; font-weight: 900; color: #0f172a; margin-top: 3px;">${estHouseholds}</div>
+          <div style="font-size: 10.5px; color: #64748b;">परिवार ब्लक</div>
         </div>
-        <div class="card" style="padding: 12px; text-align: center; border-left: 4px solid #3b82f6; margin: 0;">
+        <div class="card" style="padding: 14px; text-align: center; border-left: 4px solid #3b82f6; margin: 0; background: #ffffff;">
           <div style="font-size: 11px; color: #64748b; font-weight: 700;">कुल मतदाता</div>
-          <div style="font-size: 20px; font-weight: 900; color: #1d4ed8;">${totalV}</div>
+          <div style="font-size: 22px; font-weight: 900; color: #1d4ed8; margin-top: 3px;">${totalV}</div>
+          <div style="font-size: 10.5px; color: #1d4ed8;">आबद्ध सदस्य</div>
         </div>
-        <div class="card" style="padding: 12px; text-align: center; border-left: 4px solid #06b6d4; margin: 0;">
-          <div style="font-size: 11px; color: #64748b; font-weight: 700;">पु / म</div>
-          <div style="font-size: 17px; font-weight: 800; color: #0f172a;">${males} / ${females}</div>
+        <div class="card" style="padding: 14px; text-align: center; border-left: 4px solid #06b6d4; margin: 0; background: #ffffff;">
+          <div style="font-size: 11px; color: #64748b; font-weight: 700;">पुरुष / महिला</div>
+          <div style="font-size: 18px; font-weight: 900; color: #0f172a; margin-top: 4px;">${males} / ${females}</div>
+          <div style="font-size: 10.5px; color: #64748b;">लैङ्गिक अनुपात</div>
         </div>
-        <div class="card" style="padding: 12px; text-align: center; border-left: 4px solid #8b5cf6; margin: 0;">
+        <div class="card" style="padding: 14px; text-align: center; border-left: 4px solid #8b5cf6; margin: 0; background: #ffffff;">
           <div style="font-size: 11px; color: #64748b; font-weight: 700;">युवा (Gen-Z)</div>
-          <div style="font-size: 20px; font-weight: 900; color: #6d28d9;">${genZ}</div>
+          <div style="font-size: 22px; font-weight: 900; color: #6d28d9; margin-top: 3px;">${genZ}</div>
+          <div style="font-size: 10.5px; color: #6d28d9;">१८–२८ वर्ष</div>
         </div>
-        <div class="card" style="padding: 12px; text-align: center; border-left: 4px solid #f59e0b; margin: 0;">
+        <div class="card" style="padding: 14px; text-align: center; border-left: 4px solid #f59e0b; margin: 0; background: #ffffff;">
           <div style="font-size: 11px; color: #64748b; font-weight: 700;">जेष्ठ नागरिक</div>
-          <div style="font-size: 20px; font-weight: 900; color: #b45309;">${seniors}</div>
+          <div style="font-size: 22px; font-weight: 900; color: #b45309; margin-top: 3px;">${seniors}</div>
+          <div style="font-size: 10.5px; color: #b45309;">६०+ वर्ष</div>
         </div>
       </div>
 
       <!-- Political Sentiment Progress Meter -->
-      <div class="card" style="padding: 16px; border-radius: 12px; margin-bottom: 16px;">
-        <h4 style="margin: 0 0 10px; font-size: 14px; font-weight: 800;">🗳️ राजनीतिक शक्ति सन्तुलन (Tole Political Meter)</h4>
-        <div style="display: flex; height: 24px; border-radius: 6px; overflow: hidden; background: #e2e8f0; margin-bottom: 10px;">
-          <div style="width: ${solidPct}%; background: #16a34a; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;" title="पक्का समर्थक: ${solidV} भोट">${solidPct > 10 ? solidPct + '%' : ''}</div>
-          <div style="width: ${swingPct}%; background: #eab308; color: #713f12; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;" title="दोधार / अनिर्णित: ${swingV} भोट">${swingPct > 10 ? swingPct + '%' : ''}</div>
-          <div style="width: ${oppPct}%; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;" title="अन्य / विपक्षी: ${oppV} भोट">${oppPct > 10 ? oppPct + '%' : ''}</div>
+      <div class="card" style="padding: 18px 20px; border-radius: 12px; margin-bottom: 16px; background: #ffffff; border: 1.5px solid #e2e8f0;">
+        <h4 style="margin: 0 0 12px; font-size: 14.5px; font-weight: 800; color: #0f172a;">🗳️ राजनीतिक शक्ति सन्तुलन (Tole Political Sentiment Meter)</h4>
+        <div style="display: flex; height: 26px; border-radius: 8px; overflow: hidden; background: #e2e8f0; margin-bottom: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);">
+          <div style="width: ${solidPct}%; background: #16a34a; color: white; display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 900;" title="पक्का समर्थक: ${solidV} भोट">${solidPct > 10 ? solidPct + '%' : ''}</div>
+          <div style="width: ${swingPct}%; background: #eab308; color: #713f12; display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 900;" title="दोधार / अनिर्णित: ${swingV} भोट">${swingPct > 10 ? swingPct + '%' : ''}</div>
+          <div style="width: ${oppPct}%; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 900;" title="अन्य / विपक्षी: ${oppV} भोट">${oppPct > 10 ? oppPct + '%' : ''}</div>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700;">
+        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; flex-wrap: wrap; gap: 8px;">
           <span style="color: #15803d;">🟢 पक्का मत: ${solidV} जना (${solidPct}%)</span>
           <span style="color: #a16207;">🟡 दोधार / अनिर्णित: ${swingV} जना (${swingPct}%)</span>
           <span style="color: #b91c1c;">🔴 अन्य / विपक्षी: ${oppV} जना (${oppPct}%)</span>
@@ -39676,43 +40099,45 @@ function renderToleProfileModalContent() {
 
   // TAB 2: HOUSEHOLDS & VOTERS
   else if (activeTab === 'households') {
-    bodyHtml += `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+    ui += `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
         <div>
-          <span style="font-weight: 800; font-size: 14px;">टोलमा आबद्ध मतदाताहरू (${voters.length} जना)</span>
+          <span style="font-weight: 900; font-size: 15px; color: #0f172a;">यस टोलमा आबद्ध मतदाताहरू (${voters.length} जना)</span>
         </div>
-        <button type="button" class="btn btn-sm btn-primary" onclick="openAddHouseholdsToToleModal('${esc(toleName)}', ${wardNo}, '${esc(profile.booth || '')}')" style="font-weight: 800; padding: 6px 14px;">
-          ➕ यस बुथका थप घरधुरी थप्नुहोस्
-        </button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-sm btn-primary" onclick="openAddHouseholdsToToleModal('${esc(toleName)}', ${wardNo}, '${esc(profile.booth || '')}')" style="font-weight: 800; padding: 7px 16px; background: #1d4ed8;">
+            ➕ यस बुथका थप घरधुरी थप्नुहोस्
+          </button>
+        </div>
       </div>
 
-      <div style="overflow-x: auto; max-height: 480px; border: 1px solid var(--border-color); border-radius: 8px;">
+      <div style="overflow-x: auto; max-height: 480px; border: 1.5px solid #e2e8f0; border-radius: 10px;">
         <table class="data-table" style="width: 100%; font-size: 12.5px;">
-          <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 2;">
-            <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
-              <th style="padding: 8px 10px; width: 40px;">#</th>
-              <th style="padding: 8px 10px;">मतदाता नं</th>
-              <th style="padding: 8px 10px;">पूरा नाम</th>
-              <th style="padding: 8px 10px;">बुबा / पति-पत्नी</th>
-              <th style="padding: 8px 10px; text-align: center;">उमेर/लिङ्ग</th>
-              <th style="padding: 8px 10px; text-align: center;">मत स्थिति</th>
-              <th style="padding: 8px 10px; text-align: right;">कार्य</th>
+          <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 2;">
+            <tr style="border-bottom: 2px solid #e2e8f0; text-align: left;">
+              <th style="padding: 10px 12px; width: 44px; text-align: center;">#</th>
+              <th style="padding: 10px 12px;">मतदाता नं</th>
+              <th style="padding: 10px 12px;">पूरा नाम</th>
+              <th style="padding: 10px 12px;">बुबा / पति-पत्नी</th>
+              <th style="padding: 10px 12px; text-align: center;">उमेर/लिङ्ग</th>
+              <th style="padding: 10px 12px; text-align: center;">मत स्थिति</th>
+              <th style="padding: 10px 12px; text-align: right;">कार्य</th>
             </tr>
           </thead>
           <tbody>
-            ${voters.length === 0 ? '<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">यस टोलमा अहिलेसम्म कुनै घरधुरी आबद्ध गरिएको छैन। माथिको "घरधुरी थप्नुहोस्" बटनबाट थप्नुहोस्।</td></tr>' :
+            ${voters.length === 0 ? '<tr><td colspan="7" style="text-align: center; padding: 36px; color: #64748b;">यस टोलमा अहिलेसम्म कुनै घरधुरी आबद्ध गरिएको छैन। माथिको "थप घरधुरी थप्नुहोस्" बटनबाट थप्नुहोस्।</td></tr>' :
               voters.map((v, i) => `
-                <tr style="border-bottom: 1px solid var(--border-color);">
-                  <td style="padding: 8px 10px; color: #64748b; font-weight: 700;">${i + 1}</td>
-                  <td style="padding: 8px 10px;"><code>${esc(v.official_voter_id || v.voter_id)}</code></td>
-                  <td style="padding: 8px 10px; font-weight: 800; color: #0f172a;">${esc(v.full_name)}</td>
-                  <td style="padding: 8px 10px; color: #475569;">${esc(v.father_name || v.spouse_name || '-')}</td>
-                  <td style="padding: 8px 10px; text-align: center;">${v.age || '-'} / ${v.gender === 'Male' ? 'पु' : (v.gender === 'Female' ? 'म' : '-')}</td>
-                  <td style="padding: 8px 10px; text-align: center;">
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 9px 12px; text-align: center; color: #64748b; font-weight: 700;">${i + 1}</td>
+                  <td style="padding: 9px 12px;"><code style="font-weight:700;">${esc(v.official_voter_id || v.voter_id)}</code></td>
+                  <td style="padding: 9px 12px; font-weight: 800; color: #0f172a;">${esc(v.full_name)}</td>
+                  <td style="padding: 9px 12px; color: #475569;">${esc(v.father_name || v.spouse_name || '-')}</td>
+                  <td style="padding: 9px 12px; text-align: center;">${v.age || '-'} / ${v.gender === 'Male' ? 'पु' : (v.gender === 'Female' ? 'म' : '-')}</td>
+                  <td style="padding: 9px 12px; text-align: center;">
                     ${v.sentiment === 'solid' ? '<span class="badge" style="background:#f0fdf4; color:#166534; font-weight:800;">🟢 पक्का</span>' : '<span class="badge" style="background:#fefce8; color:#854d0e; font-weight:700;">🟡 दोधार</span>'}
                   </td>
-                  <td style="padding: 8px 10px; text-align: right;">
-                    <button type="button" class="btn btn-sm btn-danger" onclick="removeVoterFromTole('${esc(toleName)}', '${v.voter_id}')" style="font-size: 11px; padding: 2px 6px;" title="टोलबाट हटाउनुहोस्">❌ हटाउनुहोस्</button>
+                  <td style="padding: 9px 12px; text-align: right;">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeVoterFromTole('${esc(toleName)}', '${v.voter_id}', ${wardNo})" style="font-size: 11px; padding: 3px 8px;" title="टोलबाट हटाउनुहोस्">❌ हटाउनुहोस्</button>
                   </td>
                 </tr>
               `).join('')
@@ -39725,43 +40150,44 @@ function renderToleProfileModalContent() {
 
   // TAB 3: PROBLEMS & LOCAL DEMANDS
   else if (activeTab === 'demands') {
-    bodyHtml += `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+    ui += `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
         <div>
-          <span style="font-weight: 800; font-size: 14px;">टोलका समस्या र समुदायका मागहरू (${demands.length})</span>
+          <span style="font-weight: 900; font-size: 15px; color: #0f172a;">टोलका समस्या र समुदायका मागहरू (${demands.length})</span>
         </div>
-        <button type="button" class="btn btn-sm btn-primary" onclick="openAddToleDemandModal('${esc(toleName)}')" style="font-weight: 800; padding: 6px 14px;">
+        <button type="button" class="btn btn-sm btn-primary" onclick="openAddToleDemandModal('${esc(toleName)}')" style="font-weight: 800; padding: 7px 16px; background: #1d4ed8;">
           ➕ नयाँ समस्या/माग दर्ता गर्नुहोस्
         </button>
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        ${demands.length === 0 ? '<div class="card" style="padding: 24px; text-align: center; color: var(--text-muted);">यस टोलमा कुनै समस्या वा माग दर्ता भएको छैन। नयाँ थप्न माथिको बटन थिच्नुहोस्।</div>' :
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        ${demands.length === 0 ? '<div class="card" style="padding: 36px; text-align: center; color: #64748b; background:#f8fafc;">यस टोलमा कुनै समस्या वा माग दर्ता भएको छैन। नयाँ समस्या दर्ता गर्न माथिको बटन थिच्नुहोस्।</div>' :
           demands.map(d => {
             let statusBadge = '<span class="badge" style="background:#fefce8; color:#854d0e; font-weight:700;">📝 दर्ता भएको</span>';
             if (d.status === 'pledged') statusBadge = '<span class="badge" style="background:#eff6ff; color:#1e40af; font-weight:800;">🤝 उम्मेदवारको प्रतिबद्धता</span>';
             else if (d.status === 'resolved') statusBadge = '<span class="badge" style="background:#f0fdf4; color:#166534; font-weight:800;">✅ समाधान भएको</span>';
 
-            const sevBadge = d.severity === 'high' ? '<span class="badge" style="background:#fee2e2; color:#991b1b; font-weight:700;">🔴 उच्च प्रभाव</span>' : '<span class="badge" style="background:#f1f5f9; color:#475569;">मध्यम</span>';
+            const sevBadge = d.severity === 'high' ? '<span class="badge" style="background:#fee2e2; color:#991b1b; font-weight:700;">🔴 उच्च प्रभाव</span>' : '<span class="badge" style="background:#f1f5f9; color:#475569;">मध्यम प्रभाव</span>';
 
             return `
-              <div class="card" style="padding: 14px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-card); display: flex; flex-direction: column; gap: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+              <div class="card" style="padding: 16px 18px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: white; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
                   <div>
-                    <h4 style="margin: 0; font-size: 14.5px; font-weight: 800; color: #0f172a;">${esc(d.title)}</h4>
-                    <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
-                      उठाउने: <b>${esc(d.raised_by || 'टोलवासी')}</b> • क्षेत्र: ${esc(d.category || 'विकास')}
+                    <h4 style="margin: 0; font-size: 15px; font-weight: 900; color: #0f172a;">${esc(d.title)}</h4>
+                    <div style="font-size: 12px; color: #64748b; margin-top: 3px;">
+                      उठाउने व्यक्ति: <b>${esc(d.raised_by || 'टोलवासी')}</b> • क्षेत्र: <b>${esc(d.category || 'विकास')}</b>
                     </div>
                   </div>
-                  <div style="display: flex; gap: 4px; align-items: center;">
+                  <div style="display: flex; gap: 6px; align-items: center;">
                     ${sevBadge}
                     ${statusBadge}
                   </div>
                 </div>
-                ${d.notes ? `<div style="font-size: 12px; color: #475569; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border-left: 3px solid #3b82f6;">💡 चुनावी नोट: ${esc(d.notes)}</div>` : ''}
-                <div style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px;">
-                  <button type="button" class="btn btn-sm btn-secondary" onclick="updateToleDemandStatus('${esc(toleName)}', '${d.id}', 'pledged')" style="font-size: 11px; padding: 2px 8px;">🤝 प्रतिबद्धता</button>
-                  <button type="button" class="btn btn-sm btn-secondary" onclick="updateToleDemandStatus('${esc(toleName)}', '${d.id}', 'resolved')" style="font-size: 11px; padding: 2px 8px; color: #16a34a;">✅ समाधान</button>
+                ${d.notes ? `<div style="font-size: 12.5px; color: #1e3a6e; background: #eff6ff; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #3b82f6;">💡 चुनावी रणनीतिक नोट: ${esc(d.notes)}</div>` : ''}
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px;">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="updateToleDemandStatus('${esc(toleName)}', '${d.id}', 'pledged')" style="font-size: 11.5px; padding: 4px 10px; font-weight: 700;">🤝 प्रतिबद्धता जनाउनुहोस्</button>
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="updateToleDemandStatus('${esc(toleName)}', '${d.id}', 'resolved')" style="font-size: 11.5px; padding: 4px 10px; font-weight: 700; color: #16a34a;">✅ समाधान भयो</button>
+                  <button type="button" class="btn btn-sm btn-danger" onclick="deleteToleDemand('${esc(toleName)}', '${d.id}')" style="font-size: 11.5px; padding: 4px 8px;">🗑️</button>
                 </div>
               </div>
             `;
@@ -39773,60 +40199,65 @@ function renderToleProfileModalContent() {
 
   // TAB 4: TIMELINE & INTELLIGENCE NOTES
   else if (activeTab === 'timeline') {
-    bodyHtml += `
+    ui += `
       <!-- Quick Post Note Box -->
-      <div class="card" style="padding: 14px; border-radius: 10px; border: 1.5px solid #cbd5e1; margin-bottom: 16px; background: #f8fafc;">
-        <label style="font-size: 12.5px; font-weight: 800; color: #0f172a; margin-bottom: 6px; display: block;">
-          📝 नयाँ फिल्ड रिपोर्ट / गुप्त सुराकी नोट थप्नुहोस्:
+      <div class="card" style="padding: 16px; border-radius: 12px; border: 1.5px solid #cbd5e1; margin-bottom: 20px; background: #f8fafc;">
+        <label style="font-size: 13px; font-weight: 800; color: #0f172a; margin-bottom: 8px; display: block;">
+          📝 नयाँ फिल्ड रिपोर्ट वा गुप्त चुनावी सुराकी नोट पोष्ट गर्नुहोस्:
         </label>
-        <textarea id="toleNewNoteText" class="form-control" rows="2" style="width: 100%; font-size: 13px; margin-bottom: 8px;" placeholder="उदा: आज ५ वटा घरधुरीमा घरदैलो सम्पन्न भयो। माहोल सकारात्मक छ..."></textarea>
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-          <div style="display: flex; gap: 6px; align-items: center;">
-            <span style="font-size: 11.5px; font-weight: 700; color: #475569;">ट्याग:</span>
-            <select id="toleNewNoteTag" class="form-control" style="font-size: 12px; padding: 2px 8px; width: auto;">
+        <textarea id="toleNewNoteText" class="form-control" rows="2" style="width: 100%; font-size: 13px; margin-bottom: 10px; padding: 8px 12px;" placeholder="उदा: आज ५ वटा घरधुरीमा घरदैलो सम्पन्न भयो। माहोल सकारात्मक छ, बाटोको माग छ..."></textarea>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span style="font-size: 12px; font-weight: 700; color: #475569;">सुराकी ट्याग:</span>
+            <select id="toleNewNoteTag" class="form-control" style="font-size: 12.5px; padding: 4px 10px; width: auto; font-weight: 700;">
               <option value="positive">🟢 सकारात्मक प्रगति</option>
               <option value="intel">🔴 गोप्य चुनावी सुराकी</option>
-              <option value="demand">🟡 माग / समस्या</option>
-              <option value="meeting">🔵 भेटघाट / भेला</option>
+              <option value="demand">🟡 माग / स्थानीय समस्या</option>
+              <option value="meeting">🔵 भेटघाट / टोल भेला</option>
               <option value="general">⚪ सामान्य नोट</option>
             </select>
           </div>
-          <button type="button" class="btn btn-sm btn-primary" onclick="saveToleTimelineNote('${esc(toleName)}')" style="font-weight: 800; padding: 6px 14px;">
+          <button type="button" class="btn btn-sm btn-primary" onclick="saveToleTimelineNote('${esc(toleName)}')" style="font-weight: 800; padding: 7px 18px; background: #1d4ed8;">
             💾 समयरेखामा पोष्ट गर्नुहोस्
           </button>
         </div>
       </div>
 
       <!-- Live Stream -->
-      <div style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto;">
-        ${notes.length === 0 ? '<div style="text-align: center; padding: 24px; color: var(--text-muted);">अहिलेसम्म कुनै नोट लेखिएको छैन। माथिको बक्सबाट पहिलो नोट पोष्ट गर्नुहोस्।</div>' :
+      <div style="display: flex; flex-direction: column; gap: 12px; max-height: 480px; overflow-y: auto;">
+        ${notes.length === 0 ? '<div style="text-align: center; padding: 36px; color: #64748b; background:#f8fafc; border-radius:10px;">अहिलेसम्म कुनै नोट लेखिएको छैन। माथिको बक्सबाट पहिलो फिल्ड रिपोर्ट पोष्ट गर्नुहोस्।</div>' :
           notes.slice().reverse().map(n => {
             const tagStyles = {
-              positive: 'background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;',
+              positive: 'background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-weight:800;',
               intel: 'background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; font-weight: 800;',
-              demand: 'background: #fefce8; color: #854d0e; border: 1px solid #fef08a;',
-              meeting: 'background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe;',
-              general: 'background: #f1f5f9; color: #334155;'
+              demand: 'background: #fefce8; color: #854d0e; border: 1px solid #fef08a; font-weight:800;',
+              meeting: 'background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-weight:800;',
+              general: 'background: #f1f5f9; color: #334155; font-weight:700;'
             };
             const tagLabels = {
               positive: '🟢 सकारात्मक',
               intel: '🔴 गोप्य सुराकी',
               demand: '🟡 माग/समस्या',
               meeting: '🔵 भेटघाट',
-              general: '⚪ नोट'
+              general: '⚪ सामान्य नोट'
             };
             const pStyle = tagStyles[n.tag] || tagStyles.general;
             const pLabel = tagLabels[n.tag] || 'नोट';
             const dateStr = n.timestamp ? new Date(n.timestamp).toLocaleString('ne-NP') : 'भर्खरै';
 
             return `
-              <div class="card" style="padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border-color); background: white;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                  <span class="badge" style="${pStyle} font-size: 11px;">${pLabel}</span>
-                  <span style="font-size: 11px; color: #64748b;">⏱️ ${dateStr}</span>
+              <div class="card" style="padding: 14px 16px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: white; margin: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span class="badge" style="${pStyle} font-size: 11px; padding: 3px 8px;">${pLabel}</span>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size: 11.5px; color: #64748b;">⏱️ ${dateStr}</span>
+                    <button type="button" class="btn btn-xs btn-danger" onclick="deleteToleTimelineNote('${esc(toleName)}', '${n.id}')" style="padding:2px 6px; font-size:10px;">✕</button>
+                  </div>
                 </div>
-                <div style="font-size: 13px; color: #0f172a; line-height: 1.4;">${esc(n.text)}</div>
-                <div style="font-size: 11px; color: #64748b; margin-top: 6px;">✍️ लेखक: <b>${esc(n.author || 'संयोजक')}</b> (${esc(n.role || 'फिल्ड')})</div>
+                <div style="font-size: 13.5px; color: #0f172a; line-height: 1.5; font-weight: 500;">${esc(n.text)}</div>
+                <div style="font-size: 11.5px; color: #64748b; margin-top: 8px; border-top: 1px dashed #e2e8f0; padding-top: 4px;">
+                  ✍️ लेखक: <b>${esc(n.author || 'संयोजक')}</b> (${esc(n.role || 'फिल्ड टोली')})
+                </div>
               </div>
             `;
           }).join('')
@@ -39835,9 +40266,10 @@ function renderToleProfileModalContent() {
     `;
   }
 
-  openModal(`🏘️ ${esc(toleName)} — टोल कमान्ड प्रोफाइल`, bodyHtml, `<button class="btn btn-secondary" onclick="closeModal()">बन्द गर्नुहोस्</button>`);
+  rightPane.innerHTML = ui;
 }
 
+// TIMELINE & DEMANDS ACTION HANDLERS
 async function saveToleTimelineNote(toleName) {
   const inp = document.getElementById('toleNewNoteText');
   const tagSel = document.getElementById('toleNewNoteTag');
@@ -39869,10 +40301,26 @@ async function saveToleTimelineNote(toleName) {
 
     _currentToleProfileState.profile = profiles[toleName];
     showToast('✅ समयरेखामा नोट सुरक्षित गरियो!', 'success');
-    renderToleProfileModalContent();
+    renderToleFullProfileUI();
   } catch(e) {
     console.error('saveToleTimelineNote error:', e);
   }
+}
+
+async function deleteToleTimelineNote(toleName, noteId) {
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+
+  try {
+    const profiles = await getTenantToleProfiles(tenantId);
+    if (profiles[toleName] && profiles[toleName].timeline_notes) {
+      profiles[toleName].timeline_notes = profiles[toleName].timeline_notes.filter(n => n.id !== noteId);
+      await saveTenantToleProfiles(tenantId, profiles);
+      _currentToleProfileState.profile = profiles[toleName];
+      showToast('नोट हटाइयो!', 'info');
+      renderToleFullProfileUI();
+    }
+  } catch(e) {}
 }
 
 function openAddToleDemandModal(toleName) {
@@ -39920,7 +40368,7 @@ function openAddToleDemandModal(toleName) {
       </button>
     </form>
     `,
-    `<button class="btn btn-secondary" onclick="openToleProfile('${esc(toleName)}')">फर्कनुहोस्</button>`
+    `<button class="btn btn-secondary" onclick="closeModal()">रद्द</button>`
   );
 }
 
@@ -39956,8 +40404,9 @@ async function saveToleDemand(e, toleName) {
 
     _currentToleProfileState.profile = profiles[toleName];
     _currentToleProfileState.activeTab = 'demands';
+    closeModal();
     showToast('✅ टोल समस्या दर्ता गरियो!', 'success');
-    renderToleProfileModalContent();
+    renderToleFullProfileUI();
   } catch(err) {
     console.error('saveToleDemand error:', err);
   }
@@ -39976,13 +40425,118 @@ async function updateToleDemandStatus(toleName, demandId, newStatus) {
         await saveTenantToleProfiles(tenantId, profiles);
         _currentToleProfileState.profile = profiles[toleName];
         showToast('✅ अवस्था अपडेट भयो!', 'success');
-        renderToleProfileModalContent();
+        renderToleFullProfileUI();
       }
     }
   } catch(e) {}
 }
 
-async function removeVoterFromTole(toleName, voterId) {
+async function deleteToleDemand(toleName, demandId) {
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+
+  try {
+    const profiles = await getTenantToleProfiles(tenantId);
+    if (profiles[toleName] && profiles[toleName].demands) {
+      profiles[toleName].demands = profiles[toleName].demands.filter(d => d.id !== demandId);
+      await saveTenantToleProfiles(tenantId, profiles);
+      _currentToleProfileState.profile = profiles[toleName];
+      showToast('माग हटाइयो!', 'info');
+      renderToleFullProfileUI();
+    }
+  } catch(e) {}
+}
+
+function openEditToleModal(toleName) {
+  const p = _currentToleProfileState.profile || {};
+  openModal(
+    `✏️ ${esc(toleName)} — टोल जानकारी सम्पादन`,
+    `
+    <form onsubmit="saveEditToleModal(event, '${esc(toleName)}')">
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label class="form-label">टोल संयोजकको नाम</label>
+        <input type="text" id="editToleLeadInp" class="form-control" value="${esc(p.lead || '')}" placeholder="संयोजकको पूरा नाम">
+      </div>
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label class="form-label">सम्पर्क फोन नम्बर (सिधै कल बटनका लागि)</label>
+        <input type="tel" id="editTolePhoneInp" class="form-control" value="${esc(p.phone || '')}" placeholder="98XXXXXXXX">
+      </div>
+      <div class="form-grid" style="margin-bottom: 14px;">
+        <div class="form-group">
+          <label class="form-label">वडा नं.</label>
+          <input type="number" id="editToleWardInp" class="form-control" min="1" max="9" value="${p.ward || 1}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">केन्द्र (Booth)</label>
+          <input type="text" id="editToleBoothInp" class="form-control" value="${esc(p.booth || 'A')}">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width: 100%; font-weight: 800; padding: 10px;">
+        💾 टोल जानकारी सुरक्षित गर्नुहोस्
+      </button>
+    </form>
+    `,
+    `<button class="btn btn-secondary" onclick="closeModal()">रद्द</button>`
+  );
+}
+
+async function saveEditToleModal(e, toleName) {
+  e.preventDefault();
+  const lead = (document.getElementById('editToleLeadInp')?.value || '').trim();
+  const phone = (document.getElementById('editTolePhoneInp')?.value || '').trim();
+  const ward = Number(document.getElementById('editToleWardInp')?.value) || 1;
+  const booth = (document.getElementById('editToleBoothInp')?.value || 'A').trim();
+
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+
+  try {
+    const profiles = await getTenantToleProfiles(tenantId);
+    if (!profiles[toleName]) profiles[toleName] = { name: toleName };
+    profiles[toleName].lead = lead;
+    profiles[toleName].phone = phone;
+    profiles[toleName].ward = ward;
+    profiles[toleName].booth = booth;
+
+    await saveTenantToleProfiles(tenantId, profiles);
+    closeModal();
+    showToast('✅ टोल जानकारी अद्यावधिक भयो!', 'success');
+    renderToleCommandCenter(toleName, ward);
+  } catch(err) {
+    console.error('saveEditToleModal error:', err);
+  }
+}
+
+async function deleteTole(toleName) {
+  if (!confirm(`के तपाईं साँच्चिकै "${toleName}" टोल मेटाउन चाहनुहुन्छ? यस टोलमा आबद्ध मतदाताहरू अनअसाइन हुनेछन्।`)) return;
+
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+  const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+
+  try {
+    // 1. Unassign voters from this tole in Supabase
+    await fetch(`${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&tole=eq.${encodeURIComponent(toleName)}`, {
+      method: 'PATCH',
+      headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ tole: '' })
+    });
+
+    // 2. Remove from system_settings
+    const profiles = await getTenantToleProfiles(tenantId);
+    delete profiles[toleName];
+    await saveTenantToleProfiles(tenantId, profiles);
+
+    showToast(`टोल "${toleName}" मेटाइयो!`, 'info');
+    populateExistingTolesDropdown();
+    renderToleCommandCenter();
+  } catch(e) {
+    console.error('deleteTole error:', e);
+  }
+}
+
+async function removeVoterFromTole(toleName, voterId, wardNo) {
   if (!confirm('के तपाईं यस मतदातालाई यस टोलबाट हटाउन चाहनुहुन्छ?')) return;
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
   const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
@@ -39990,13 +40544,13 @@ async function removeVoterFromTole(toleName, voterId) {
   const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
 
   try {
-    await fetch(`${url}/rest/v1/voters?voter_id=eq.${encodeURIComponent(voterId)}`, {
+    await fetch(`${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&voter_id=eq.${encodeURIComponent(voterId)}`, {
       method: 'PATCH',
-      headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+      headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
       body: JSON.stringify({ tole: '' })
     });
     showToast('मतदाता टोलबाट हटाइयो!', 'info');
-    openToleProfile(toleName, _currentToleProfileState.wardNo);
+    renderToleFullProfileDashboard(toleName, wardNo);
   } catch(e) {}
 }
 
@@ -40017,7 +40571,7 @@ async function openAddHouseholdsToToleModal(toleName, wardNo, boothNo) {
     const voters = res.ok ? await res.json() : [];
 
     if (!Array.isArray(voters) || voters.length === 0) {
-      openModal(`➕ ${esc(toleName)} मा घरधुरी थप्नुहोस्`, '<div style="padding:24px; text-align:center;">यस वडामा कुनै पनि टोल नतोकिएका मतदाता बाँकी छैनन्। सबै घरधुरी टोलमा आबद्ध भइसकेका छन्।</div>', `<button class="btn btn-secondary" onclick="openToleProfile('${esc(toleName)}')">फर्कनुहोस्</button>`);
+      openModal(`➕ ${esc(toleName)} मा घरधुरी थप्नुहोस्`, '<div style="padding:24px; text-align:center;">यस वडामा कुनै पनि टोल नतोकिएका मतदाता बाँकी छैनन्। सबै घरधुरी टोलमा आबद्ध भइसकेका छन्।</div>', `<button class="btn btn-secondary" onclick="closeModal()">फर्कनुहोस्</button>`);
       return;
     }
 
@@ -40025,9 +40579,9 @@ async function openAddHouseholdsToToleModal(toleName, wardNo, boothNo) {
       <div style="margin-bottom: 12px; font-size: 13px; color: #475569;">
         वडा नं. <b>${wardNo}</b> का टोल नतोकिएका घरधुरीहरूमध्ये यस <b>"${esc(toleName)}"</b> टोलमा पर्ने घरहरूमा टिक (☑️) लगाउनुहोस्:
       </div>
-      <div style="overflow-x: auto; max-height: 400px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 14px;">
+      <div style="overflow-x: auto; max-height: 400px; border: 1.5px solid #e2e8f0; border-radius: 8px; margin-bottom: 14px;">
         <table class="data-table" style="width: 100%; font-size: 12.5px;">
-          <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 2;">
+          <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 2;">
             <tr>
               <th style="width: 36px; text-align: center;"><input type="checkbox" onchange="document.querySelectorAll('.add-tole-chk').forEach(c => c.checked = this.checked)"></th>
               <th>मतदाता नं</th>
@@ -40054,7 +40608,7 @@ async function openAddHouseholdsToToleModal(toleName, wardNo, boothNo) {
       </button>
     `;
 
-    openModal(`➕ ${esc(toleName)} मा घरधुरी थप्नुहोस्`, modalBody, `<button class="btn btn-secondary" onclick="openToleProfile('${esc(toleName)}')">रद्द</button>`);
+    openModal(`➕ ${esc(toleName)} मा घरधुरी थप्नुहोस्`, modalBody, `<button class="btn btn-secondary" onclick="closeModal()">रद्द</button>`);
   } catch(e) {
     console.error('openAddHouseholdsToToleModal error:', e);
   }
@@ -40076,89 +40630,24 @@ async function executeAddVotersToTole(toleName, wardNo) {
   showToast('⏳ आबद्ध गरिँदैछ...', 'info');
 
   try {
-    const encodedIds = ids.map(id => encodeURIComponent(id)).join(',');
-    await fetch(`${url}/rest/v1/voters?voter_id=in.(${encodedIds})`, {
-      method: 'PATCH',
-      headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tole: toleName })
-    });
+    const chunkSize = 40;
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      const encodedIds = chunk.map(id => encodeURIComponent(id)).join(',');
+      await fetch(`${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&voter_id=in.(${encodedIds})`, {
+        method: 'PATCH',
+        headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ tole: toleName })
+      });
+    }
 
+    closeModal();
     showToast(`✅ ${ids.length} जना मतदाता "${toleName}" मा थपिए!`, 'success');
-    openToleProfile(toleName, wardNo);
+    renderToleFullProfileDashboard(toleName, wardNo);
   } catch(e) {
     showToast('त्रुटि भयो।', 'error');
   }
 }
-
-async function openTolesDirectoryModal() {
-  openModal('🏘️ टोल व्यवस्थापन तथा कमान्ड हब (Tole Directory)', '<div style="text-align:center; padding:30px;"><div class="spinner" style="margin:0 auto 12px;"></div>टोलहरूको विवरण लोड हुँदैछ...</div>');
-
-  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
-  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
-  const profiles = await getTenantToleProfiles(tenantId);
-  const toleKeys = Object.keys(profiles);
-
-  const modalHtml = `
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
-      <div>
-        <span style="font-weight: 800; font-size: 15px;">दर्ता भएका टोलहरू (${toleKeys.length} टोल)</span>
-      </div>
-      <button type="button" class="btn btn-sm btn-primary" onclick="openQuickCreateToleFromHouseholdsModal()" style="font-weight: 800; padding: 6px 14px;">
-        ➕ नयाँ टोल सिर्जना गर्नुहोस्
-      </button>
-    </div>
-
-    <div style="overflow-x: auto; max-height: 480px; border: 1px solid var(--border-color); border-radius: 8px;">
-      <table class="data-table" style="width: 100%; font-size: 13px;">
-        <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 2;">
-          <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
-            <th style="padding: 10px 12px; width: 45px;">#</th>
-            <th style="padding: 10px 12px;">टोलको नाम</th>
-            <th style="padding: 10px 12px;">स्थान (वडा/केन्द्र)</th>
-            <th style="padding: 10px 12px;">संयोजक / नेतृत्व</th>
-            <th style="padding: 10px 12px;">सम्पर्क फोन</th>
-            <th style="padding: 10px 12px; text-align: center;">मागहरू</th>
-            <th style="padding: 10px 12px; text-align: right;">कार्य</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${toleKeys.length === 0 ? '<tr><td colspan="7" style="text-align: center; padding: 28px; color: var(--text-muted);">अहिलेसम्म कुनै टोल सिर्जना गरिएको छैन। माथिको "नयाँ टोल सिर्जना गर्नुहोस्" बटनबाट सुरु गर्नुहोस्।</td></tr>' :
-            toleKeys.map((k, idx) => {
-              const p = profiles[k];
-              const dCount = (p.demands || []).length;
-              return `
-                <tr style="border-bottom: 1px solid var(--border-color);">
-                  <td style="padding: 10px 12px; font-weight: 700; color: #64748b;">${idx + 1}</td>
-                  <td style="padding: 10px 12px; font-weight: 800; color: #1e3a6e;">
-                    <a href="javascript:void(0)" onclick="openToleProfile('${esc(k)}', ${p.ward})" style="text-decoration:none; color:#1e3a6e;">
-                      🏘️ ${esc(k)}
-                    </a>
-                  </td>
-                  <td style="padding: 10px 12px;">वडा नं. ${p.ward || 1} • बुथ ${esc(p.booth || 'A')}</td>
-                  <td style="padding: 10px 12px; font-weight: 700; color: #0f172a;">${esc(p.lead || '-')}</td>
-                  <td style="padding: 10px 12px;">
-                    ${p.phone ? `<a href="tel:${esc(p.phone)}" style="font-weight:700; color:#16a34a; text-decoration:none;">📞 ${esc(p.phone)}</a>` : '-'}
-                  </td>
-                  <td style="padding: 10px 12px; text-align: center;">
-                    <span class="badge" style="background:#f1f5f9; font-weight:700;">${dCount} माग</span>
-                  </td>
-                  <td style="padding: 10px 12px; text-align: right;">
-                    <button type="button" class="btn btn-sm btn-primary" onclick="openToleProfile('${esc(k)}', ${p.ward})" style="font-size: 11.5px; font-weight: 700; padding: 4px 10px;">
-                      📊 प्रोफाइल खोल्नुहोस्
-                    </button>
-                  </td>
-                </tr>
-              `;
-            }).join('')
-          }
-        </tbody>
-      </table>
-    </div>
-  `;
-
-  openModal('🏘️ टोल व्यवस्थापन तथा कमान्ड हब (Tole Directory)', modalHtml, '<button class="btn btn-secondary" onclick="closeModal()">बन्द गर्नुहोस्</button>');
-}
-
 
 </script>
 </body>
