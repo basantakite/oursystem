@@ -41383,9 +41383,9 @@ async function fetchLiveTenantSurnamesFromCloud(tenantId) {
     const surnameCounts = {};
     let totalProcessed = 0;
 
-    // Scan up to 50,000 voters for this specific tenant in high-speed 5000-row chunks
-    for (let offset = 0; offset < 50000; offset += 5000) {
-      const resp = await fetch(`${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&select=full_name&offset=${offset}&limit=5000`, { headers });
+    // Scan all voters in 1000-row pages (standard PostgREST max page limit)
+    for (let offset = 0; offset < 50000; offset += 1000) {
+      const resp = await fetch(`${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&select=full_name&offset=${offset}&limit=1000`, { headers });
       if (!resp.ok) break;
       const rows = await resp.json();
       if (!Array.isArray(rows) || rows.length === 0) break;
@@ -41396,7 +41396,7 @@ async function fetchLiveTenantSurnamesFromCloud(tenantId) {
         if (s) surnameCounts[s] = (surnameCounts[s] || 0) + 1;
       });
 
-      if (rows.length < 5000) break; // End of tenant data
+      if (rows.length < 1000) break; // Finished reading all voters
     }
 
     if (totalProcessed === 0) return null;
@@ -41404,7 +41404,6 @@ async function fetchLiveTenantSurnamesFromCloud(tenantId) {
     // Convert to sorted structured list
     const sorted = Object.entries(surnameCounts).sort((a, b) => b[1] - a[1]);
     const studioList = sorted.map(([sur, cnt]) => {
-      // Auto-suggest cluster from Nepal Govt Caste Dictionary
       const autoClass = getVoterCasteClassification({ full_name: sur });
       return {
         sur: sur,
@@ -41418,7 +41417,7 @@ async function fetchLiveTenantSurnamesFromCloud(tenantId) {
 
     _tenantStudioSurnameCache[tenantId] = studioList;
     try {
-      localStorage.setItem('vrm_tenant_studio_surnames_' + tenantId, JSON.stringify(studioList));
+      localStorage.setItem('vrm_tenant_studio_surnames_v72_' + tenantId, JSON.stringify(studioList));
     } catch(e) {}
 
     return studioList;
@@ -41436,43 +41435,29 @@ function getActiveTenantStudioSurnames() {
 
   const customRules = (typeof getCustomCasteRules === 'function') ? getCustomCasteRules(tenantId) : {};
 
-  // 1. Check in-memory cloud cache first
-  let baseList = _tenantStudioSurnameCache[tenantId];
-
-  // 2. Check local persistence cache
-  if (!baseList) {
-    try {
-      const cached = localStorage.getItem('vrm_tenant_studio_surnames_' + tenantId);
-      if (cached) {
-        baseList = JSON.parse(cached);
-        _tenantStudioSurnameCache[tenantId] = baseList;
-      }
-    } catch(e) {}
+  // 1. Calibrated ground truth databases ALWAYS take first priority for ground-truth tenants
+  let baseList = null;
+  if (isHelambu && typeof HELAMBU_SURNAME_RAW_DATABASE !== 'undefined') {
+    baseList = HELAMBU_SURNAME_RAW_DATABASE;
+  } else if ((tenantId === 'TNT_MVG3WXFX' || tenantId === 'ALL') && typeof GOKARNA_SURNAME_RAW_DATABASE !== 'undefined') {
+    baseList = GOKARNA_SURNAME_RAW_DATABASE;
+  } else {
+    // 2. For newly added tenants, check in-memory cloud cache or localStorage
+    baseList = _tenantStudioSurnameCache[tenantId];
+    if (!baseList) {
+      try {
+        const cached = localStorage.getItem('vrm_tenant_studio_surnames_v72_' + tenantId);
+        if (cached) {
+          baseList = JSON.parse(cached);
+          _tenantStudioSurnameCache[tenantId] = baseList;
+        }
+      } catch(e) {}
+    }
   }
 
-  // 3. Fallback to calibrated ground truth databases if cloud not yet scanned
+  // 3. Fallback if still empty
   if (!baseList || baseList.length === 0) {
-    if (isHelambu) {
-      baseList = HELAMBU_SURNAME_RAW_DATABASE;
-    } else if (tenantId === 'TNT_MVG3WXFX' && typeof GOKARNA_SURNAME_RAW_DATABASE !== 'undefined') {
-      baseList = GOKARNA_SURNAME_RAW_DATABASE;
-    } else {
-      // Build tenant-specific list from known dictionaries or live scoped voters
-      const list = [];
-      const tSurnames = REAL_TENANT_CASTE_SURNAMES[tenantId] || REAL_TENANT_CASTE_SURNAMES.TNT_MVG3WXFX || {};
-      Object.keys(tSurnames).forEach(cKey => {
-        (tSurnames[cKey] || []).forEach(item => {
-          list.push({
-            sur: item.en,
-            cnt: item.count || 50,
-            dev: item.np,
-            cluster: cKey,
-            sub: item.en
-          });
-        });
-      });
-      baseList = list;
-    }
+    baseList = (typeof GOKARNA_SURNAME_RAW_DATABASE !== 'undefined') ? GOKARNA_SURNAME_RAW_DATABASE : [];
   }
 
   // Apply tenant-specific custom rules over baseList

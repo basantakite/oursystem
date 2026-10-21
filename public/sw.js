@@ -1,5 +1,5 @@
 // Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v69-tenant-caste-rules-studio-and-khas-arya-calibrated';
+const CACHE_NAME = 'election-ops-v72-gokarneshwor-real-37759-surnames-fixed';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
