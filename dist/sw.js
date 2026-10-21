@@ -1,5 +1,5 @@
 // Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v62-tenant-scoped-candidates-and-ecards';
+const CACHE_NAME = 'election-ops-v63-fixed-candidate-profile-brochure-ecard-modals';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

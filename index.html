@@ -27514,6 +27514,68 @@ async function loadLiveHouseholdsPage() {
       { id: 'PLG_6', icon: '⚖️', title: 'भ्रष्टाचारमुक्त पारदर्शी सुशासन', text: 'शतप्रतिशत डिजिटल वडा कार्यालय, नागरिक बडापत्रको प्रभावकारी कार्यान्वयन र भ्रष्टाचारमा शून्य सहनशीलता।' }
     ];
 
+    function getTenantEventsForCandidate(candidate, tenantId) {
+      const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+      const cName = candidate?.Name || 'उम्मेदवार';
+      const cPost = candidate?.Post || 'प्रमुख';
+      const cWard = candidate?.Ward;
+
+      if (!isHelambu) {
+        // Gokarneshwor Municipality events
+        if (cWard && cWard !== 'All') {
+          return [
+            { id: 'EV_G01', title: `वडा नं. ${cWard} बृहत् घरदैलो तथा मतदाता संवाद`, date: '२०८४/०१/१२', time: 'बिहान ०८:०० बजे', venue: `वडा नं. ${cWard} मुख्य चोक`, type: 'घरदैलो', speaker: cName, attendees: '३००+ मतदाता', status: 'आगामी' },
+            { id: 'EV_G02', title: `वडा नं. ${cWard} युवा संवाद तथा चुनावी कोणसभा`, date: '२०८४/०१/१५', time: 'दिउँसो ०२:०० बजे', venue: `वडा नं. ${cWard} सामुदायिक भवन`, type: 'कोणसभा', speaker: `${cName} र निर्वाचन कमान्डर`, attendees: '४५०+ युवा', status: 'आगामी' },
+            { id: 'EV_G03', title: `वडा नं. ${cWard} टोल-टोलमा मतदाता भेटघाट अभियान`, date: '२०८४/०१/१८', time: 'बिहान १०:०० बजे', venue: `वडा नं. ${cWard} टोल प्राङ्गण`, type: 'टोल भेला', speaker: cName, attendees: '२५०+ अगुवा', status: 'तयारीमा' }
+          ];
+        }
+        return [
+          { id: 'EV_G01', title: 'वडा नं. ५ जोरपाटी चोक बृहत् चुनावी आमसभा तथा घोषणापत्र सार्वजनिक', date: '२०८४/०१/१०', time: 'दिउँसो ०१:०० बजे', venue: 'जोरपाटी चोक, गोकर्णेश्वर', type: 'चुनावी आमसभा', speaker: `${cName} तथा केन्द्रीय नेतागण`, attendees: '२,५००+ नागरिक', status: 'आगामी' },
+          { id: 'EV_G02', title: 'वडा नं. १ सुन्दरीजल बसपार्क युवा संवाद, पदयात्रा तथा मतदाता भेटघाट', date: '२०८४/०१/१३', time: 'बिहान ०८:०० बजे', venue: 'सुन्दरीजल बसपार्क', type: 'घरदैलो तथा संवाद', speaker: cName, attendees: '६००+ युवा', status: 'आगामी' },
+          { id: 'EV_G03', title: 'वडा नं. ३ आरुबारी फुटबल मैदान बुद्धिजीवी तथा नागरिक समाज संवाद', date: '२०८४/०१/१६', time: 'दिउँसो ०२:०० बजे', venue: 'आरुबारी खेल मैदान', type: 'सार्वजनिक संवाद', speaker: `${cName} र विज्ञ समूह`, attendees: '८००+ बुद्धिजीवी', status: 'आगामी' },
+          { id: 'EV_G04', title: 'वडा नं. ८ अत्तरखेल/माकलवारी कार्यकर्ता भेला तथा निर्वाचन परिचालन बैठक', date: '२०८४/०१/१९', time: 'बिहान ११:०० बजे', venue: 'अत्तरखेल पार्टी प्यालेस', type: 'कार्यकर्ता भेला', speaker: 'निर्वाचन कमान्डर', attendees: '३५०+ अगुवा', status: 'तयारीमा' }
+        ];
+      }
+
+      // Helambu Rural Municipality events
+      if (cWard && cWard !== 'All') {
+        return [
+          { id: 'EV_H01', title: `वडा नं. ${cWard} बृहत् घरदैलो तथा जनसंवाद`, date: '२०८४/०१/१२', time: 'बिहान ०८:०० बजे', venue: `वडा नं. ${cWard} केन्द्र`, type: 'घरदैलो', speaker: cName, attendees: '२५०+ अपेक्षित', status: 'आगामी' },
+          { id: 'EV_H02', title: `वडा नं. ${cWard} वडास्तरीय भेला तथा चुनावी रणनीति बैठक`, date: '२०८४/०१/१६', time: 'बिहान ११:०० बजे', venue: `वडा नं. ${cWard} सामुदायिक हल`, type: 'कार्यकर्ता भेला', speaker: cName, attendees: '१५०+ अगुवा', status: 'आगामी' }
+        ];
+      }
+      return [
+        { id: 'EV_H01', title: 'वडा नं. ४ तिम्बु बजार बृहत् चुनावी आमसभा तथा चुनावी घोषणा', date: '२०८४/०१/१०', time: 'दिउँसो १२:०० बजे', venue: 'तिम्बु बजार चौर', type: 'चुनावी आमसभा', speaker: `${cName} तथा शीर्ष नेतृत्व`, attendees: '१,२००+ नागरिक', status: 'आगामी' },
+        { id: 'EV_H02', title: 'वडा नं. १ मेलम्चीघ्याङ घरदैलो, पदयात्रा तथा मतदाता भेटघाट', date: '२०८४/०१/१३', time: 'बिहान ०८:०० बजे', venue: 'मेलम्चीघ्याङ बजार', type: 'घरदैलो', speaker: cName, attendees: '३५०+ नागरिक', status: 'आगामी' },
+        { id: 'EV_H03', title: 'वडा नं. २ सेर्माथाङ चुनावी कोणसभा तथा युवा संवाद', date: '२०८४/०१/१६', time: 'दिउँसो ०२:०० बजे', venue: 'सेर्माथाङ चौर', type: 'कोणसभा', speaker: cName, attendees: '४००+ युवा', status: 'आगामी' },
+        { id: 'EV_H04', title: 'वडा नं. ७ किउल वडास्तरीय कार्यकर्ता भेला र रणनीतिक बैठक', date: '२०८४/०१/१९', time: 'बिहान ११:०० बजे', venue: 'किउल सामुदायिक भवन', type: 'कार्यकर्ता भेला', speaker: 'प्रचार संयोजक', attendees: '१२०+ कार्यकर्ता', status: 'तयारीमा' }
+      ];
+    }
+
+    function getTenantPledgesForCandidate(candidate, tenantId) {
+      const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+      if (!isHelambu) {
+        // Gokarneshwor Municipality Pledges
+        return [
+          { id: 'PLG_1', icon: '🏥', title: 'सुविधासम्पन्न नगर अस्पताल र निःशुल्क स्वास्थ्य बिमा', text: 'गोकर्णेश्वर नगर अस्पतालको स्तरोन्नति, वडा-वडामा विशेषज्ञ क्लिनिक, जेष्ठ नागरिकलाई निःशुल्क औषधि तथा २४ सै घण्टा नगर एम्बुलेन्स सेवा।' },
+          { id: 'PLG_2', icon: '🎓', title: 'सामुदायिक विद्यालयमा स्मार्ट शिक्षा र प्राविधिक कलेज', text: 'सबै सामुदायिक विद्यालयहरूमा डिजिटल स्मार्ट कक्षा, कम्प्युटर ल्याब, स्नातक तहसम्म प्राविधिक शिक्षा र गरिब तथा जेहेन्दार विद्यार्थीलाई छात्रवृत्ति।' },
+          { id: 'PLG_3', icon: '🛣️', title: 'जोरपाटी-सुन्दरीजल कोरिडोर र व्यवस्थित चक्रपथ', text: 'जोरपाटी-सुन्दरीजल मूल सडकको व्यवस्थित चौडा तथा कालोपत्रे, भित्री गल्लीहरूमा ढल निकास, सडक बत्ती र सुरक्षित फुटपाथ निर्माण।' },
+          { id: 'PLG_4', icon: '💧', title: 'सुन्दरीजल मुहान स्वच्छ खानेपानी वितरण', text: 'सुन्दरीजलको प्राकृतिक स्वच्छ मुहानबाट नगरवासीका घर-घरमा शुद्ध पिउने पानी आपूर्ति र निःशुल्क खानेपानी धारा जडान योजना।' },
+          { id: 'PLG_5', icon: '🏛️', title: 'सम्पदा संरक्षण, सहिद पार्क र पर्यटन प्रवर्द्धन', text: 'गोकर्णेश्वर महादेव, उत्तरवाहिनी क्षेत्र, जगडोल राष्ट्रिय सहिद स्मारकको अन्तर्राष्ट्रिय प्रवर्द्धन र स्थानीय युवा स्वरोजगार कोष।' },
+          { id: 'PLG_6', icon: '⚖️', title: 'भ्रष्टाचारमुक्त डिजिटल वडा र पारदर्शी सुशासन', text: 'घरमै बसेर सबै सिफारिस तथा राजस्व तिर्न सकिने पूर्ण डिजिटल वडा कार्यालय र जनताको काममा ढिलासुस्तीमा शून्य सहनशीलता।' }
+        ];
+      }
+      // Helambu Rural Municipality Pledges
+      return [
+        { id: 'PLG_1', icon: '🏥', title: 'वडा-वडामा गुणस्तरीय स्वास्थ्य केन्द्र र एम्बुलेन्स सेवा', text: 'प्रत्येक वडामा प्राथमिक स्वास्थ्य चौकी, विशेषज्ञ डाक्टर, निःशुल्क अत्यावश्यक औषधि तथा २४ सै घण्टा आपत्कालीन एम्बुलेन्स सेवा।' },
+        { id: 'PLG_2', icon: '🎓', title: 'व्यावहारिक र प्राविधिक डिजिटल शिक्षा', text: 'सामुदायिक विद्यालयहरूमा आधुनिक स्मार्ट कक्षाकोठा, कम्प्युटर ल्याब, प्राविधिक शिक्षा र विपन्न विद्यार्थीलाई पूर्ण छात्रवृत्ति।' },
+        { id: 'PLG_3', icon: '🛣️', title: 'बाह्रैमास चल्ने पक्की सडक र सुरक्षित पदमार्ग', text: 'हेलम्बुका सबै वडा र बस्ती जोड्ने पक्की सडक, सुरक्षित मोटरबेल पुल, र अन्तर्राष्ट्रिय स्तरको ग्रेट हिमालयन ट्रेल संरक्षण।' },
+        { id: 'PLG_4', icon: '💧', title: 'एक घर - एक धारा स्वच्छ खानेपानी', text: 'प्रत्येक नागरिकलाई शुद्ध र स्वच्छ पिउने पानी उपलब्ध गराउन दिगो मुहान संरक्षण र निःशुल्क खानेपानी मिटर जडान।' },
+        { id: 'PLG_5', icon: '🍎', title: 'हेलम्बु अर्गानिक कृषि, ट्राउट माछा र पर्यटन प्रवर्द्धन', text: 'हेलम्बुको ब्रान्डेड स्याउ तथा किवी खेती, ट्राउट माछा हब, होमस्टे प्रवर्द्धन र युवाहरूलाई विना धितो सहुलियतपूर्ण स्वरोजगार कोष।' },
+        { id: 'PLG_6', icon: '⚖️', title: 'भ्रष्टाचारमुक्त डिजिटल सुशासन र पारदर्शी बजेट', text: 'डिजिटल वडा कार्यालय, अनलाइन नागरिक सेवा, पारदर्शी बजेट वितरण र ढिलासुस्ती तथा भ्रष्टाचारमा शून्य सहनशीलता।' }
+      ];
+    }
+
     // Rich WhatsApp & Clipboard Share Message Generator (Ensures COMPLETE content)
     function getFullBrochureSharePayload(candId) {
       const pal = getActivePartyPalette();
@@ -27561,16 +27623,30 @@ async function loadLiveHouseholdsPage() {
     }
 
     function openCandidateProfileModal(candId) {
-      const palette = getActivePartyPalette();
-      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
-      const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
-      const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
-      const palikaName = (state.settings && state.settings.MUNICIPALITY) || (isHelambu ? 'हेलम्बु गाउँपालिका' : 'गोकर्णेश्वर नगरपालिका');
-      const districtName = isHelambu ? 'सिन्धुपाल्चोक' : 'काठमाडौँ';
+      try {
+        const palette = getActivePartyPalette();
+        const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+        const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+        const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+        const palikaName = (state.settings && state.settings.MUNICIPALITY) || (isHelambu ? 'हेलम्बु गाउँपालिका' : 'गोकर्णेश्वर नगरपालिका');
+        const districtName = isHelambu ? 'सिन्धुपाल्चोक' : 'काठमाडौँ';
 
-      const scopedCandidates = getScopedCandidates();
-      const cId = candId || state.selectedCandidateId;
-      const c = (scopedCandidates || []).find(x => x.CandidateID === cId) || scopedCandidates[0] || getSelectedCandidate();
+        const scopedCandidates = (typeof getScopedCandidates === 'function') ? getScopedCandidates() : [];
+        const curCand = (typeof getSelectedCandidate === 'function') ? getSelectedCandidate() : null;
+        const cId = candId || (curCand && curCand.CandidateID) || state.selectedCandidateId;
+        const c = (scopedCandidates || []).find(x => x && x.CandidateID === cId) || curCand || (scopedCandidates && scopedCandidates[0]) || {
+          CandidateID: 'CND_' + tenantId + '_01',
+          Name: isHelambu ? 'निमा ग्याल्जेन शेर्पा' : 'दीपक कुमार रिसाल',
+          Post: isHelambu ? 'पालिका अध्यक्ष (Chairperson)' : 'पालिका प्रमुख / मेयर (Mayor)',
+          Level: 'स्थानीय तह (Local Level)',
+          Ward: 'All',
+          Party: palette.name,
+          Symbol: palette.symbol,
+          PIN: '2026',
+          Phone: '9851011111',
+          TargetVotes: isHelambu ? 5800 : 13500,
+          TenantID: tenantId
+        };
 
       // Ensure tenant-aware events & pledges
       if (!c.events || !c.events.length) c.events = getTenantEventsForCandidate(c, tenantId);
@@ -27955,6 +28031,10 @@ async function loadLiveHouseholdsPage() {
       `;
 
       openModal(modalTitle, modalBody, modalFooter, 'modal-lg');
+      } catch (err) {
+        console.error('Error opening candidate profile modal:', err);
+        showToast('उम्मेदवार प्रोफाइल खोल्न सकिएन: ' + (err.message || err), 'error');
+      }
     }
 
     async function addCandidateStrategyNote(e, candId) {
@@ -28257,13 +28337,17 @@ async function loadLiveHouseholdsPage() {
     }
 
     function openCandidateBrochureModal(candId) {
-      openCandidateProfileModal(candId);
-      setTimeout(() => switchCandidateTab('brochure'), 100);
+      const curCand = (typeof getSelectedCandidate === 'function') ? getSelectedCandidate() : null;
+      const targetId = candId || (curCand && curCand.CandidateID) || state.selectedCandidateId;
+      openCandidateProfileModal(targetId);
+      setTimeout(() => switchCandidateTab('brochure'), 150);
     }
 
     function openCandidateEventsTimelineModal(candId) {
-      openCandidateProfileModal(candId);
-      setTimeout(() => switchCandidateTab('timeline'), 100);
+      const curCand = (typeof getSelectedCandidate === 'function') ? getSelectedCandidate() : null;
+      const targetId = candId || (curCand && curCand.CandidateID) || state.selectedCandidateId;
+      openCandidateProfileModal(targetId);
+      setTimeout(() => switchCandidateTab('timeline'), 150);
     }
 
     function openEditBrochureModal(candId) {
