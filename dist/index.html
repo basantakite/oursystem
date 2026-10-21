@@ -39523,7 +39523,7 @@ function toggleCasteSort(field) {
 }
 
 function getComputedTenantCasteClusters(tenantId) {
-  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU' || tenantId === 'TNT_HELAMBU_RSP');
   const baseClusters = isHelambu ? {
     janajati: 13882,
     khas_arya: 2496,
@@ -39542,34 +39542,7 @@ function getComputedTenantCasteClusters(tenantId) {
     other: 3090
   };
 
-  const baseDict = isHelambu ? {
-    'lamini': 720, 'sherpini': 360, 'serpa': 140, 'dolma': 95, 'syanggawa': 75,
-    'chhoden': 65, 'doma': 55, 'lhamo': 45, 'chhomphel': 40, 'wisht': 35,
-    'paljom': 35, 'nurachun': 30, 'joshi': 25, 'gurunng': 20, 'wasnet': 20, 'bibidh': 44
-  } : {
-    'nagarkoti': 780, 'wisht': 685, 'bisht': 420, 'kesi': 160, 'kuikel': 105,
-    'kami': 100, 'wasnet': 85, 'rokka': 70, 'karmachary': 60, 'aachary': 60,
-    'puri': 55, 'bhandari': 50, 'si': 45, 'dhimal': 40, 'putuwar': 40,
-    'pokhrel': 40, 'gahataraj': 38, 'dhimire': 30, 'wudhathoki': 30, 'bibidh': 197
-  };
-
-  const computed = { ...baseClusters };
-  const customRules = (typeof getCustomCasteRules === 'function') ? getCustomCasteRules() : {};
-
-  Object.keys(baseDict).forEach(k => {
-    const kLower = k.toLowerCase();
-    const kCap = k.charAt(0).toUpperCase() + k.slice(1);
-    const r = customRules[k] || customRules[kLower] || customRules[kCap];
-    if (r && r.cluster && r.cluster !== 'unclassified' && r.cluster !== 'other') {
-      const c = baseDict[k];
-      computed.other = Math.max(0, computed.other - c);
-      if (computed[r.cluster] !== undefined) {
-        computed[r.cluster] += c;
-      }
-    }
-  });
-
-  return computed;
+  return { ...baseClusters };
 }
 
 function renderCasteDemographics(skipRoster = false) {
@@ -39610,10 +39583,22 @@ function renderCasteDemographics(skipRoster = false) {
   else if (selCluster === 'unclassified') scopedCount = clusters.other ?? defClusters.other;
 
   const scopedPct = totalV > 0 ? ((scopedCount / totalV) * 100).toFixed(1) : '0';
-  const scopedMale = Math.round(scopedCount * 0.49);
-  const scopedFemale = scopedCount - scopedMale;
-  const scopedSure = 0;
-  const scopedSwing = scopedCount;
+
+  // Ground-truth male and female counts
+  const totalMale = (s && s.male) ?? (isHelambu ? 10055 : 18461);
+  const totalFemale = (s && s.female) ?? (isHelambu ? 8852 : 19298);
+
+  let scopedMale = totalMale;
+  let scopedFemale = totalFemale;
+
+  if (selCluster !== 'all') {
+    const clusterRatio = totalV > 0 ? (scopedCount / totalV) : 0;
+    scopedMale = Math.round(totalMale * clusterRatio);
+    scopedFemale = scopedCount - scopedMale;
+  }
+
+  const scopedSure = (s && s.solid) || 0;
+  const scopedSwing = (s && s.swing) || scopedCount;
   const scopedAbsent = 0;
 
   // Render Top 4 KPI Cards (Proper HTML IDs)
@@ -40252,6 +40237,7 @@ function openCasteRuleManagerModal() {
 
   const tbody = document.getElementById('modalUnmappedSurnamesBody');
   const countBadge = document.getElementById('modalUnmappedCountBadge');
+  if (countBadge) countBadge.textContent = isHelambu ? '१,८०४' : '३,०९०';
 
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
   const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
