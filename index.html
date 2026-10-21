@@ -37822,6 +37822,7 @@ let _casteFilterState = {
 function setCasteClusterFilter(clusterKey) {
   _casteFilterState.cluster = clusterKey;
   _casteFilterState.surname = 'all';
+  _castePage = 1;
   const surnameSel = document.getElementById('casteFilterSurnameSelect');
   if (surnameSel) surnameSel.value = 'all';
 
@@ -37900,15 +37901,9 @@ function toggleCasteSort(field) {
   renderCasteDemographics();
 }
 
-function renderCasteDemographics(skipRoster = false) {
-  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
-  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
-  const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
-
-  updateCasteNavBadge();
-
+function getComputedTenantCasteClusters(tenantId) {
   const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
-  const defClusters = isHelambu ? {
+  const baseClusters = isHelambu ? {
     janajati: 13882,
     khas_arya: 2496,
     dalit: 454,
@@ -37926,8 +37921,52 @@ function renderCasteDemographics(skipRoster = false) {
     other: 3090
   };
 
+  const baseDict = isHelambu ? {
+    'lamini': 720, 'sherpini': 360, 'serpa': 140, 'dolma': 95, 'syanggawa': 75,
+    'chhoden': 65, 'doma': 55, 'lhamo': 45, 'chhomphel': 40, 'wisht': 35,
+    'paljom': 35, 'nurachun': 30, 'joshi': 25, 'gurunng': 20, 'wasnet': 20, 'bibidh': 44
+  } : {
+    'nagarkoti': 780, 'wisht': 685, 'bisht': 420, 'kesi': 160, 'kuikel': 105,
+    'kami': 100, 'wasnet': 85, 'rokka': 70, 'karmachary': 60, 'aachary': 60,
+    'puri': 55, 'bhandari': 50, 'si': 45, 'dhimal': 40, 'putuwar': 40,
+    'pokhrel': 40, 'gahataraj': 38, 'dhimire': 30, 'wudhathoki': 30, 'bibidh': 197
+  };
+
+  const computed = { ...baseClusters };
+  const customRules = (typeof getCustomCasteRules === 'function') ? getCustomCasteRules() : {};
+
+  Object.keys(baseDict).forEach(k => {
+    const kLower = k.toLowerCase();
+    const kCap = k.charAt(0).toUpperCase() + k.slice(1);
+    const r = customRules[k] || customRules[kLower] || customRules[kCap];
+    if (r && r.cluster && r.cluster !== 'unclassified' && r.cluster !== 'other') {
+      const c = baseDict[k];
+      computed.other = Math.max(0, computed.other - c);
+      if (computed[r.cluster] !== undefined) {
+        computed[r.cluster] += c;
+      }
+    }
+  });
+
+  return computed;
+}
+
+function renderCasteDemographics(skipRoster = false) {
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
+
+  updateCasteNavBadge();
+
+  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
   const totalV = (s && s.total_voters) ?? (isHelambu ? 18907 : 37759);
-  const clusters = (s && s.caste_clusters) ? { ...defClusters, ...s.caste_clusters } : defClusters;
+  const clusters = getComputedTenantCasteClusters(tenantId);
+
+  // Keep state and local cache synchronized with computed truth
+  if (!state.tenantSummaries) state.tenantSummaries = {};
+  if (!state.tenantSummaries[tenantId]) state.tenantSummaries[tenantId] = { tenant_id: tenantId, total_voters: totalV };
+  state.tenantSummaries[tenantId].caste_clusters = clusters;
+  try { localStorage.setItem('tenant_summary_' + tenantId, JSON.stringify(state.tenantSummaries[tenantId])); } catch(e) {}
 
   const selCluster = (_casteFilterState && _casteFilterState.cluster) || 'all';
 
@@ -38051,7 +38090,15 @@ async function loadLiveCasteVotersList() {
 
   try {
     let voters = [];
-    let totalMatch = 37759;
+    const clusters = getComputedTenantCasteClusters(tenantId);
+    let totalMatch = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU') ? 18907 : 37759;
+    if (selCluster === 'khas_arya') totalMatch = clusters.khas_arya;
+    else if (selCluster === 'janajati') totalMatch = clusters.janajati;
+    else if (selCluster === 'newar') totalMatch = clusters.newar;
+    else if (selCluster === 'dalit') totalMatch = clusters.dalit;
+    else if (selCluster === 'madhesi') totalMatch = clusters.madhesi;
+    else if (selCluster === 'muslim') totalMatch = clusters.muslim;
+    else if (selCluster === 'unclassified') totalMatch = clusters.other;
 
     if (selCluster === 'unclassified') {
       // Fast batch scanning to collect up to 50 real unclassified voters
@@ -38076,14 +38123,7 @@ async function loadLiveCasteVotersList() {
       }
       voters = collected;
       window._currentLiveCasteVoters = voters;
-      const isHelambuCaste = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
-      totalMatch = isHelambuCaste ? 1804 : 3090;
     } else {
-      let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}`;
-      if (selWard && selWard !== 'all' && selWard !== '' && selWard !== 'सबै वडा (All Wards)') {
-        q += `&ward_no=eq.${encodeURIComponent(selWard)}`;
-      }
-
       let orClauses = [];
 
       if (selSurname && selSurname !== 'all') {
@@ -38121,36 +38161,55 @@ async function loadLiveCasteVotersList() {
         orClauses.push('full_name.ilike.*' + enc + '*', 'official_voter_id.ilike.*' + enc + '*', 'father_name.ilike.*' + enc + '*');
       }
 
-      if (orClauses.length > 0) {
-        q += `&or=(${orClauses.join(',')})`;
+      // STRICT COMMUNITY COLLECTOR: Guarantee zero leakage from other communities
+      let collected = [];
+      let currentOffset = offset;
+      let attempts = 0;
+      const fetchBatchSize = (selCluster === 'all') ? pageSize : 75;
+
+      while (collected.length < pageSize && attempts < 4) {
+        attempts++;
+        if (reqId !== _casteReqCounter) return;
+
+        let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}`;
+        if (selWard && selWard !== 'all' && selWard !== '' && selWard !== 'सबै वडा (All Wards)') {
+          q += `&ward_no=eq.${encodeURIComponent(selWard)}`;
+        }
+        if (orClauses.length > 0) {
+          q += `&or=(${orClauses.join(',')})`;
+        }
+        if (selSupport === 'solid') q += '&sentiment=eq.solid';
+        else if (selSupport === 'swing') q += '&sentiment=eq.swing';
+        else if (selSupport === 'other') q += '&sentiment=eq.opposition';
+        else if (selSupport === 'absentee') q += '&sentiment=eq.absentee';
+
+        q += `&order=ward_no.asc,serial_no.asc&limit=${fetchBatchSize}&offset=${currentOffset}`;
+
+        const res = await fetch(q, { headers: { apikey: key, Authorization: 'Bearer ' + key, Prefer: 'count=exact' } });
+        if (reqId !== _casteReqCounter) return;
+        if (!res.ok) break;
+
+        const batch = await res.json();
+        if (!Array.isArray(batch) || batch.length === 0) break;
+
+        for (let v of batch) {
+          if (selCluster === 'all') {
+            collected.push(v);
+          } else {
+            // STRICT GATEKEEPER: Must strictly match selected cluster!
+            const c = getVoterCasteClassification(v);
+            if (c.cluster === selCluster) {
+              collected.push(v);
+              if (collected.length >= pageSize) break;
+            }
+          }
+        }
+
+        if (selCluster === 'all' || batch.length < fetchBatchSize) break;
+        currentOffset += batch.length;
       }
 
-      if (selSupport === 'solid') {
-        q += '&sentiment=eq.solid';
-      } else if (selSupport === 'swing') {
-        q += '&sentiment=eq.swing';
-      } else if (selSupport === 'other') {
-        q += '&sentiment=eq.opposition';
-      } else if (selSupport === 'absentee') {
-        q += '&sentiment=eq.absentee';
-      }
-
-      q += `&order=ward_no.asc,serial_no.asc&limit=${pageSize}&offset=${offset}`;
-
-      const res = await fetch(q, { headers: { apikey: key, Authorization: 'Bearer ' + key, Prefer: 'count=exact' } });
-      if (reqId !== _casteReqCounter) return;
-      if (!res.ok) { 
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px; color: #ef4444;">डाटा लोड गर्न असफल भयो। पुनः प्रयास गर्नुहोस्।</td></tr>'; 
-        return; 
-      }
-
-      const cr = res.headers.get('content-range');
-      if (cr && cr.includes('/')) {
-        const parsed = parseInt(cr.split('/')[1], 10);
-        if (!isNaN(parsed)) totalMatch = parsed;
-      }
-
-      voters = await res.json();
+      voters = collected;
       window._currentLiveCasteVoters = voters;
     }
 
@@ -38402,7 +38461,7 @@ function renderCasteSummaryMatrix() {
   };
 
   const totalV = (s && s.total_voters) ?? (isHelambu ? 18907 : 37759);
-  const clusters = (s && s.caste_clusters) ? { ...defClusters, ...s.caste_clusters } : defClusters;
+  const clusters = getComputedTenantCasteClusters(tenantId);
 
   const matrixData = [
     {
@@ -38646,45 +38705,19 @@ function applySingleUnmappedRule(surname, voterCount = 1) {
   const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
   const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
 
+  const computed = getComputedTenantCasteClusters(tenantId);
   if (!state.tenantSummaries) state.tenantSummaries = {};
-  let s = state.tenantSummaries[tenantId];
-  if (!s || !s.caste_clusters) {
-    const defClusters = isHelambu ? {
-      janajati: 13882,
-      khas_arya: 2496,
-      dalit: 454,
-      newar: 204,
-      madhesi: 68,
-      muslim: 0,
-      other: 1804
-    } : {
-      khas_arya: 15088,
-      janajati: 13540,
-      newar: 4999,
-      dalit: 778,
-      madhesi: 234,
-      muslim: 30,
-      other: 3090
-    };
-    s = {
+  if (!state.tenantSummaries[tenantId]) {
+    state.tenantSummaries[tenantId] = {
       tenant_id: tenantId,
-      total_voters: isHelambu ? 18907 : 37759,
-      caste_clusters: { ...defClusters }
+      total_voters: isHelambu ? 18907 : 37759
     };
-    state.tenantSummaries[tenantId] = s;
   }
-
-  const shiftCount = Number(voterCount) || 1;
-  // Decrement unclassified ('other')
-  s.caste_clusters.other = Math.max(0, (s.caste_clusters.other || 0) - shiftCount);
-  // Increment target cluster
-  if (clusterKey !== 'other') {
-    s.caste_clusters[clusterKey] = (s.caste_clusters[clusterKey] || 0) + shiftCount;
-  }
+  state.tenantSummaries[tenantId].caste_clusters = computed;
 
   // Persist locally
   try {
-    localStorage.setItem('tenant_summary_' + tenantId, JSON.stringify(s));
+    localStorage.setItem('tenant_summary_' + tenantId, JSON.stringify(state.tenantSummaries[tenantId]));
   } catch(e) {}
 
   // Sync to Supabase system_settings in background
@@ -38702,7 +38735,7 @@ function applySingleUnmappedRule(surname, voterCount = 1) {
         },
         body: JSON.stringify({
           key: `tenant_summary_${tenantId}`,
-          value: JSON.stringify(s),
+          value: JSON.stringify(state.tenantSummaries[tenantId]),
           updated_at: new Date().toISOString()
         })
       }).catch(err => console.warn('tenant_summary sync error:', err));
@@ -38763,56 +38796,43 @@ function applyCustomCasteRuleFromModal() {
 
   saveCustomCasteRule(sur, clusterKey, label, sub);
 
-  // Check if this surname exists in unmapped dictionary to shift its exact count
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
   const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
   const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
 
-  const gokarnaDict = {
-    'nagarkoti': 780, 'wisht': 685, 'bisht': 420, 'kesi': 160, 'kuikel': 105,
-    'kami': 100, 'wasnet': 85, 'rokka': 70, 'karmachary': 60, 'aachary': 60,
-    'puri': 55, 'dhimal': 40, 'putuwar': 40, 'gahataraj': 38, 'pokhrel': 40,
-    'dhimire': 30, 'wudhathoki': 30, 'si': 45, 'bhandari': 50
-  };
-  const helambuDict = {
-    'lamini': 720, 'sherpini': 360, 'serpa': 140, 'dolma': 95, 'syanggawa': 75,
-    'chhoden': 65, 'doma': 55, 'lhamo': 45, 'chhomphel': 40, 'paljom': 35,
-    'wisht': 35, 'nurachun': 30, 'joshi': 25, 'gurunng': 20, 'wasnet': 20
-  };
-  const dict = isHelambu ? helambuDict : gokarnaDict;
-  const shiftCount = dict[sur.toLowerCase()] || 1;
-
+  const computed = getComputedTenantCasteClusters(tenantId);
   if (!state.tenantSummaries) state.tenantSummaries = {};
-  let s = state.tenantSummaries[tenantId];
-  if (s && s.caste_clusters) {
-    s.caste_clusters.other = Math.max(0, (s.caste_clusters.other || 0) - shiftCount);
-    if (clusterKey !== 'other') {
-      s.caste_clusters[clusterKey] = (s.caste_clusters[clusterKey] || 0) + shiftCount;
-    }
-    try { localStorage.setItem('tenant_summary_' + tenantId, JSON.stringify(s)); } catch(e) {}
-    try {
-      const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
-      const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
-      if (url && key) {
-        cloudFetch(`${url}/rest/v1/system_settings`, {
-          method: 'POST',
-          headers: {
-            'apikey': key,
-            'Authorization': `Bearer ${key}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify({
-            key: `tenant_summary_${tenantId}`,
-            value: JSON.stringify(s),
-            updated_at: new Date().toISOString()
-          })
-        }).catch(() => {});
-      }
-    } catch(e) {}
+  if (!state.tenantSummaries[tenantId]) {
+    state.tenantSummaries[tenantId] = {
+      tenant_id: tenantId,
+      total_voters: isHelambu ? 18907 : 37759
+    };
   }
+  state.tenantSummaries[tenantId].caste_clusters = computed;
 
-  showToast(`⚡ नयाँ नियम सुरक्षित गरियो: '${sur}' (${shiftCount} मतदाता) लाई '${label}' समूहमा तोकियो।`, 'success');
+  try { localStorage.setItem('tenant_summary_' + tenantId, JSON.stringify(state.tenantSummaries[tenantId])); } catch(e) {}
+  try {
+    const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+    const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+    if (url && key) {
+      cloudFetch(`${url}/rest/v1/system_settings`, {
+        method: 'POST',
+        headers: {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({
+          key: `tenant_summary_${tenantId}`,
+          value: JSON.stringify(state.tenantSummaries[tenantId]),
+          updated_at: new Date().toISOString()
+        })
+      }).catch(() => {});
+    }
+  } catch(e) {}
+
+  showToast(`⚡ नयाँ नियम सुरक्षित गरियो: '${sur}' लाई '${label}' समूहमा तोकियो।`, 'success');
   surInp.value = '';
   if (subInp) subInp.value = '';
 
