@@ -1,5 +1,5 @@
 // Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v64-tenant-caste-booth-and-surnames';
+const CACHE_NAME = 'election-ops-v65-caste-filter-dropdown-query-fix';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

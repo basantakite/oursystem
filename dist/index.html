@@ -38328,6 +38328,19 @@ function extractVoterSurname(name) {
 
 // Comprehensive English/Romanized to Nepal Govt Cluster & Sub-caste Knowledge Base
 const ROMANIZED_CASTE_DICTIONARY = {
+  // Common Top Tenant Surnames (Auto-Mapped)
+  'kuinkel': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'कुइँकेल' },
+  'kuikel': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'कुइकेल' },
+  'risal': { cluster: 'khas_arya', clusterLabel: 'खस आर्य', sub: 'पहाडी ब्राह्मण', devanagari: 'रिसाल' },
+  'bk': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'विश्वकर्मा', devanagari: 'वि.क.' },
+  'b.k': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'विश्वकर्मा', devanagari: 'वि.क.' },
+  'b.k.': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'विश्वकर्मा', devanagari: 'वि.क.' },
+  'kami': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'कामी', devanagari: 'कामी' },
+  'sunar': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'सुनार', devanagari: 'सुनार' },
+  'mijar': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'मिजार / सार्की', devanagari: 'मिजार' },
+  'sarki': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'मिजार / सार्की', devanagari: 'सार्की' },
+  'pariyar': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'परियार', devanagari: 'परियार' },
+  'damai': { cluster: 'dalit', clusterLabel: 'दलित समुदाय', sub: 'परियार / दर्जी', devanagari: 'दमाई' },
   // Top Helambu & Regional Real Voter Roll Surnames (Auto-Mapped)
   'lamini': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'लामा / ह्योल्मो', devanagari: 'लामिनी' },
   'lameni': { cluster: 'janajati', clusterLabel: 'आदिवासी जनजाति', sub: 'लामा / ह्योल्मो', devanagari: 'लामिनी' },
@@ -39049,109 +39062,111 @@ function setCasteSupportFilter(supportKey) {
 const REAL_TENANT_CASTE_SURNAMES = {
   TNT_MVG3WXFX: {
     khas_arya: [
-      { en: 'kuinkel', np: 'कुइँकेल (Kuinkel)', count: 1850 },
-      { en: 'risal', np: 'रिसाल (Risal)', count: 1210 },
-      { en: 'thapa', np: 'थापा (Thapa)', count: 1320 },
-      { en: 'karki', np: 'कार्की (Karki)', count: 1150 },
-      { en: 'khadka', np: 'खड्का (Khadka)', count: 1050 },
-      { en: 'nepal', np: 'नेपाल (Nepal)', count: 980 },
-      { en: 'bhandari', np: 'भण्डारी (Bhandari)', count: 960 },
-      { en: 'adhikari', np: 'अधिकारी (Adhikari)', count: 920 },
-      { en: 'ghimire', np: 'घिमिरे (Ghimire)', count: 890 },
-      { en: 'paudel', np: 'पौडेल (Paudel)', count: 840 },
-      { en: 'pandit', np: 'पण्डित (Pandit)', count: 820 },
-      { en: 'chapagain', np: 'चापागाईं (Chapagain)', count: 750 },
-      { en: 'chalise', np: 'चालिसे (Chalise)', count: 680 },
-      { en: 'pudasaini', np: 'पुडासैनी (Pudasaini)', count: 640 },
-      { en: 'gautam', np: 'गौतम (Gautam)', count: 580 },
-      { en: 'subedi', np: 'सुवेदी (Subedi)', count: 520 },
-      { en: 'simkhada', np: 'सिंखडा (Simkhada)', count: 490 },
-      { en: 'dahal', np: 'दाहाल (Dahal)', count: 460 },
-      { en: 'bhattarai', np: 'भट्टराई (Bhattarai)', count: 430 },
-      { en: 'baskota', np: 'बास्कोटा (Baskota)', count: 420 },
-      { en: 'basnet', np: 'बस्नेत (Basnet)', count: 410 }
+      { en: 'kuinkel', np: 'कुइँकेल / कुइकेल (Kuinkel / Kuikel)', count: 1850, patterns: ['kuinkel', 'kuikel'] },
+      { en: 'risal', np: 'रिसाल (Risal)', count: 1210, patterns: ['risal'] },
+      { en: 'thapa', np: 'थापा (Thapa)', count: 1320, patterns: ['thapa'] },
+      { en: 'karki', np: 'कार्की (Karki)', count: 1150, patterns: ['karki'] },
+      { en: 'khadka', np: 'खड्का (Khadka)', count: 1050, patterns: ['khadka'] },
+      { en: 'nepal', np: 'नेपाल (Nepal)', count: 980, patterns: ['nepal'] },
+      { en: 'bhandari', np: 'भण्डारी (Bhandari)', count: 960, patterns: ['bhandari'] },
+      { en: 'adhikari', np: 'अधिकारी (Adhikari)', count: 920, patterns: ['adhikari'] },
+      { en: 'ghimire', np: 'घिमिरे (Ghimire)', count: 890, patterns: ['ghimire'] },
+      { en: 'paudel', np: 'पौडेल (Paudel)', count: 840, patterns: ['paudel'] },
+      { en: 'pandit', np: 'पण्डित (Pandit)', count: 820, patterns: ['pandit'] },
+      { en: 'chapagain', np: 'चापागाईं (Chapagain)', count: 750, patterns: ['chapagain', 'chaulagain'] },
+      { en: 'chalise', np: 'चालिसे (Chalise)', count: 680, patterns: ['chalise'] },
+      { en: 'pudasaini', np: 'पुडासैनी (Pudasaini)', count: 640, patterns: ['pudasaini'] },
+      { en: 'gautam', np: 'गौतम (Gautam)', count: 580, patterns: ['gautam'] },
+      { en: 'subedi', np: 'सुवेदी (Subedi)', count: 520, patterns: ['subedi'] },
+      { en: 'simkhada', np: 'सिंखडा (Simkhada)', count: 490, patterns: ['simkhada'] },
+      { en: 'dahal', np: 'दाहाल (Dahal)', count: 460, patterns: ['dahal'] },
+      { en: 'bhattarai', np: 'भट्टराई (Bhattarai)', count: 430, patterns: ['bhattarai'] },
+      { en: 'baskota', np: 'बास्कोटा (Baskota)', count: 420, patterns: ['baskota'] },
+      { en: 'basnet', np: 'बस्नेत (Basnet)', count: 410, patterns: ['basnet'] }
     ],
     newar: [
-      { en: 'shrestha', np: 'श्रेष्ठ (Shrestha)', count: 4120 },
-      { en: 'maharjan', np: 'महर्जन (Maharjan)', count: 1420 },
-      { en: 'dangol', np: 'डंगोल (Dangol)', count: 980 },
-      { en: 'shakya', np: 'शाक्य (Shakya)', count: 640 },
-      { en: 'manandhar', np: 'मानन्धर (Manandhar)', count: 520 },
-      { en: 'khadgi', np: 'खड्गी (Khadgi)', count: 480 },
-      { en: 'bajracharya', np: 'बज्राचार्य (Bajracharya)', count: 420 },
-      { en: 'tuladhar', np: 'तुलाधर (Tuladhar)', count: 380 },
-      { en: 'tamrakar', np: 'ताम्राकार (Tamrakar)', count: 320 },
-      { en: 'napit', np: 'नापित (Napit)', count: 280 },
-      { en: 'pradhan', np: 'प्रधान (Pradhan)', count: 260 },
-      { en: 'deula', np: 'देउला (Deula)', count: 240 }
+      { en: 'shrestha', np: 'श्रेष्ठ (Shrestha)', count: 4120, patterns: ['shrestha'] },
+      { en: 'maharjan', np: 'महर्जन (Maharjan)', count: 1420, patterns: ['maharjan'] },
+      { en: 'dangol', np: 'डंगोल (Dangol)', count: 980, patterns: ['dangol'] },
+      { en: 'shakya', np: 'शाक्य (Shakya)', count: 640, patterns: ['shakya'] },
+      { en: 'manandhar', np: 'मानन्धर (Manandhar)', count: 520, patterns: ['manandhar'] },
+      { en: 'khadgi', np: 'खड्गी (Khadgi)', count: 480, patterns: ['khadgi', 'khadagi'] },
+      { en: 'bajracharya', np: 'बज्राचार्य (Bajracharya)', count: 420, patterns: ['bajracharya'] },
+      { en: 'tuladhar', np: 'तुलाधर (Tuladhar)', count: 380, patterns: ['tuladhar'] },
+      { en: 'tamrakar', np: 'ताम्राकार (Tamrakar)', count: 320, patterns: ['tamrakar'] },
+      { en: 'napit', np: 'नापित (Napit)', count: 280, patterns: ['napit'] },
+      { en: 'pradhan', np: 'प्रधान (Pradhan)', count: 260, patterns: ['pradhan'] },
+      { en: 'deula', np: 'देउला (Deula)', count: 240, patterns: ['deula'] }
     ],
     janajati: [
-      { en: 'tamang', np: 'तामाङ (Tamang)', count: 8420 },
-      { en: 'lama', np: 'लामा (Lama)', count: 2300 },
-      { en: 'gurung', np: 'गुरुङ (Gurung)', count: 1100 },
-      { en: 'magar', np: 'मगर (Magar)', count: 890 },
-      { en: 'rai', np: 'राई (Rai)', count: 750 },
-      { en: 'ghising', np: 'घिसिङ (Ghising)', count: 680 },
-      { en: 'moktan', np: 'मोक्तान (Moktan)', count: 540 },
-      { en: 'yonjan', np: 'योञ्जन (Yonjan)', count: 490 },
-      { en: 'bomjan', np: 'बोम्जन (Bomjan)', count: 440 },
-      { en: 'waiba', np: 'वाइबा (Waiba)', count: 420 },
-      { en: 'pakhrin', np: 'पाख्रिन (Pakhrin)', count: 380 },
-      { en: 'dong', np: 'दोङ (Dong)', count: 350 }
+      { en: 'tamang', np: 'तामाङ (Tamang)', count: 8420, patterns: ['tamang'] },
+      { en: 'lama', np: 'लामा (Lama)', count: 2300, patterns: ['lama', 'lamini', 'lameni'] },
+      { en: 'gurung', np: 'गुरुङ (Gurung)', count: 1100, patterns: ['gurung'] },
+      { en: 'magar', np: 'मगर (Magar)', count: 890, patterns: ['magar'] },
+      { en: 'rai', np: 'राई (Rai)', count: 750, patterns: ['rai'] },
+      { en: 'ghising', np: 'घिसिङ (Ghising)', count: 680, patterns: ['ghising'] },
+      { en: 'moktan', np: 'मोक्तान (Moktan)', count: 540, patterns: ['moktan'] },
+      { en: 'yonjan', np: 'योञ्जन (Yonjan)', count: 490, patterns: ['yonjan'] },
+      { en: 'bomjan', np: 'बोम्जन (Bomjan)', count: 440, patterns: ['bomjan'] },
+      { en: 'waiba', np: 'वाइबा (Waiba)', count: 420, patterns: ['waiba'] },
+      { en: 'pakhrin', np: 'पाख्रिन (Pakhrin)', count: 380, patterns: ['pakhrin'] },
+      { en: 'dong', np: 'दोङ (Dong)', count: 350, patterns: ['dong'] }
     ],
     dalit: [
-      { en: 'bk', np: 'वि.क. / विश्वकर्मा (B.K.)', count: 680 },
-      { en: 'nepali', np: 'नेपाली (Nepali)', count: 520 },
-      { en: 'mijar', np: 'मिजार / सार्की (Mijar)', count: 460 },
-      { en: 'pariyar', np: 'परियार (Pariyar)', count: 390 },
-      { en: 'sunar', np: 'सुनार (Sunar)', count: 310 }
+      { en: 'bk', np: 'वि.क. / विश्वकर्मा (B.K.)', count: 680, patterns: ['b.k', 'bk', 'kami', 'sunar', 'bishwokarma'] },
+      { en: 'kami', np: 'कामी (Kami)', count: 520, patterns: ['kami'] },
+      { en: 'sunar', np: 'सुनार (Sunar)', count: 390, patterns: ['sunar'] },
+      { en: 'pariyar', np: 'परियार / दमाई (Pariyar)', count: 340, patterns: ['pariyar', 'damai'] },
+      { en: 'mijar', np: 'मिजार / सार्की (Mijar)', count: 310, patterns: ['mijar', 'sarki'] },
+      { en: 'nepali', np: 'नेपाली (Nepali)', count: 280, patterns: ['nepali'] }
     ],
     madhesi: [
-      { en: 'yadav', np: 'यादव (Yadav)', count: 95 },
-      { en: 'sah', np: 'साह / गुप्ता (Sah)', count: 65 },
-      { en: 'tharu', np: 'थारु (Tharu)', count: 45 }
+      { en: 'yadav', np: 'यादव (Yadav)', count: 95, patterns: ['yadav'] },
+      { en: 'sah', np: 'साह / गुप्ता (Sah / Gupta)', count: 65, patterns: ['sah', 'gupta'] },
+      { en: 'tharu', np: 'थारु (Tharu)', count: 45, patterns: ['tharu', 'chaudhary'] }
     ],
     muslim: [
-      { en: 'khan', np: 'खान (Khan)', count: 18 },
-      { en: 'miya', np: 'मियाँ (Miya)', count: 12 }
+      { en: 'khan', np: 'खान (Khan)', count: 18, patterns: ['khan'] },
+      { en: 'miya', np: 'मियाँ (Miya)', count: 12, patterns: ['miya', 'ansari'] }
     ]
   },
   TNT_MVF9LYO3: {
     janajati: [
-      { en: 'tamang', np: 'तामाङ (Tamang)', count: 5800 },
-      { en: 'sherpa', np: 'शेर्पा (Sherpa)', count: 4520 },
-      { en: 'hyolmo', np: 'ह्योल्मो (Hyolmo)', count: 2100 },
-      { en: 'lama', np: 'लामा (Lama)', count: 1900 },
-      { en: 'ghale', np: 'घले (Ghale)', count: 420 },
-      { en: 'dong', np: 'दोङ (Dong)', count: 380 },
-      { en: 'jimba', np: 'जिम्बा (Jimba)', count: 350 },
-      { en: 'rumba', np: 'रुम्बा (Rumba)', count: 290 },
-      { en: 'gurung', np: 'गुरुङ (Gurung)', count: 240 }
+      { en: 'tamang', np: 'तामाङ (Tamang)', count: 5800, patterns: ['tamang'] },
+      { en: 'sherpa', np: 'शेर्पा (Sherpa)', count: 4520, patterns: ['sherpa', 'serpa', 'sherpini'] },
+      { en: 'hyolmo', np: 'ह्योल्मो (Hyolmo)', count: 2100, patterns: ['hyolmo', 'yolmo', 'hyalmo'] },
+      { en: 'lama', np: 'लामा (Lama)', count: 1900, patterns: ['lama', 'lamini', 'lameni'] },
+      { en: 'ghale', np: 'घले (Ghale)', count: 420, patterns: ['ghale'] },
+      { en: 'dong', np: 'दोङ (Dong)', count: 380, patterns: ['dong'] },
+      { en: 'jimba', np: 'जिम्बा (Jimba)', count: 350, patterns: ['jimba'] },
+      { en: 'rumba', np: 'रुम्बा (Rumba)', count: 290, patterns: ['rumba'] },
+      { en: 'gurung', np: 'गुरुङ (Gurung)', count: 240, patterns: ['gurung'] }
     ],
     khas_arya: [
-      { en: 'bhandari', np: 'भण्डारी (Bhandari)', count: 1150 },
-      { en: 'thapa', np: 'थापा (Thapa)', count: 920 },
-      { en: 'bhattarai', np: 'भट्टराई (Bhattarai)', count: 850 },
-      { en: 'khadka', np: 'खड्का (Khadka)', count: 780 },
-      { en: 'giri', np: 'गिरी (Giri)', count: 640 },
-      { en: 'pandit', np: 'पण्डित (Pandit)', count: 580 },
-      { en: 'sapkota', np: 'सापकोटा (Sapkota)', count: 520 },
-      { en: 'basnet', np: 'बस्नेत (Basnet)', count: 480 },
-      { en: 'adhikari', np: 'अधिकारी (Adhikari)', count: 410 }
+      { en: 'bhandari', np: 'भण्डारी (Bhandari)', count: 1150, patterns: ['bhandari'] },
+      { en: 'thapa', np: 'थापा (Thapa)', count: 920, patterns: ['thapa'] },
+      { en: 'bhattarai', np: 'भट्टराई (Bhattarai)', count: 850, patterns: ['bhattarai'] },
+      { en: 'khadka', np: 'खड्का (Khadka)', count: 780, patterns: ['khadka'] },
+      { en: 'giri', np: 'गिरी (Giri)', count: 640, patterns: ['giri'] },
+      { en: 'pandit', np: 'पण्डित (Pandit)', count: 580, patterns: ['pandit'] },
+      { en: 'sapkota', np: 'सापकोटा (Sapkota)', count: 520, patterns: ['sapkota'] },
+      { en: 'basnet', np: 'बस्नेत (Basnet)', count: 480, patterns: ['basnet'] },
+      { en: 'adhikari', np: 'अधिकारी (Adhikari)', count: 410, patterns: ['adhikari'] }
     ],
     newar: [
-      { en: 'shrestha', np: 'श्रेष्ठ (Shrestha)', count: 850 },
-      { en: 'pradhan', np: 'प्रधान (Pradhan)', count: 180 }
+      { en: 'shrestha', np: 'श्रेष्ठ (Shrestha)', count: 850, patterns: ['shrestha'] },
+      { en: 'pradhan', np: 'प्रधान (Pradhan)', count: 180, patterns: ['pradhan'] }
     ],
     dalit: [
-      { en: 'bk', np: 'वि.क. / विश्वकर्मा (B.K.)', count: 520 },
-      { en: 'mijar', np: 'मिजार (Mijar)', count: 380 },
-      { en: 'nepali', np: 'नेपाली (Nepali)', count: 340 },
-      { en: 'pariyar', np: 'परियार (Pariyar)', count: 210 }
+      { en: 'bk', np: 'वि.क. / विश्वकर्मा (B.K.)', count: 520, patterns: ['b.k', 'bk', 'kami', 'sunar', 'bishwokarma'] },
+      { en: 'kami', np: 'कामी (Kami)', count: 420, patterns: ['kami'] },
+      { en: 'mijar', np: 'मिजार / सार्की (Mijar)', count: 380, patterns: ['mijar', 'sarki'] },
+      { en: 'nepali', np: 'नेपाली (Nepali)', count: 340, patterns: ['nepali'] },
+      { en: 'pariyar', np: 'परियार / दमाई (Pariyar)', count: 210, patterns: ['pariyar', 'damai'] }
     ],
     madhesi: [
-      { en: 'yadav', np: 'यादव (Yadav)', count: 45 },
-      { en: 'sah', np: 'साह (Sah)', count: 23 }
+      { en: 'yadav', np: 'यादव (Yadav)', count: 45, patterns: ['yadav'] },
+      { en: 'sah', np: 'साह (Sah)', count: 23, patterns: ['sah'] }
     ],
     muslim: []
   }
@@ -39159,24 +39174,59 @@ const REAL_TENANT_CASTE_SURNAMES = {
 
 const REAL_TENANT_POLLING_BOOTHS = {
   TNT_MVG3WXFX: {
-    1: [{ code: '1-A', name: 'श्री सुन्दरीजल मावि (केन्द्र क)' }, { code: '1-B', name: 'श्री सुन्दरीजल मावि (केन्द्र ख)' }, { code: '1-C', name: 'श्री सुन्दरीजल मावि (केन्द्र ग)' }],
-    2: [{ code: '2-A', name: 'श्री नयाँपाटी मावि (केन्द्र क)' }, { code: '2-B', name: 'श्री नयाँपाटी मावि (केन्द्र ख)' }],
-    3: [{ code: '3-A', name: 'श्री चामुण्डा मावि (केन्द्र क)' }, { code: '3-B', name: 'श्री चामुण्डा मावि (केन्द्र ख)' }, { code: '3-C', name: 'श्री चामुण्डा मावि (केन्द्र ग)' }, { code: '3-D', name: 'श्री चामुण्डा मावि (केन्द्र घ)' }],
-    4: [{ code: '4-A', name: 'श्री गोकर्णेश्वर मावि (केन्द्र क)' }, { code: '4-B', name: 'श्री गोकर्णेश्वर मावि (केन्द्र ख)' }, { code: '4-C', name: 'श्री गोकर्णेश्वर मावि (केन्द्र ग)' }, { code: '4-D', name: 'श्री गोकर्णेश्वर मावि (केन्द्र घ)' }],
-    5: [{ code: '5-A', name: 'श्री जोरपाटी मावि (केन्द्र क)' }, { code: '5-B', name: 'श्री जोरपाटी मावि (केन्द्र ख)' }, { code: '5-C', name: 'श्री जोरपाटी मावि (केन्द्र ग)' }, { code: '5-D', name: 'श्री जोरपाटी मावि (केन्द्र घ)' }, { code: '5-E', name: 'श्री जोरपाटी मावि (केन्द्र ङ)' }],
-    6: [{ code: '6-A', name: 'श्री नयाँबस्ती मावि (केन्द्र क)' }, { code: '6-B', name: 'श्री नयाँबस्ती मावि (केन्द्र ख)' }, { code: '6-C', name: 'श्री नयाँबस्ती मावि (केन्द्र ग)' }, { code: '6-D', name: 'श्री नयाँबस्ती मावि (केन्द्र घ)' }],
-    7: [{ code: '7-A', name: 'श्री बेसीगाउँ प्रावि (केन्द्र क)' }, { code: '7-B', name: 'श्री बेसीगाउँ प्रावि (केन्द्र ख)' }],
-    8: [{ code: '8-A', name: 'श्री अत्तरखेल मावि (केन्द्र क)' }, { code: '8-B', name: 'श्री अत्तरखेल मावि (केन्द्र ख)' }, { code: '8-C', name: 'श्री अत्तरखेल मावि (केन्द्र ग)' }, { code: '8-D', name: 'श्री अत्तरखेल मावि (केन्द्र घ)' }],
-    9: [{ code: '9-A', name: 'श्री आरुबारी मावि (केन्द्र क)' }, { code: '9-B', name: 'श्री आरुबारी मावि (केन्द्र ख)' }]
+    1: [
+      { match: 'Bagdwar Primary School', name: 'श्री बागद्वार आधारभूत विद्यालय, ओख्रेनी' },
+      { match: 'Okhreni Secondary School', name: 'श्री ओख्रेनी माध्यमिक विद्यालय, सुन्दरीजल' }
+    ],
+    2: [
+      { match: 'Balsudhar Secondary School', name: 'श्री बालसुधार माध्यमिक विद्यालय, मुमथली' }
+    ],
+    3: [
+      { match: 'Tarebhir Primary School', name: 'श्री तारेभीर आधारभूत विद्यालय' },
+      { match: 'Former VDC Building', name: 'साविक गा.वि.स. भवन, सुन्ताखान' }
+    ],
+    4: [
+      { match: 'Sahayogi Secondary School', name: 'श्री सहयोगी माध्यमिक विद्यालय, गोकर्ण' }
+    ],
+    5: [
+      { match: 'East Pole Secondary School', name: 'श्री इस्ट पोल सेकेन्डरी स्कुल' }
+    ],
+    6: [
+      { match: 'Chamunda Secondary School', name: 'श्री चामुण्डा माध्यमिक विद्यालय, नारायणटार' },
+      { match: 'Bipul Shiksha Niketan', name: 'श्री विपुल शिक्षा निकेतन, नयाँबस्ती' }
+    ],
+    7: [
+      { match: 'Manakamana Secondary School', name: 'श्री मनकामना माध्यमिक विद्यालय, दक्षिणढोका' }
+    ],
+    8: [
+      { match: 'Little Bird English School', name: 'श्री लिटल बर्ड इङ्लिस स्कुल, अत्तरखेल' }
+    ],
+    9: [
+      { match: 'Arunoday Secondary School', name: 'श्री अरुणोदय माध्यमिक विद्यालय, जोरपाटी' }
+    ]
   },
   TNT_MVF9LYO3: {
-    1: [{ code: '1-A', name: 'श्री मेलम्चीघ्याङ मावि (केन्द्र क)' }, { code: '1-B', name: 'श्री मेलम्चीघ्याङ मावि (केन्द्र ख)' }],
-    2: [{ code: '2-A', name: 'श्री सेर्माथाङ आधारभूत विद्यालय (केन्द्र क)' }, { code: '2-B', name: 'श्री सेर्माथाङ आधारभूत विद्यालय (केन्द्र ख)' }],
-    3: [{ code: '3-A', name: 'श्री पाल्चोक माध्यमिक विद्यालय (केन्द्र क)' }, { code: '3-B', name: 'श्री पाल्चोक माध्यमिक विद्यालय (केन्द्र ख)' }],
-    4: [{ code: '4-A', name: 'श्री तिम्बु माध्यमिक विद्यालय (केन्द्र क)' }, { code: '4-B', name: 'श्री तिम्बु माध्यमिक विद्यालय (केन्द्र ख)' }],
-    5: [{ code: '5-A', name: 'श्री महाँकाल आधारभूत विद्यालय (केन्द्र क)' }, { code: '5-B', name: 'श्री महाँकाल आधारभूत विद्यालय (केन्द्र ख)' }],
-    6: [{ code: '6-A', name: 'श्री इचोक आधारभूत विद्यालय (केन्द्र क)' }, { code: '6-B', name: 'श्री इचोक आधारभूत विद्यालय (केन्द्र ख)' }],
-    7: [{ code: '7-A', name: 'श्री किउल आधारभूत विद्यालय (केन्द्र क)' }, { code: '7-B', name: 'श्री किउल आधारभूत विद्यालय (केन्द्र ख)' }]
+    1: [
+      { match: 'Sarkathali Basic School', name: 'श्री सर्काथली आधारभूत विद्यालय' }
+    ],
+    2: [
+      { match: 'Bhumeswori Secondary School', name: 'श्री भूमेश्वरी माध्यमिक विद्यालय' }
+    ],
+    3: [
+      { match: 'Jay Bageshwori Secondary School', name: 'श्री जय बागेश्वरी माध्यमिक विद्यालय' }
+    ],
+    4: [
+      { match: 'Saraswati Secondary School', name: 'श्री सरस्वती माध्यमिक विद्यालय, ग्याल्थुम' }
+    ],
+    5: [
+      { match: 'Sarvodaya Basic School', name: 'श्री सर्वोदय आधारभूत विद्यालय' }
+    ],
+    6: [
+      { match: 'Narayan Secondary School', name: 'श्री नारायण माध्यमिक विद्यालय' }
+    ],
+    7: [
+      { match: 'Pating Secondary School', name: 'श्री पातिङ माध्यमिक विद्यालय' }
+    ]
   }
 };
 
@@ -39185,20 +39235,24 @@ function populateCasteWardSelect(tenantId) {
   if (!wSel) return;
   const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
   const maxWards = isHelambu ? 7 : 9;
-  
-  // Only rebuild if the options do not match tenant
-  const curMax = wSel.options.length - 1;
-  if (curMax === maxWards && wSel.getAttribute('data-tenant') === tenantId) return;
 
-  const curVal = wSel.value;
-  let html = '<option value="all">वडा: सबै वडा</option>';
-  for (let i = 1; i <= maxWards; i++) {
-    html += `<option value="${i}">वडा नं. ${nepaliNumerals(i)}</option>`;
+  const curMax = wSel.options.length - 1;
+  const targetWard = (_casteFilterState && _casteFilterState.ward) || wSel.value || 'all';
+
+  if (curMax !== maxWards || wSel.getAttribute('data-tenant') !== tenantId) {
+    let html = '<option value="all">वडा: सबै वडा</option>';
+    for (let i = 1; i <= maxWards; i++) {
+      html += `<option value="${i}">वडा नं. ${nepaliNumerals(i)}</option>`;
+    }
+    wSel.innerHTML = html;
+    wSel.setAttribute('data-tenant', tenantId);
   }
-  wSel.innerHTML = html;
-  wSel.setAttribute('data-tenant', tenantId);
-  if (curVal && curVal !== 'all' && Number(curVal) <= maxWards) {
-    wSel.value = curVal;
+
+  if (targetWard && targetWard !== 'all' && Number(targetWard) <= maxWards) {
+    wSel.value = String(targetWard);
+  } else {
+    wSel.value = 'all';
+    if (_casteFilterState) _casteFilterState.ward = 'all';
   }
 }
 
@@ -39209,29 +39263,30 @@ function populateCasteBoothSelect(wardNo) {
   const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
   const tenantBooths = REAL_TENANT_POLLING_BOOTHS[tenantId] || REAL_TENANT_POLLING_BOOTHS.TNT_MVG3WXFX;
 
-  const curVal = bSel.value;
+  const targetBooth = (_casteFilterState && _casteFilterState.booth) || bSel.value || 'all';
   let html = '<option value="all">बुथ: सबै केन्द्र</option>';
 
   if (!wardNo || wardNo === 'all') {
-    // Show top polling stations across all wards
     const wards = Object.keys(tenantBooths);
     wards.forEach(w => {
       const bList = tenantBooths[w] || [];
-      if (bList.length > 0) {
-        html += `<option value="${bList[0].code}">वडा ${w}: ${bList[0].name}</option>`;
-      }
+      bList.forEach(b => {
+        html += `<option value="${b.match}">वडा ${w}: ${b.name}</option>`;
+      });
     });
   } else {
-    // Show specific booths for selected ward
     const bList = tenantBooths[Number(wardNo)] || [];
     bList.forEach(b => {
-      html += `<option value="${b.code}">${b.name}</option>`;
+      html += `<option value="${b.match}">${b.name}</option>`;
     });
   }
 
   bSel.innerHTML = html;
-  if (curVal && Array.from(bSel.options).some(o => o.value === curVal)) {
-    bSel.value = curVal;
+  if (targetBooth && Array.from(bSel.options).some(o => o.value === targetBooth)) {
+    bSel.value = targetBooth;
+  } else {
+    bSel.value = 'all';
+    if (_casteFilterState) _casteFilterState.booth = 'all';
   }
 }
 
@@ -39243,11 +39298,10 @@ function initCasteSurnameFilterOptions(clusterKey, wardNo) {
   const tenantSurnames = REAL_TENANT_CASTE_SURNAMES[tenantId] || REAL_TENANT_CASTE_SURNAMES.TNT_MVG3WXFX;
 
   const cluster = clusterKey || (_casteFilterState && _casteFilterState.cluster) || 'all';
-  const curVal = sSel.value;
+  const targetSurname = (_casteFilterState && _casteFilterState.surname) || sSel.value || 'all';
 
   let surnamesList = [];
   if (cluster === 'all') {
-    // Combine top surnames from all clusters sorted by voter count
     Object.keys(tenantSurnames).forEach(cKey => {
       surnamesList.push(...(tenantSurnames[cKey] || []));
     });
@@ -39255,20 +39309,30 @@ function initCasteSurnameFilterOptions(clusterKey, wardNo) {
     surnamesList = tenantSurnames[cluster] || [];
   }
 
-  // Sort descending by voter count
-  surnamesList.sort((a, b) => b.count - a.count);
+  // Deduplicate and sort descending by voter count
+  const seen = new Set();
+  const deduped = [];
+  surnamesList.forEach(s => {
+    if (!seen.has(s.en)) {
+      seen.add(s.en);
+      deduped.push(s);
+    }
+  });
+  deduped.sort((a, b) => b.count - a.count);
 
   let html = '<option value="all">थर: सबै थरहरू</option>';
-  surnamesList.forEach(s => {
+  deduped.forEach(s => {
     html += `<option value="${s.en}">${s.np} — ${s.count.toLocaleString('ne-NP')} जना</option>`;
   });
 
   sSel.innerHTML = html;
-  if (curVal && Array.from(sSel.options).some(o => o.value === curVal)) {
-    sSel.value = curVal;
+  if (targetSurname && Array.from(sSel.options).some(o => o.value === targetSurname)) {
+    sSel.value = targetSurname;
+  } else {
+    sSel.value = 'all';
+    if (_casteFilterState) _casteFilterState.surname = 'all';
   }
 }
-
 
 function transliterateNepaliToRoman(str) {
   if (!str) return '';
@@ -39328,14 +39392,15 @@ function onCasteFilterChanged() {
   const sSel = document.getElementById('casteFilterSurnameSelect');
   const supSel = document.getElementById('casteFilterSupportSelect');
 
-  if (wSel) {
-    if (_casteFilterState.ward !== wSel.value) {
-      _casteFilterState.ward = wSel.value;
-      populateCasteBoothSelect(wSel.value);
-      initCasteSurnameFilterOptions(_casteFilterState.cluster, wSel.value);
-    }
+  if (wSel && _casteFilterState.ward !== wSel.value) {
+    _casteFilterState.ward = wSel.value;
+    _casteFilterState.booth = 'all';
+    populateCasteBoothSelect(wSel.value);
+    initCasteSurnameFilterOptions(_casteFilterState.cluster, wSel.value);
+  } else if (bSel) {
+    _casteFilterState.booth = bSel.value;
   }
-  if (bSel) _casteFilterState.booth = bSel.value;
+
   if (sSel) _casteFilterState.surname = sSel.value;
   if (supSel) _casteFilterState.support = supSel.value;
 
@@ -39622,7 +39687,19 @@ async function loadLiveCasteVotersList() {
 
       if (!rawSearch) {
         if (selSurname && selSurname !== 'all') {
-          orClauses.push('full_name.ilike.*' + encodeURIComponent(selSurname) + '*');
+          const tenantSurnames = REAL_TENANT_CASTE_SURNAMES[tenantId] || REAL_TENANT_CASTE_SURNAMES.TNT_MVG3WXFX;
+          let matchedItem = null;
+          for (let cKey in tenantSurnames) {
+            const found = (tenantSurnames[cKey] || []).find(item => item.en === selSurname);
+            if (found) { matchedItem = found; break; }
+          }
+          if (matchedItem && Array.isArray(matchedItem.patterns) && matchedItem.patterns.length > 0) {
+            matchedItem.patterns.forEach(p => {
+              orClauses.push('full_name.ilike.*' + encodeURIComponent(p) + '*');
+            });
+          } else {
+            orClauses.push('full_name.ilike.*' + encodeURIComponent(selSurname) + '*');
+          }
         } else if (selCluster === 'janajati') {
           orClauses.push('full_name.ilike.*tamang*','full_name.ilike.*lama*','full_name.ilike.*lamini*','full_name.ilike.*sherpa*','full_name.ilike.*sherpini*','full_name.ilike.*serpa*','full_name.ilike.*gurung*','full_name.ilike.*magar*','full_name.ilike.*rai*','full_name.ilike.*sunuwar*','full_name.ilike.*hyolmo*','full_name.ilike.*hyalmo*','full_name.ilike.*yolmo*','full_name.ilike.*dolma*','full_name.ilike.*ghale*','full_name.ilike.*limbu*','full_name.ilike.*ghising*','full_name.ilike.*moktan*','full_name.ilike.*yonjan*','full_name.ilike.*bomjan*','full_name.ilike.*waiba*','full_name.ilike.*pakhrin*','full_name.ilike.*thokar*','full_name.ilike.*dong*','full_name.ilike.*gole*','full_name.ilike.*blon*','full_name.ilike.*jimba*','full_name.ilike.*rumba*','full_name.ilike.*titung*','full_name.ilike.*ale*','full_name.ilike.*pun*','full_name.ilike.*thami*','full_name.ilike.*majhi*','full_name.ilike.*bhujel*','full_name.ilike.*chepang*','full_name.ilike.*kumal*');
         } else if (selCluster === 'newar') {
@@ -39662,7 +39739,7 @@ async function loadLiveCasteVotersList() {
       let attempts = 0;
       const fetchBatchSize = (selCluster === 'all' || rawSearch) ? pageSize : 75;
 
-      while (collected.length < pageSize && attempts < 4) {
+      while (collected.length < pageSize && attempts < 8) {
         attempts++;
         if (reqId !== _casteReqCounter) return;
 
@@ -39710,8 +39787,9 @@ async function loadLiveCasteVotersList() {
         if (!Array.isArray(batch) || batch.length === 0) break;
 
         for (let v of batch) {
-          if (selCluster === 'all') {
+          if (selCluster === 'all' || (selSurname && selSurname !== 'all')) {
             collected.push(v);
+            if (collected.length >= pageSize) break;
           } else {
             // STRICT GATEKEEPER: Must strictly match selected cluster!
             const c = getVoterCasteClassification(v);
