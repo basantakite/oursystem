@@ -1,5 +1,5 @@
 // Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v66-vip-count-and-card-view-profile-fix';
+const CACHE_NAME = 'election-ops-v67-helambu-caste-tenant-sync';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

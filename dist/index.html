@@ -39293,10 +39293,16 @@ const REAL_TENANT_POLLING_BOOTHS = {
   }
 };
 
+// Aliases for Helambu tenant variations
+REAL_TENANT_CASTE_SURNAMES.TNT_HELAMBU = REAL_TENANT_CASTE_SURNAMES.TNT_MVF9LYO3;
+REAL_TENANT_CASTE_SURNAMES.TNT_HELAMBU_RSP = REAL_TENANT_CASTE_SURNAMES.TNT_MVF9LYO3;
+REAL_TENANT_POLLING_BOOTHS.TNT_HELAMBU = REAL_TENANT_POLLING_BOOTHS.TNT_MVF9LYO3;
+REAL_TENANT_POLLING_BOOTHS.TNT_HELAMBU_RSP = REAL_TENANT_POLLING_BOOTHS.TNT_MVF9LYO3;
+
 function populateCasteWardSelect(tenantId) {
   const wSel = document.getElementById('casteFilterWardSelect');
   if (!wSel) return;
-  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU' || tenantId === 'TNT_HELAMBU_RSP');
   const maxWards = isHelambu ? 7 : 9;
 
   const curMax = wSel.options.length - 1;
@@ -39323,8 +39329,9 @@ function populateCasteBoothSelect(wardNo) {
   const bSel = document.getElementById('casteFilterBoothSelect');
   if (!bSel) return;
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
-  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
-  const tenantBooths = REAL_TENANT_POLLING_BOOTHS[tenantId] || REAL_TENANT_POLLING_BOOTHS.TNT_MVG3WXFX;
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+  const tenantBooths = REAL_TENANT_POLLING_BOOTHS[tenantId] || REAL_TENANT_POLLING_BOOTHS[rawTenantId] || REAL_TENANT_POLLING_BOOTHS.TNT_MVG3WXFX;
 
   const targetBooth = (_casteFilterState && _casteFilterState.booth) || bSel.value || 'all';
   let html = '<option value="all">बुथ: सबै केन्द्र</option>';
@@ -39357,8 +39364,9 @@ function initCasteSurnameFilterOptions(clusterKey, wardNo) {
   const sSel = document.getElementById('casteFilterSurnameSelect');
   if (!sSel) return;
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
-  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
-  const tenantSurnames = REAL_TENANT_CASTE_SURNAMES[tenantId] || REAL_TENANT_CASTE_SURNAMES.TNT_MVG3WXFX;
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+  const tenantSurnames = REAL_TENANT_CASTE_SURNAMES[tenantId] || REAL_TENANT_CASTE_SURNAMES[rawTenantId] || REAL_TENANT_CASTE_SURNAMES.TNT_MVG3WXFX;
 
   const cluster = clusterKey || (_casteFilterState && _casteFilterState.cluster) || 'all';
   const targetSurname = (_casteFilterState && _casteFilterState.surname) || sSel.value || 'all';
@@ -39566,7 +39574,8 @@ function getComputedTenantCasteClusters(tenantId) {
 
 function renderCasteDemographics(skipRoster = false) {
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
-  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
   const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
 
   // Dynamically synchronize Wards, Booths, and Surnames with active tenant
@@ -39682,7 +39691,8 @@ async function loadLiveCasteVotersList() {
   if (!tbody) return;
 
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
-  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
   const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
   const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
 
@@ -40111,8 +40121,9 @@ function renderCasteSummaryMatrix() {
   if (!tbody) return;
 
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
-  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
-  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU' || tenantId === 'TNT_HELAMBU_RSP');
 
   // Calibrated Ward Matrix Data (100% mathematically exact to tenant total and clusters)
   const gokarnaMatrix = [
