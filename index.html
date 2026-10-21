@@ -5975,6 +5975,7 @@
                   <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 10px;">
                     <span>🏷️ पालिका/क्षेत्र विशेष थर तथा जातीय म्यापिङ स्टुडियो</span>
                     <span class="badge" style="background: rgba(99,102,241,0.25); color: #c7d2fe; border: 1px solid #6366f1; font-size: 11px;">Tenant-Specific Cloud Synchronized</span>
+                    <span id="studioScanStatusBadge" class="badge" style="display: none; background: rgba(234,179,8,0.25); color: #fef08a; border: 1px solid #eab308; font-size: 11px;">⚡ लाइभ स्क्यान हुँदैछ...</span>
                   </h3>
                   <p style="margin: 4px 0 0; font-size: 13px; color: #cbd5e1; line-height: 1.5;">
                     यस क्षेत्रका सम्पूर्ण मतदाताहरूको थर स्क्यान गरी फरक हिज्जे/टाइपिङ समायोजन, १-क्लिक ब्याच म्यापिङ र क्लाउडमा सुरक्षित गर्नुहोस् (अन्य डिभाइसमा समेत तुरुन्तै सिंक हुन्छ)।
@@ -38958,18 +38959,32 @@ const ROMANIZED_CASTE_DICTIONARY = {
   'naqvi': { cluster: 'muslim', clusterLabel: 'मुस्लिम समुदाय', sub: 'नकवी', devanagari: 'नकवी' }
 };
 
-function getCustomCasteRules() {
+function getCustomCasteRules(optTenantId) {
   try {
-    const stored = localStorage.getItem('vrm_caste_custom_rules');
-    return stored ? JSON.parse(stored) : {};
+    const activeTId = optTenantId || ((typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX');
+    const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+    const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+    
+    // 1. Try tenant-isolated key first
+    const tenantKey = 'vrm_caste_custom_rules_' + tenantId;
+    const stored = localStorage.getItem(tenantKey);
+    if (stored) return JSON.parse(stored);
+
+    // 2. Fallback to legacy global rules if tenant key not set
+    const legacy = localStorage.getItem('vrm_caste_custom_rules');
+    return legacy ? JSON.parse(legacy) : {};
   } catch (e) {
     return {};
   }
 }
 
 let _casteRulesPushTimer = null;
-function pushCustomCasteRulesToCloud(rules) {
-  if (!rules) rules = getCustomCasteRules();
+function pushCustomCasteRulesToCloud(rules, optTenantId) {
+  const activeTId = optTenantId || ((typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX');
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+
+  if (!rules) rules = getCustomCasteRules(tenantId);
   if (_casteRulesPushTimer) clearTimeout(_casteRulesPushTimer);
   _casteRulesPushTimer = setTimeout(async () => {
     try {
@@ -38982,7 +38997,20 @@ function pushCustomCasteRulesToCloud(rules) {
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates'
       };
+      
+      // Save tenant-scoped key into Supabase system_settings
       await cloudFetch(`${url}/rest/v1/system_settings`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({
+          key: `custom_caste_rules_${tenantId}`,
+          value: JSON.stringify(rules),
+          updated_at: new Date().toISOString()
+        })
+      });
+
+      // Also maintain legacy fallback key for seamless compatibility
+      cloudFetch(`${url}/rest/v1/system_settings`, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify({
@@ -38990,42 +39018,56 @@ function pushCustomCasteRulesToCloud(rules) {
           value: JSON.stringify(rules),
           updated_at: new Date().toISOString()
         })
-      });
-      console.log('⚡ [Cloud Sync] Custom caste rules synced to Supabase Cloud');
+      }).catch(() => {});
+
+      console.log(`⚡ [Cloud Sync] Custom caste rules synced for Tenant: ${tenantId}`);
     } catch(e) {
       console.warn('Failed to push custom caste rules to cloud:', e);
     }
   }, 300);
 }
 
-function saveCustomCasteRule(surname, clusterKey, clusterLabel, subCaste) {
+function saveCustomCasteRule(surname, clusterKey, clusterLabel, subCaste, optTenantId) {
   if (!surname) return;
-  const rules = getCustomCasteRules();
+  const activeTId = optTenantId || ((typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX');
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+
+  const rules = getCustomCasteRules(tenantId);
   rules[surname] = {
     cluster: clusterKey,
     clusterLabel: clusterLabel,
     sub: subCaste || surname,
+    tenant_id: tenantId,
     code: 'CUSTOM_' + Date.now()
   };
   // Also store lowercase key if Latin characters present
   if (/[a-z]/i.test(surname)) {
     rules[surname.toLowerCase()] = rules[surname];
   }
+  
+  // Persist tenant-isolated key and common fallback
+  localStorage.setItem('vrm_caste_custom_rules_' + tenantId, JSON.stringify(rules));
   localStorage.setItem('vrm_caste_custom_rules', JSON.stringify(rules));
-  if (typeof broadcastCasteRules === 'function') broadcastCasteRules(rules);
-  pushCustomCasteRulesToCloud(rules);
+
+  if (typeof broadcastCasteRules === 'function') broadcastCasteRules(rules, tenantId);
+  pushCustomCasteRulesToCloud(rules, tenantId);
 }
 
-function syncAndBroadcastAllCasteRules() {
-  const rules = getCustomCasteRules();
+function syncAndBroadcastAllCasteRules(optTenantId) {
+  const activeTId = optTenantId || ((typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX');
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+
+  const rules = getCustomCasteRules(tenantId);
   const count = Object.keys(rules).length;
   if (count === 0) {
     showToast('अहिले कुनै कस्टम नियम सेभ गरिएको छैन', 'info');
     return;
   }
-  if (typeof broadcastCasteRules === 'function') broadcastCasteRules(rules);
-  if (typeof pushCustomCasteRulesToCloud === 'function') pushCustomCasteRulesToCloud(rules);
-  showToast(`📡 ${count} वटा नियमहरू सबै खुला ब्राउजर र क्लाउडमा सफलतापूर्वक पठाइयो!`, 'success');
+  if (typeof broadcastCasteRules === 'function') broadcastCasteRules(rules, tenantId);
+  if (typeof pushCustomCasteRulesToCloud === 'function') pushCustomCasteRulesToCloud(rules, tenantId);
+  showToast(`📡 Tenant ${tenantId} का ${count} वटा नियमहरू सबै खुला ब्राउजर र क्लाउडमा सफलतापूर्वक पठाइयो!`, 'success');
 }
 
 // Universal Dual-Language (Nepali + English) Caste Classifier Engine
@@ -40953,37 +40995,123 @@ const HELAMBU_SURNAME_RAW_DATABASE = [
   { sur: 'Hamal', cnt: 1, dev: 'हमाल', cluster: 'khas_arya', sub: 'ठकुरी' }
 ];
 
-function initCasteStudio() {
-  _studioFilterState.selectedSurnames.clear();
-  renderCasteStudioTable();
+// Tenant Live Surnames Cache (Memory cache to prevent unnecessary repeat cloud calls)
+const _tenantStudioSurnameCache = {};
+let _isStudioLiveScanning = false;
+
+// Universal Surname Extractor
+function extractVoterSurnameFromCleanName(fullName) {
+  if (!fullName) return '';
+  const clean = fullName.replace(/\([^)]*\)/g, '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  const parts = clean.split(/\s+/).filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : '';
+}
+
+async function fetchLiveTenantSurnamesFromCloud(tenantId) {
+  const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+  const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+  if (!url || !key) return null;
+
+  try {
+    const headers = {
+      'apikey': key,
+      'Authorization': `Bearer ${key}`
+    };
+
+    const surnameCounts = {};
+    let totalProcessed = 0;
+
+    // Scan up to 50,000 voters for this specific tenant in high-speed 5000-row chunks
+    for (let offset = 0; offset < 50000; offset += 5000) {
+      const resp = await fetch(`${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&select=full_name&offset=${offset}&limit=5000`, { headers });
+      if (!resp.ok) break;
+      const rows = await resp.json();
+      if (!Array.isArray(rows) || rows.length === 0) break;
+      totalProcessed += rows.length;
+
+      rows.forEach(r => {
+        const s = extractVoterSurnameFromCleanName(r.full_name);
+        if (s) surnameCounts[s] = (surnameCounts[s] || 0) + 1;
+      });
+
+      if (rows.length < 5000) break; // End of tenant data
+    }
+
+    if (totalProcessed === 0) return null;
+
+    // Convert to sorted structured list
+    const sorted = Object.entries(surnameCounts).sort((a, b) => b[1] - a[1]);
+    const studioList = sorted.map(([sur, cnt]) => {
+      // Auto-suggest cluster from Nepal Govt Caste Dictionary
+      const autoClass = getVoterCasteClassification({ full_name: sur });
+      return {
+        sur: sur,
+        cnt: cnt,
+        dev: autoClass.surname || sur,
+        cluster: autoClass.cluster || 'unclassified',
+        sub: autoClass.sub || sur,
+        isAutoSuggested: true
+      };
+    });
+
+    _tenantStudioSurnameCache[tenantId] = studioList;
+    try {
+      localStorage.setItem('vrm_tenant_studio_surnames_' + tenantId, JSON.stringify(studioList));
+    } catch(e) {}
+
+    return studioList;
+  } catch(e) {
+    console.warn(`[Studio] Error fetching live surnames for tenant ${tenantId}:`, e);
+    return null;
+  }
 }
 
 function getActiveTenantStudioSurnames() {
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
-  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
   const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU' || tenantId === 'TNT_HELAMBU_RSP');
 
-  const customRules = (typeof getCustomCasteRules === 'function') ? getCustomCasteRules() : {};
+  const customRules = (typeof getCustomCasteRules === 'function') ? getCustomCasteRules(tenantId) : {};
 
-  // For Helambu, use calibrated full database list
-  const baseList = isHelambu ? HELAMBU_SURNAME_RAW_DATABASE : (function() {
-    const list = [];
-    const tSurnames = REAL_TENANT_CASTE_SURNAMES.TNT_MVG3WXFX || {};
-    Object.keys(tSurnames).forEach(cKey => {
-      (tSurnames[cKey] || []).forEach(item => {
-        list.push({
-          sur: item.en,
-          cnt: item.count || 50,
-          dev: item.np,
-          cluster: cKey,
-          sub: item.en
+  // 1. Check in-memory cloud cache first
+  let baseList = _tenantStudioSurnameCache[tenantId];
+
+  // 2. Check local persistence cache
+  if (!baseList) {
+    try {
+      const cached = localStorage.getItem('vrm_tenant_studio_surnames_' + tenantId);
+      if (cached) {
+        baseList = JSON.parse(cached);
+        _tenantStudioSurnameCache[tenantId] = baseList;
+      }
+    } catch(e) {}
+  }
+
+  // 3. Fallback to calibrated ground truth databases if cloud not yet scanned
+  if (!baseList || baseList.length === 0) {
+    if (isHelambu) {
+      baseList = HELAMBU_SURNAME_RAW_DATABASE;
+    } else {
+      // Build tenant-specific list from known dictionaries or live scoped voters
+      const list = [];
+      const tSurnames = REAL_TENANT_CASTE_SURNAMES[tenantId] || REAL_TENANT_CASTE_SURNAMES.TNT_MVG3WXFX || {};
+      Object.keys(tSurnames).forEach(cKey => {
+        (tSurnames[cKey] || []).forEach(item => {
+          list.push({
+            sur: item.en,
+            cnt: item.count || 50,
+            dev: item.np,
+            cluster: cKey,
+            sub: item.en
+          });
         });
       });
-    });
-    return list;
-  })();
+      baseList = list;
+    }
+  }
 
-  // Apply custom rules over baseList
+  // Apply tenant-specific custom rules over baseList
   return baseList.map(item => {
     const customMatch = customRules[item.sur] || customRules[item.sur.toLowerCase()];
     if (customMatch) {
@@ -40999,6 +41127,45 @@ function getActiveTenantStudioSurnames() {
       isCustom: false
     };
   });
+}
+
+async function initCasteStudio() {
+  _studioFilterState.selectedSurnames.clear();
+  renderCasteStudioTable();
+
+  // If live data for this active tenant is not cached in memory, trigger non-blocking cloud scan
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+
+  if (!_tenantStudioSurnameCache[tenantId] && !_isStudioLiveScanning) {
+    _isStudioLiveScanning = true;
+    const scanStatusEl = document.getElementById('studioScanStatusBadge');
+    if (scanStatusEl) scanStatusEl.style.display = 'inline-block';
+
+    fetchLiveTenantSurnamesFromCloud(tenantId).then(freshList => {
+      _isStudioLiveScanning = false;
+      if (scanStatusEl) scanStatusEl.style.display = 'none';
+      if (freshList && freshList.length > 0) {
+        renderCasteStudioTable();
+      }
+    });
+  }
+}
+
+async function rescanTenantSurnamesStudio() {
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+
+  showToast(`🔄 Tenant '${tenantId}' को डेटाबेसबाट प्रत्यक्ष थरहरू स्क्यान गरिँदैछ...`, 'info');
+  const freshList = await fetchLiveTenantSurnamesFromCloud(tenantId);
+  if (freshList && freshList.length > 0) {
+    showToast(`✓ स्क्यान सम्पन्न: ${freshList.length} वटा फरक थरहरू फेला परे!`, 'success');
+  } else {
+    showToast(`✓ डेटाबेस स्क्यान अद्यावधिक भयो।`, 'info');
+  }
+  renderCasteStudioTable();
 }
 
 function renderCasteStudioTable() {
