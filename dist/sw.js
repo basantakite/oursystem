@@ -1,5 +1,5 @@
 // Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v68-calibrated-helambu-caste-and-gender';
+const CACHE_NAME = 'election-ops-v69-tenant-caste-rules-studio-and-khas-arya-calibrated';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

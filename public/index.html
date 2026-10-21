@@ -5805,13 +5805,17 @@
           </div>
 
           <!-- CASTE SECTION SUB-NAV TABS -->
-          <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 18px;">
+          <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 18px; flex-wrap: wrap;">
             <button type="button" id="casteSubTab_voters" class="btn caste-sub-tab active" onclick="switchCasteSubTab('voters')" style="background: transparent; border: none; border-bottom: 3px solid #3b82f6; border-radius: 0; padding: 10px 18px; font-weight: 800; font-size: 14px; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px;">
               <span>👥 मतदाता नामावली (Voters List)</span>
             </button>
             <button type="button" id="casteSubTab_matrix" class="btn caste-sub-tab" onclick="switchCasteSubTab('matrix')" style="background: transparent; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 18px; font-weight: 800; font-size: 14px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px;">
               <span>📊 समुदायगत शक्ति सन्तुलन तथा सारांश (Caste Breakdown Matrix)</span>
               <span class="badge" id="casteMatrixRowCountTab" style="background: var(--bg-hover); font-size: 11px;">0 समूह</span>
+            </button>
+            <button type="button" id="casteSubTab_studio" class="btn caste-sub-tab" onclick="switchCasteSubTab('studio')" style="background: transparent; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 18px; font-weight: 800; font-size: 14px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px;">
+              <span>🏷️ थर तथा जातीय समूह म्यापिङ स्टुडियो (Tenant Caste Rules Studio)</span>
+              <span class="badge" id="casteStudioPendingBadge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; font-size: 11px; font-weight: 800;">० बाँकी</span>
             </button>
           </div>
 
@@ -5961,6 +5965,123 @@
             </div>
           </div>
           <!-- END PANE 2: CASTE BREAKDOWN MATRIX -->
+
+          <!-- PANE 3: CASTE & SURNAME MAPPING STUDIO (TENANT CASTE RULES STUDIO) -->
+          <div id="castePane_studio" style="display: none;">
+            <!-- Studio Header Card -->
+            <div class="card" style="padding: 18px 20px; margin-bottom: 18px; border-radius: 12px; background: linear-gradient(135deg, rgba(30,27,75,0.7) 0%, rgba(15,23,42,0.9) 100%); border: 1.5px solid #6366f1;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                <div>
+                  <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 10px;">
+                    <span>🏷️ पालिका/क्षेत्र विशेष थर तथा जातीय म्यापिङ स्टुडियो</span>
+                    <span class="badge" style="background: rgba(99,102,241,0.25); color: #c7d2fe; border: 1px solid #6366f1; font-size: 11px;">Tenant-Specific Cloud Synchronized</span>
+                  </h3>
+                  <p style="margin: 4px 0 0; font-size: 13px; color: #cbd5e1; line-height: 1.5;">
+                    यस क्षेत्रका सम्पूर्ण मतदाताहरूको थर स्क्यान गरी फरक हिज्जे/टाइपिङ समायोजन, १-क्लिक ब्याच म्यापिङ र क्लाउडमा सुरक्षित गर्नुहोस् (अन्य डिभाइसमा समेत तुरुन्तै सिंक हुन्छ)।
+                  </p>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-sm" onclick="rescanTenantSurnamesStudio()" style="background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-weight: 700; border-radius: 8px; padding: 7px 14px;">
+                    🔄 पुन: स्क्यान गर्नुहोस्
+                  </button>
+                  <button type="button" class="btn btn-sm btn-primary" onclick="syncStudioCasteRulesToCloud()" style="font-weight: 800; border-radius: 8px; padding: 7px 16px; background: #6366f1; border-color: #6366f1; box-shadow: 0 4px 12px rgba(99,102,241,0.35);">
+                    ☁️ सबै डिभाइसमा नियम सिंक गर्नुहोस्
+                  </button>
+                </div>
+              </div>
+
+              <!-- Studio 4 Snapshot KPIs -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 16px;">
+                <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 12px 14px;">
+                  <div style="font-size: 11.5px; color: #94a3b8; font-weight: 700;">कुल भिन्न थरहरू (Unique Surnames)</div>
+                  <div style="font-size: 22px; font-weight: 900; color: #fff; margin-top: 2px;" id="studioKpiTotalSurnames">०</div>
+                </div>
+                <div style="background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); border-radius: 10px; padding: 12px 14px;">
+                  <div style="font-size: 11.5px; color: #86efac; font-weight: 700;">वर्गीकृत थरहरू (Mapped)</div>
+                  <div style="font-size: 22px; font-weight: 900; color: #4ade80; margin-top: 2px;" id="studioKpiMappedSurnames">०</div>
+                </div>
+                <div style="background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 12px 14px;">
+                  <div style="font-size: 11.5px; color: #fca5a5; font-weight: 700;">पहिचान खुल्न बाँकी थरहरू (Unmapped)</div>
+                  <div style="font-size: 22px; font-weight: 900; color: #f87171; margin-top: 2px;" id="studioKpiUnmappedSurnames">०</div>
+                </div>
+                <div style="background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3); border-radius: 10px; padding: 12px 14px;">
+                  <div style="font-size: 11.5px; color: #d8b4fe; font-weight: 700;">सक्रिय अनुकूलित नियमहरू (Custom Rules)</div>
+                  <div style="font-size: 22px; font-weight: 900; color: #c084fc; margin-top: 2px;" id="studioKpiCustomRules">०</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Studio Filter & Batch Action Bar -->
+            <div class="card" style="padding: 14px 16px; margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <!-- Filter Pills -->
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-sm studio-tab-filter active" onclick="setStudioFilter('all')" data-sfilter="all" style="border-radius: 20px; font-weight: 700;">सबै थरहरू (<span id="studioTabCount_all">0</span>)</button>
+                  <button type="button" class="btn btn-sm studio-tab-filter" onclick="setStudioFilter('unmapped')" data-sfilter="unmapped" style="border-radius: 20px; font-weight: 700; background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid #ef4444;">⚠️ बाँकी मात्र (<span id="studioTabCount_unmapped">0</span>)</button>
+                  <button type="button" class="btn btn-sm studio-tab-filter" onclick="setStudioFilter('khas_arya')" data-sfilter="khas_arya" style="border-radius: 20px; font-weight: 700;">🔵 खस आर्य</button>
+                  <button type="button" class="btn btn-sm studio-tab-filter" onclick="setStudioFilter('janajati')" data-sfilter="janajati" style="border-radius: 20px; font-weight: 700;">🟢 जनजाति</button>
+                  <button type="button" class="btn btn-sm studio-tab-filter" onclick="setStudioFilter('dalit')" data-sfilter="dalit" style="border-radius: 20px; font-weight: 700;">🟣 दलित</button>
+                  <button type="button" class="btn btn-sm studio-tab-filter" onclick="setStudioFilter('newar')" data-sfilter="newar" style="border-radius: 20px; font-weight: 700;">🟠 नेवार</button>
+                  <button type="button" class="btn btn-sm studio-tab-filter" onclick="setStudioFilter('custom')" data-sfilter="custom" style="border-radius: 20px; font-weight: 700;">✨ अनुकूलित</button>
+                </div>
+
+                <!-- Search Box -->
+                <div style="min-width: 220px; flex: 1; max-width: 320px;">
+                  <input type="text" id="studioSearchInput" class="form-control" placeholder="🔍 थर वा हिज्जे खोज्नुहोस्..." oninput="onStudioSearchChanged()" style="width: 100%; border-radius: 8px; font-size: 13px;">
+                </div>
+              </div>
+
+              <!-- Batch Action Toolbar (Visible when rows checked) -->
+              <div id="studioBatchActionBar" style="display: none; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 14px; padding: 10px 14px; background: #f8fafc; border: 1.5px solid #6366f1; border-radius: 8px;">
+                <div style="font-size: 13px; font-weight: 700; color: #4338ca;">
+                  <span id="studioSelectedCount">०</span> वटा थर चयन गरिएको छ
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                  <span style="font-size: 12.5px; font-weight: 700; color: #475569;">१-क्लिक ब्याच क्लस्टर:</span>
+                  <select id="studioBatchClusterSelect" class="form-control" style="width: auto; min-width: 160px; font-size: 13px;">
+                    <option value="khas_arya">🔵 खस आर्य</option>
+                    <option value="janajati">🟢 आदिवासी जनजाति</option>
+                    <option value="dalit">🟣 दलित समुदाय</option>
+                    <option value="newar">🟠 नेवार समुदाय</option>
+                    <option value="madhesi">🟤 मधेशी / थारु</option>
+                    <option value="muslim">🟡 मुस्लिम समुदाय</option>
+                    <option value="other">⚪ अन्य</option>
+                  </select>
+                  <button type="button" class="btn btn-sm btn-primary" onclick="applyStudioBatchMapping()" style="background: #4f46e5; border-color: #4f46e5; font-weight: 800; border-radius: 6px; padding: 5px 14px;">
+                    ✓ एकैपटक लागू गर्नुहोस्
+                  </button>
+                  <button type="button" class="btn btn-sm" onclick="clearStudioSelection()" style="font-size: 12px; border-radius: 6px;">
+                    रद्द
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Studio Surnames Table -->
+            <div class="card" style="padding: 0; overflow: hidden; border-radius: 12px;">
+              <div style="overflow-x: auto;">
+                <table class="table" style="width: 100%; margin: 0; font-size: 13px;">
+                  <thead style="background: var(--bg-hover); border-bottom: 2px solid var(--border-color);">
+                    <tr>
+                      <th style="padding: 12px 14px; width: 40px; text-align: center;">
+                        <input type="checkbox" id="studioSelectAllCheckbox" onchange="toggleStudioSelectAll(this)" style="width: 16px; height: 16px; cursor: pointer;">
+                      </th>
+                      <th style="padding: 12px 14px; text-align: left;">थर (Surname / Spelled Variants)</th>
+                      <th style="padding: 12px 14px; text-align: right; width: 130px;">मतदाता संख्या</th>
+                      <th style="padding: 12px 14px; text-align: center; width: 110px;">अनुपात (%)</th>
+                      <th style="padding: 12px 14px; text-align: left; width: 220px;">तोकिएको क्लस्टर (Cluster)</th>
+                      <th style="padding: 12px 14px; text-align: left; width: 140px;">नियम स्थिति</th>
+                      <th style="padding: 12px 14px; text-align: center; width: 120px;">कार्य (Action)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="casteStudioTableBody">
+                    <!-- Populated dynamically by renderCasteStudioTable() -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <!-- END PANE 3: CASTE & SURNAME MAPPING STUDIO -->
 
           <!-- MODAL: MODERN 1-CLICK VOTER CASTE OVERRIDE -->
           <div id="modernCasteOverrideModal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center; padding: 16px; animation: fadeIn 0.18s ease-out;">
@@ -8424,13 +8545,13 @@
           middle_age_count: 7345,
           young_adults_count: 4500,
           caste_clusters: {
-            janajati: 13882,
-            khas_arya: 2496,
-            dalit: 454,
-            newar: 204,
+            janajati: 13350,
+            khas_arya: 4150,
+            dalit: 690,
+            newar: 200,
             madhesi: 68,
             muslim: 0,
-            other: 1804
+            other: 449
           },
           solid: 0,
           swing: 18907,
@@ -8464,13 +8585,13 @@
           middle_age_count: 7345,
           young_adults_count: 4500,
           caste_clusters: {
-            janajati: 13882,
-            khas_arya: 2496,
-            dalit: 454,
-            newar: 204,
+            janajati: 13350,
+            khas_arya: 4150,
+            dalit: 690,
+            newar: 200,
             madhesi: 68,
             muslim: 0,
-            other: 1804
+            other: 449
           },
           solid: 0,
           swing: 18907,
@@ -39206,15 +39327,45 @@ const REAL_TENANT_CASTE_SURNAMES = {
       { en: 'gurung', np: 'गुरुङ (Gurung)', count: 240, patterns: ['gurung'] }
     ],
     khas_arya: [
-      { en: 'bhandari', np: 'भण्डारी (Bhandari)', count: 1150, patterns: ['bhandari'] },
-      { en: 'thapa', np: 'थापा (Thapa)', count: 920, patterns: ['thapa'] },
-      { en: 'bhattarai', np: 'भट्टराई (Bhattarai)', count: 850, patterns: ['bhattarai'] },
-      { en: 'khadka', np: 'खड्का (Khadka)', count: 780, patterns: ['khadka'] },
-      { en: 'giri', np: 'गिरी (Giri)', count: 640, patterns: ['giri'] },
-      { en: 'pandit', np: 'पण्डित (Pandit)', count: 580, patterns: ['pandit'] },
-      { en: 'sapkota', np: 'सापकोटा (Sapkota)', count: 520, patterns: ['sapkota'] },
-      { en: 'basnet', np: 'बस्नेत (Basnet)', count: 480, patterns: ['basnet'] },
-      { en: 'adhikari', np: 'अधिकारी (Adhikari)', count: 410, patterns: ['adhikari'] }
+      { en: 'lamichhane', np: 'लामिछाने (Lamichhane)', count: 642, patterns: ['lamichhane', 'lamichhan', 'lamichhame', 'lamichhani'] },
+      { en: 'pandit', np: 'पण्डित (Pandit)', count: 605, patterns: ['pandit', 'pan‍dit', 'pa‌ndit', 'pandi'] },
+      { en: 'khadka', np: 'खड्का (Khadka)', count: 417, patterns: ['khadka', 'khad‍ka', 'khadaka'] },
+      { en: 'giri', np: 'गिरी (Giri)', count: 397, patterns: ['giri', 'gari'] },
+      { en: 'jyoti', np: 'ज्योति (Jyoti)', count: 377, patterns: ['jyoti', 'joti', 'j‍yoti', 'jyati'] },
+      { en: 'bhandari', np: 'भण्डारी (Bhandari)', count: 315, patterns: ['bhandari', 'bhan‍dari', 'bhanari'] },
+      { en: 'thapa', np: 'थापा (Thapa)', count: 286, patterns: ['thapa', 'thap'] },
+      { en: 'bhattarai', np: 'भट्टराई / भट्ट (Bhattarai / Bhatta)', count: 224, patterns: ['bhattarai', 'bhatta', 'bhatarai'] },
+      { en: 'gajurel', np: 'गजुरेल (Gajurel)', count: 139, patterns: ['gajurel'] },
+      { en: 'dangal', np: 'दङ्गाल (Dangal)', count: 108, patterns: ['dangal', 'da‌gal', 'da‌ngal', 'dhangal'] },
+      { en: 'chand', np: 'चन्द (Chand)', count: 104, patterns: ['chand'] },
+      { en: 'nepal', np: 'नेपाल (Nepal)', count: 96, patterns: ['nepal'] },
+      { en: 'karki', np: 'कार्की (Karki)', count: 89, patterns: ['karki'] },
+      { en: 'kshetri', np: 'क्षेत्री (Kshetri / Chhetri)', count: 76, patterns: ['kshetri', 'chhetri', 'kshatri'] },
+      { en: 'guragai', np: 'गुरागाईं (Guragai)', count: 74, patterns: ['guragai', 'guragain', 'garagain'] },
+      { en: 'sapkota', np: 'सापकोटा (Sapkota)', count: 65, patterns: ['sapkota', 'sapakota', 'sapakoto'] },
+      { en: 'khatri', np: 'खत्री (Khatri)', count: 58, patterns: ['khatri'] },
+      { en: 'achary', np: 'आचार्य (Acharya)', count: 55, patterns: ['achary', 'acharya', 'aachary'] },
+      { en: 'rimal', np: 'रिमाल (Rimal)', count: 46, patterns: ['rimal'] },
+      { en: 'bharati', np: 'भारती / संन्यासी (Bharati / Giri)', count: 43, patterns: ['bharati', 'sanyasi'] },
+      { en: 'khatiwada', np: 'खतिवडा (Khatiwada)', count: 34, patterns: ['khatiwada', 'khatiwad'] },
+      { en: 'ghimire', np: 'घिमिरे (Ghimire)', count: 34, patterns: ['ghimire', 'dhimire'] },
+      { en: 'lamsal', np: 'लम्साल (Lamsal)', count: 35, patterns: ['lamsal'] },
+      { en: 'chapagai', np: 'चापागाईं (Chapagain)', count: 43, patterns: ['chapagai', 'chapagain', 'chapagani'] },
+      { en: 'puri', np: 'पुरी (Puri)', count: 32, patterns: ['puri'] },
+      { en: 'rijal', np: 'रिजाल (Rijal)', count: 28, patterns: ['rijal', 'rijalal'] },
+      { en: 'singh', np: 'सिंह / ठकुरी (Singh / Thakuri)', count: 28, patterns: ['singh', 'thakuri', 'shahi'] },
+      { en: 'dulal', np: 'दुलाल (Dulal)', count: 22, patterns: ['dulal'] },
+      { en: 'dhakal', np: 'ढकाल (Dhakal)', count: 20, patterns: ['dhakal'] },
+      { en: 'timalsina', np: 'तिमल्सिना (Timalsina)', count: 22, patterns: ['timalsina', 'timilsina', 'timalsena'] },
+      { en: 'kc', np: 'के.सी. (K.C.)', count: 19, patterns: ['kc', 'k.c.', 'ke.si', 'ke.si.', 'kesi'] },
+      { en: 'baral', np: 'बराल (Baral)', count: 17, patterns: ['baral', 'waral'] },
+      { en: 'dahal', np: 'दाहाल (Dahal)', count: 17, patterns: ['dahal'] },
+      { en: 'katuwal', np: 'कटुवाल (Katuwal)', count: 13, patterns: ['katuwal', 'katwal'] },
+      { en: 'adhikari', np: 'अधिकारी (Adhikari)', count: 10, patterns: ['adhikari'] },
+      { en: 'paudel', np: 'पौडेल (Paudel)', count: 11, patterns: ['paudel', 'paudyal'] },
+      { en: 'sharma', np: 'शर्मा (Sharma)', count: 9, patterns: ['sharma'] },
+      { en: 'upadhyay', np: 'उपाध्याय (Upadhyay)', count: 9, patterns: ['upadhyay', 'upadhya'] },
+      { en: 'basnet', np: 'बस्नेत (Basnet)', count: 15, patterns: ['basnet', 'wasnet'] }
     ],
     newar: [
       { en: 'shrestha', np: 'श्रेष्ठ (Shrestha)', count: 850, patterns: ['shrestha'] },
@@ -39525,13 +39676,13 @@ function toggleCasteSort(field) {
 function getComputedTenantCasteClusters(tenantId) {
   const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU' || tenantId === 'TNT_HELAMBU_RSP');
   const baseClusters = isHelambu ? {
-    janajati: 13882,
-    khas_arya: 2496,
-    dalit: 454,
-    newar: 204,
+    janajati: 13350,
+    khas_arya: 4150,
+    dalit: 690,
+    newar: 200,
     madhesi: 68,
     muslim: 0,
-    other: 1804
+    other: 449
   } : {
     khas_arya: 15088,
     janajati: 13540,
@@ -40053,38 +40204,36 @@ async function loadLiveCasteVotersList() {
 function switchCasteSubTab(tabName) {
   const pVoters = document.getElementById('castePane_voters');
   const pMatrix = document.getElementById('castePane_matrix');
+  const pStudio = document.getElementById('castePane_studio');
   const btnVoters = document.getElementById('casteSubTab_voters');
   const btnMatrix = document.getElementById('casteSubTab_matrix');
+  const btnStudio = document.getElementById('casteSubTab_studio');
 
-  if (tabName === 'voters') {
-    if (pVoters) pVoters.style.display = 'block';
-    if (pMatrix) pMatrix.style.display = 'none';
-    if (btnVoters) {
-      btnVoters.classList.add('active');
-      btnVoters.style.borderBottom = '3px solid #3b82f6';
-      btnVoters.style.color = 'var(--text-primary)';
+  const tabs = [
+    { name: 'voters', pane: pVoters, btn: btnVoters },
+    { name: 'matrix', pane: pMatrix, btn: btnMatrix },
+    { name: 'studio', pane: pStudio, btn: btnStudio }
+  ];
+
+  tabs.forEach(t => {
+    if (t.pane) t.pane.style.display = (t.name === tabName) ? 'block' : 'none';
+    if (t.btn) {
+      if (t.name === tabName) {
+        t.btn.classList.add('active');
+        t.btn.style.borderBottom = '3px solid #3b82f6';
+        t.btn.style.color = 'var(--text-primary)';
+      } else {
+        t.btn.classList.remove('active');
+        t.btn.style.borderBottom = '3px solid transparent';
+        t.btn.style.color = 'var(--text-muted)';
+      }
     }
-    if (btnMatrix) {
-      btnMatrix.classList.remove('active');
-      btnMatrix.style.borderBottom = '3px solid transparent';
-      btnMatrix.style.color = 'var(--text-muted)';
-    }
-  } else {
-    if (pVoters) pVoters.style.display = 'none';
-    if (pMatrix) pMatrix.style.display = 'block';
-    if (btnMatrix) {
-      btnMatrix.classList.add('active');
-      btnMatrix.style.borderBottom = '3px solid #3b82f6';
-      btnMatrix.style.color = 'var(--text-primary)';
-    }
-    if (btnVoters) {
-      btnVoters.classList.remove('active');
-      btnVoters.style.borderBottom = '3px solid transparent';
-      btnVoters.style.color = 'var(--text-muted)';
-    }
-    if (typeof renderCasteSummaryMatrix === 'function') {
-      renderCasteSummaryMatrix();
-    }
+  });
+
+  if (tabName === 'matrix' && typeof renderCasteSummaryMatrix === 'function') {
+    renderCasteSummaryMatrix();
+  } else if (tabName === 'studio' && typeof initCasteStudio === 'function') {
+    initCasteStudio();
   }
 }
 
@@ -40124,13 +40273,13 @@ function renderCasteSummaryMatrix() {
   ];
 
   const helambuMatrix = [
-    { ward: 1, khas_arya: 320,  janajati: 2540, newar: 42, dalit: 64, madhesi: 14, muslim: 0, other: 400, total: 3380, dominant: '🟢 जनजाति (७५.१%)' },
-    { ward: 2, khas_arya: 610,  janajati: 2610, newar: 50, dalit: 82, madhesi: 18, muslim: 0, other: 324, total: 3694, dominant: '🟢 जनजाति (७०.७%)' },
-    { ward: 3, khas_arya: 180,  janajati: 1670, newar: 15, dalit: 42, madhesi: 5,  muslim: 0, other: 216, total: 2128, dominant: '🟢 जनजाति (७८.५%)' },
-    { ward: 4, khas_arya: 210,  janajati: 1840, newar: 22, dalit: 56, madhesi: 6,  muslim: 0, other: 234, total: 2368, dominant: '🟢 जनजाति (७७.७%)' },
-    { ward: 5, khas_arya: 190,  janajati: 1620, newar: 18, dalit: 44, madhesi: 5,  muslim: 0, other: 179, total: 2056, dominant: '🟢 जनजाति (७८.८%)' },
-    { ward: 6, khas_arya: 496,  janajati: 1752, newar: 32, dalit: 78, madhesi: 10, muslim: 0, other: 254, total: 2622, dominant: '🟢 जनजाति (६६.८%)' },
-    { ward: 7, khas_arya: 490,  janajati: 1850, newar: 25, dalit: 88, madhesi: 10, muslim: 0, other: 196, total: 2659, dominant: '🟢 जनजाति (६९.६%)' }
+    { ward: 1, khas_arya: 25,   janajati: 3233, newar: 1,   dalit: 59,  madhesi: 0, muslim: 0, other: 62,  total: 3380, dominant: '🟢 जनजाति (९५.६%)' },
+    { ward: 2, khas_arya: 894,  janajati: 2450, newar: 4,   dalit: 234, madhesi: 0, muslim: 0, other: 112, total: 3694, dominant: '🟢 जनजाति (६६.३%)' },
+    { ward: 3, khas_arya: 877,  janajati: 978,  newar: 142, dalit: 78,  madhesi: 0, muslim: 0, other: 53,  total: 2128, dominant: '🟢 जनजाति (४६.०%)' },
+    { ward: 4, khas_arya: 943,  janajati: 1174, newar: 40,  dalit: 157, madhesi: 0, muslim: 0, other: 54,  total: 2368, dominant: '🟢 जनजाति (४९.६%)' },
+    { ward: 5, khas_arya: 4,    janajati: 2043, newar: 2,   dalit: 2,   madhesi: 0, muslim: 0, other: 5,   total: 2056, dominant: '🟢 जनजाति (९९.४%)' },
+    { ward: 6, khas_arya: 734,  janajati: 1754, newar: 2,   dalit: 98,  madhesi: 0, muslim: 0, other: 34,  total: 2622, dominant: '🟢 जनजाति (६६.९%)' },
+    { ward: 7, khas_arya: 700,  janajati: 1770, newar: 34,  dalit: 100, madhesi: 0, muslim: 0, other: 55,  total: 2659, dominant: '🟢 जनजाति (६६.६%)' }
   ];
 
   const matrix = isHelambu ? helambuMatrix : gokarnaMatrix;
@@ -40235,13 +40384,13 @@ function openCasteRuleManagerModal() {
   if (!modal) return;
   modal.style.display = 'flex';
 
-  const tbody = document.getElementById('modalUnmappedSurnamesBody');
-  const countBadge = document.getElementById('modalUnmappedCountBadge');
-  if (countBadge) countBadge.textContent = isHelambu ? '१,८०४' : '३,०९०';
-
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
   const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
   const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+
+  const tbody = document.getElementById('modalUnmappedSurnamesBody');
+  const countBadge = document.getElementById('modalUnmappedCountBadge');
+  if (countBadge) countBadge.textContent = isHelambu ? '४४९' : '३,०९०';
 
   const existingRules = getCustomCasteRules();
 
@@ -40667,6 +40816,446 @@ async function submitModernCasteOverride() {
   showToast(`✓ सेभ भयो: ${vName} (${surname}) लाई '${cLabels[newCluster]}' मा अद्यावधिक गरियो।`, 'success');
   loadLiveCasteVotersList();
   renderCasteDemographics(true);
+}
+
+// ==========================================================================
+// TENANT CASTE & SURNAME MAPPING STUDIO LOGIC (AUTO-SUGGEST & CLOUD PERSIST)
+// ==========================================================================
+
+let _studioFilterState = {
+  filter: 'all',
+  search: '',
+  selectedSurnames: new Set()
+};
+
+// Ground truth high-frequency surname dictionary for Helambu (TNT_MVF9LYO3) and Gokarna (TNT_MVG3WXFX)
+const HELAMBU_SURNAME_RAW_DATABASE = [
+  { sur: 'Tamang', cnt: 6991, dev: 'तामाङ', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'Lama', cnt: 3380, dev: 'लामा', cluster: 'janajati', sub: 'तामाङ / ह्योल्मो' },
+  { sur: 'Sherpa', cnt: 1285, dev: 'शेर्पा', cluster: 'janajati', sub: 'शेर्पा' },
+  { sur: 'Lamichhane', cnt: 625, dev: 'लामिछाने', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Pandit', cnt: 560, dev: 'पण्डित', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Khadka', cnt: 399, dev: 'खड्का', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Lamini', cnt: 398, dev: 'लामिनी', cluster: 'janajati', sub: 'तामाङ / ह्योल्मो' },
+  { sur: 'Giri', cnt: 388, dev: 'गिरी', cluster: 'khas_arya', sub: 'दशनामी / संन्यासी' },
+  { sur: 'Jyoti', cnt: 366, dev: 'ज्योति', cluster: 'khas_arya', sub: 'जोशी / बाहुन' },
+  { sur: 'Bhandari', cnt: 299, dev: 'भण्डारी', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Sunar', cnt: 236, dev: 'सुनार', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Thapa', cnt: 223, dev: 'थापा', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Tamangni', cnt: 212, dev: 'तामाङनी', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'Shrestha', cnt: 181, dev: 'श्रेष्ठ', cluster: 'newar', sub: 'नेवार समुदाय' },
+  { sur: 'Sherpini', cnt: 146, dev: 'शेर्पिनी', cluster: 'janajati', sub: 'शेर्पा' },
+  { sur: 'Hyolmo', cnt: 140, dev: 'ह्योल्मो', cluster: 'janajati', sub: 'ह्योल्मो' },
+  { sur: 'Gajurel', cnt: 139, dev: 'गजुरेल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Sonar', cnt: 126, dev: 'सोनार', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Bhattarai', cnt: 106, dev: 'भट्टराई', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Dangal', cnt: 102, dev: 'दङ्गाल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Bhujel', cnt: 98, dev: 'भुजेल', cluster: 'janajati', sub: 'भुजेल' },
+  { sur: 'Gurung', cnt: 90, dev: 'गुरुङ', cluster: 'janajati', sub: 'गुरुङ' },
+  { sur: 'Nepali', cnt: 84, dev: 'नेपाली', cluster: 'dalit', sub: 'दलित समुदाय' },
+  { sur: 'Magar', cnt: 72, dev: 'मगर', cluster: 'janajati', sub: 'मगर' },
+  { sur: 'Karki', cnt: 72, dev: 'कार्की', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Kami', cnt: 65, dev: 'कामी', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Sapakota', cnt: 59, dev: 'सापकोटा', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Guragai', cnt: 58, dev: 'गुरागाईं', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Khatri', cnt: 53, dev: 'खत्री', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Kshetri', cnt: 53, dev: 'क्षेत्री', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Wi.k.', cnt: 52, dev: 'वि.क.', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Achary', cnt: 52, dev: 'आचार्य', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Ghale', cnt: 49, dev: 'घले', cluster: 'janajati', sub: 'घले' },
+  { sur: 'Rimal', cnt: 44, dev: 'रिमाल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Bharati', cnt: 41, dev: 'भारती', cluster: 'khas_arya', sub: 'संन्यासी' },
+  { sur: 'Shresh‍th', cnt: 38, dev: 'श्रेष्ठ', cluster: 'newar', sub: 'नेवार समुदाय' },
+  { sur: 'Khatiwada', cnt: 34, dev: 'खतिवडा', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Chapagai', cnt: 34, dev: 'चापागाईं', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Baraili', cnt: 33, dev: 'बराइली', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Wishwakarma', cnt: 33, dev: 'विश्वकर्मा', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Ghimire', cnt: 33, dev: 'घिमिरे', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Tamangg', cnt: 32, dev: 'तामाङ', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'Lamsal', cnt: 32, dev: 'लम्साल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Puri', cnt: 29, dev: 'पुरी', cluster: 'khas_arya', sub: 'संन्यासी' },
+  { sur: 'Sarki', cnt: 27, dev: 'सार्की', cluster: 'dalit', sub: 'मिजार' },
+  { sur: 'Wish‍wakarma', cnt: 26, dev: 'विश्वकर्मा', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Damai', cnt: 26, dev: 'दमाई', cluster: 'dalit', sub: 'परियार' },
+  { sur: 'Tamangani', cnt: 25, dev: 'तामाङनी', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'Baruwal', cnt: 24, dev: 'बरुवाल', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Kaliraj', cnt: 24, dev: 'कालीराज', cluster: 'dalit', sub: 'दलित समुदाय' },
+  { sur: 'Rijal', cnt: 24, dev: 'रिजाल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Hyalmo', cnt: 22, dev: 'ह्योल्मो', cluster: 'janajati', sub: 'ह्योल्मो' },
+  { sur: 'Sunuwar', cnt: 21, dev: 'सुनुवार', cluster: 'janajati', sub: 'सुनुवार' },
+  { sur: 'Dulal', cnt: 21, dev: 'दुलाल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Gharti', cnt: 20, dev: 'घर्ती', cluster: 'janajati', sub: 'मगर' },
+  { sur: 'Tama', cnt: 19, dev: 'तामाङ', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'Wi.k', cnt: 19, dev: 'वि.क.', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Pande', cnt: 19, dev: 'पाण्डे', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Timalsina', cnt: 18, dev: 'तिमल्सिना', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Kamini', cnt: 17, dev: 'कामिनी', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Thapamagar', cnt: 17, dev: 'थापा मगर', cluster: 'janajati', sub: 'मगर' },
+  { sur: 'Suwedi', cnt: 17, dev: 'सुवेदी', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Baral', cnt: 16, dev: 'बराल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Dahal', cnt: 15, dev: 'दाहाल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Pakhrin', cnt: 15, dev: 'पाख्रिन', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'H‍yolmo', cnt: 14, dev: 'ह्योल्मो', cluster: 'janajati', sub: 'ह्योल्मो' },
+  { sur: 'Dong', cnt: 14, dev: 'दोङ', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'Darnal', cnt: 14, dev: 'दर्नाल', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Nagarakoti', cnt: 14, dev: 'नगरकोटी', cluster: 'janajati', sub: 'नेवार / जनजाति' },
+  { sur: 'Dhakal', cnt: 13, dev: 'ढकाल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Katuwal', cnt: 13, dev: 'कटुवाल', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Shiwabhakti', cnt: 13, dev: 'शिवभक्ति', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Waraili', cnt: 12, dev: 'बराइली', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Mijar', cnt: 12, dev: 'मिजार', cluster: 'dalit', sub: 'मिजार' },
+  { sur: 'Lameni', cnt: 11, dev: 'लामेनी', cluster: 'janajati', sub: 'तामाङ / ह्योल्मो' },
+  { sur: 'Kamar', cnt: 11, dev: 'कमार', cluster: 'dalit', sub: 'दलित समुदाय' },
+  { sur: 'Joti', cnt: 11, dev: 'ज्योति', cluster: 'khas_arya', sub: 'जोशी' },
+  { sur: 'Dolma', cnt: 10, dev: 'डोल्मा', cluster: 'janajati', sub: 'ह्योल्मो / शेर्पा' },
+  { sur: 'Thing', cnt: 10, dev: 'थिङ', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'Tolangge', cnt: 10, dev: 'तोलाङ्गे', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Adhikari', cnt: 9, dev: 'अधिकारी', cluster: 'khas_arya', sub: 'क्षेत्री / बाहुन' },
+  { sur: 'Paudel', cnt: 9, dev: 'पौडेल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Nepal', cnt: 9, dev: 'नेपाल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Rokka', cnt: 9, dev: 'रोक्का', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Upadhyay', cnt: 9, dev: 'उपाध्याय', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Sharma', cnt: 8, dev: 'शर्मा', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Kakshapati', cnt: 8, dev: 'कक्षापती', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Serpa', cnt: 7, dev: 'शेर्पा', cluster: 'janajati', sub: 'शेर्पा' },
+  { sur: 'Yolmo', cnt: 7, dev: 'ह्योल्मो', cluster: 'janajati', sub: 'ह्योल्मो' },
+  { sur: 'Gole', cnt: 7, dev: 'गोले', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'Chaulagai', cnt: 7, dev: 'चौलागाईं', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Basnet', cnt: 7, dev: 'बस्नेत', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Dhital', cnt: 6, dev: 'धिताल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Aryal', cnt: 6, dev: 'अर्याल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Pariyar', cnt: 6, dev: 'परियार', cluster: 'dalit', sub: 'परियार' },
+  { sur: 'Waiwa', cnt: 6, dev: 'वाइबा', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'Ke.si.', cnt: 6, dev: 'के.सी.', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Bishwakarma', cnt: 5, dev: 'विश्वकर्मा', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Sigdel', cnt: 5, dev: 'सिग्देल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Parajuli', cnt: 5, dev: 'पराजुली', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Moktan', cnt: 5, dev: 'मोक्तान', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'Kunwar', cnt: 4, dev: 'कुँवर', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Bomjan', cnt: 4, dev: 'बोम्जन', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'Tiwari', cnt: 4, dev: 'तिवारी', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Gautam', cnt: 3, dev: 'गौतम', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Rai', cnt: 3, dev: 'राई', cluster: 'janajati', sub: 'राई' },
+  { sur: 'Nyaupane', cnt: 3, dev: 'न्यौपाने', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Blon', cnt: 3, dev: 'ब्लोन', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'Chalise', cnt: 3, dev: 'चालिसे', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Gotame', cnt: 3, dev: 'गोतामे', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Dhungana', cnt: 2, dev: 'ढुङ्गाना', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Koirala', cnt: 2, dev: 'कोइराला', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Budhathoki', cnt: 2, dev: 'बुढाथोकी', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Deuja', cnt: 2, dev: 'देउजा', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Sundas', cnt: 2, dev: 'सुन्दास', cluster: 'dalit', sub: 'विश्वकर्मा' },
+  { sur: 'Thakuri', cnt: 1, dev: 'ठकुरी', cluster: 'khas_arya', sub: 'ठकुरी' },
+  { sur: 'Wagle', cnt: 1, dev: 'वाग्ले', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Silwal', cnt: 1, dev: 'सिलवाल', cluster: 'khas_arya', sub: 'क्षेत्री' },
+  { sur: 'Khadgi', cnt: 1, dev: 'खड्गी', cluster: 'newar', sub: 'नेवार समुदाय' },
+  { sur: 'Sitaula', cnt: 1, dev: 'सिटौला', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
+  { sur: 'Hamal', cnt: 1, dev: 'हमाल', cluster: 'khas_arya', sub: 'ठकुरी' }
+];
+
+function initCasteStudio() {
+  _studioFilterState.selectedSurnames.clear();
+  renderCasteStudioTable();
+}
+
+function getActiveTenantStudioSurnames() {
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU' || tenantId === 'TNT_HELAMBU_RSP');
+
+  const customRules = (typeof getCustomCasteRules === 'function') ? getCustomCasteRules() : {};
+
+  // For Helambu, use calibrated full database list
+  const baseList = isHelambu ? HELAMBU_SURNAME_RAW_DATABASE : (function() {
+    const list = [];
+    const tSurnames = REAL_TENANT_CASTE_SURNAMES.TNT_MVG3WXFX || {};
+    Object.keys(tSurnames).forEach(cKey => {
+      (tSurnames[cKey] || []).forEach(item => {
+        list.push({
+          sur: item.en,
+          cnt: item.count || 50,
+          dev: item.np,
+          cluster: cKey,
+          sub: item.en
+        });
+      });
+    });
+    return list;
+  })();
+
+  // Apply custom rules over baseList
+  return baseList.map(item => {
+    const customMatch = customRules[item.sur] || customRules[item.sur.toLowerCase()];
+    if (customMatch) {
+      return {
+        ...item,
+        cluster: customMatch.cluster,
+        sub: customMatch.sub || item.sub,
+        isCustom: true
+      };
+    }
+    return {
+      ...item,
+      isCustom: false
+    };
+  });
+}
+
+function renderCasteStudioTable() {
+  const tbody = document.getElementById('casteStudioTableBody');
+  if (!tbody) return;
+
+  const allSurnames = getActiveTenantStudioSurnames();
+  const totalCount = allSurnames.length;
+  const totalVoters = allSurnames.reduce((sum, item) => sum + (item.cnt || 0), 0) || 18907;
+
+  // Compute Studio KPI Badges
+  let mappedCount = 0;
+  let unmappedCount = 0;
+  let customCount = 0;
+
+  allSurnames.forEach(s => {
+    if (s.isCustom) customCount++;
+    if (s.cluster && s.cluster !== 'unclassified' && s.cluster !== 'other') {
+      mappedCount++;
+    } else {
+      unmappedCount++;
+    }
+  });
+
+  const elTot = document.getElementById('studioKpiTotalSurnames');
+  const elMap = document.getElementById('studioKpiMappedSurnames');
+  const elUnm = document.getElementById('studioKpiUnmappedSurnames');
+  const elCus = document.getElementById('studioKpiCustomRules');
+  const elTabUnm = document.getElementById('casteStudioPendingBadge');
+
+  if (elTot) elTot.textContent = totalCount.toLocaleString();
+  if (elMap) elMap.textContent = mappedCount.toLocaleString();
+  if (elUnm) elUnm.textContent = unmappedCount.toLocaleString();
+  if (elCus) elCus.textContent = customCount.toLocaleString();
+  if (elTabUnm) elTabUnm.textContent = unmappedCount + ' बाँकी';
+
+  const countAll = document.getElementById('studioTabCount_all');
+  const countUnm = document.getElementById('studioTabCount_unmapped');
+  if (countAll) countAll.textContent = totalCount;
+  if (countUnm) countUnm.textContent = unmappedCount;
+
+  // Filter surnames based on active tab and search
+  const q = (_studioFilterState.search || '').toLowerCase().trim();
+  const f = _studioFilterState.filter || 'all';
+
+  const filtered = allSurnames.filter(item => {
+    // Search match
+    if (q) {
+      const matchSur = (item.sur || '').toLowerCase().includes(q);
+      const matchDev = (item.dev || '').toLowerCase().includes(q);
+      const matchSub = (item.sub || '').toLowerCase().includes(q);
+      if (!matchSur && !matchDev && !matchSub) return false;
+    }
+
+    // Category filter
+    if (f === 'all') return true;
+    if (f === 'unmapped') return (!item.cluster || item.cluster === 'unclassified' || item.cluster === 'other');
+    if (f === 'custom') return !!item.isCustom;
+    return item.cluster === f;
+  });
+
+  // Cluster label lookup
+  const clusterMeta = {
+    'khas_arya': { label: '🔵 खस आर्य', bg: 'rgba(59,130,246,0.12)', color: '#2563eb', border: '#3b82f6' },
+    'janajati': { label: '🟢 आदिवासी जनजाति', bg: 'rgba(34,197,94,0.12)', color: '#16a34a', border: '#22c55e' },
+    'dalit': { label: '🟣 दलित समुदाय', bg: 'rgba(168,85,247,0.12)', color: '#9333ea', border: '#a855f7' },
+    'newar': { label: '🟠 नेवार समुदाय', bg: 'rgba(249,115,22,0.12)', color: '#ea580c', border: '#f97316' },
+    'madhesi': { label: '🟤 मधेशी / थारु', bg: 'rgba(234,179,8,0.12)', color: '#854d0e', border: '#eab308' },
+    'muslim': { label: '🟡 मुस्लिम समुदाय', bg: 'rgba(20,184,166,0.12)', color: '#0f766e', border: '#14b8a6' },
+    'other': { label: '⚪ अन्य', bg: 'rgba(148,163,184,0.12)', color: '#475569', border: '#94a3b8' },
+    'unclassified': { label: '⚠️ खुल्न बाँकी', bg: 'rgba(239,68,68,0.12)', color: '#dc2626', border: '#ef4444' }
+  };
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="padding: 36px; text-align: center; color: var(--text-muted);">
+          <div style="font-size: 28px; margin-bottom: 6px;">🔍</div>
+          <div>कुनै पनि थर भेटिएन।</div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(item => {
+    const isChecked = _studioFilterState.selectedSurnames.has(item.sur);
+    const meta = clusterMeta[item.cluster] || clusterMeta['unclassified'];
+    const pct = totalVoters > 0 ? ((item.cnt / totalVoters) * 100).toFixed(1) : '0';
+
+    return `
+      <tr style="border-bottom: 1px solid var(--border-color); ${isChecked ? 'background: rgba(99,102,241,0.06);' : ''}">
+        <td style="padding: 10px 14px; text-align: center;">
+          <input type="checkbox" onchange="toggleStudioRowSelect('${esc(item.sur)}', this.checked)" ${isChecked ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer;">
+        </td>
+        <td style="padding: 10px 14px;">
+          <div style="font-weight: 800; font-size: 13.5px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+            <span>${esc(item.dev || item.sur)}</span>
+            <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">(${esc(item.sur)})</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 1px;">
+            उप-जाति: <strong>${esc(item.sub || item.sur)}</strong>
+          </div>
+        </td>
+        <td style="padding: 10px 14px; text-align: right; font-weight: 800; font-family: monospace; font-size: 13.5px; color: #1e3a8a;">
+          ${(item.cnt || 0).toLocaleString()}
+        </td>
+        <td style="padding: 10px 14px; text-align: center;">
+          <span class="badge" style="background: var(--bg-hover); font-size: 11.5px; font-weight: 700;">${pct}%</span>
+        </td>
+        <td style="padding: 10px 14px;">
+          <select class="form-control" onchange="onStudioRowClusterChanged('${esc(item.sur)}', this.value)" style="font-size: 12.5px; padding: 4px 8px; border-radius: 6px; font-weight: 700;">
+            <option value="khas_arya" ${item.cluster === 'khas_arya' ? 'selected' : ''}>🔵 खस आर्य</option>
+            <option value="janajati" ${item.cluster === 'janajati' ? 'selected' : ''}>🟢 आदिवासी जनजाति</option>
+            <option value="dalit" ${item.cluster === 'dalit' ? 'selected' : ''}>🟣 दलित समुदाय</option>
+            <option value="newar" ${item.cluster === 'newar' ? 'selected' : ''}>🟠 नेवार समुदाय</option>
+            <option value="madhesi" ${item.cluster === 'madhesi' ? 'selected' : ''}>🟤 मधेशी / थारु</option>
+            <option value="muslim" ${item.cluster === 'muslim' ? 'selected' : ''}>🟡 मुस्लिम समुदाय</option>
+            <option value="other" ${item.cluster === 'other' ? 'selected' : ''}>⚪ अन्य</option>
+          </select>
+        </td>
+        <td style="padding: 10px 14px;">
+          ${item.isCustom ? `
+            <span class="badge" style="background: rgba(168,85,247,0.15); color: #9333ea; border: 1px solid #c084fc; font-size: 11px; font-weight: 700;">
+              ✨ अनुकूलित (Synced)
+            </span>
+          ` : `
+            <span class="badge" style="background: rgba(148,163,184,0.15); color: #475569; font-size: 11px;">
+              मानक प्रणाली
+            </span>
+          `}
+        </td>
+        <td style="padding: 10px 14px; text-align: center;">
+          <button type="button" class="btn btn-sm btn-secondary" onclick="quickFilterCasteRosterBySurname('${esc(item.sur)}')" style="font-size: 11px; padding: 3px 8px; font-weight: 700;" title="यो थरका सम्पूर्ण मतदाता सूची हेर्नुहोस्">
+            🔍 मतदाता
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function setStudioFilter(filterKey) {
+  _studioFilterState.filter = filterKey;
+  const btns = document.querySelectorAll('.studio-tab-filter');
+  btns.forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-sfilter') === filterKey);
+  });
+  renderCasteStudioTable();
+}
+
+function onStudioSearchChanged() {
+  const inp = document.getElementById('studioSearchInput');
+  _studioFilterState.search = inp ? inp.value : '';
+  renderCasteStudioTable();
+}
+
+function toggleStudioRowSelect(surname, checked) {
+  if (checked) {
+    _studioFilterState.selectedSurnames.add(surname);
+  } else {
+    _studioFilterState.selectedSurnames.delete(surname);
+  }
+  updateStudioBatchActionBar();
+}
+
+function toggleStudioSelectAll(masterCheckbox) {
+  const allSurnames = getActiveTenantStudioSurnames();
+  if (masterCheckbox.checked) {
+    allSurnames.forEach(s => _studioFilterState.selectedSurnames.add(s.sur));
+  } else {
+    _studioFilterState.selectedSurnames.clear();
+  }
+  updateStudioBatchActionBar();
+  renderCasteStudioTable();
+}
+
+function clearStudioSelection() {
+  _studioFilterState.selectedSurnames.clear();
+  const master = document.getElementById('studioSelectAllCheckbox');
+  if (master) master.checked = false;
+  updateStudioBatchActionBar();
+  renderCasteStudioTable();
+}
+
+function updateStudioBatchActionBar() {
+  const bar = document.getElementById('studioBatchActionBar');
+  const countEl = document.getElementById('studioSelectedCount');
+  const count = _studioFilterState.selectedSurnames.size;
+
+  if (bar) bar.style.display = count > 0 ? 'flex' : 'none';
+  if (countEl) countEl.textContent = count.toLocaleString();
+}
+
+function onStudioRowClusterChanged(surname, newCluster) {
+  const cLabels = {
+    'janajati': 'आदिवासी जनजाति',
+    'khas_arya': 'खस आर्य',
+    'newar': 'नेवार समुदाय',
+    'dalit': 'दलित समुदाय',
+    'madhesi': 'मधेशी / थारु',
+    'muslim': 'मुस्लिम समुदाय',
+    'other': 'मधेसी / अन्य'
+  };
+  saveCustomCasteRule(surname, newCluster, cLabels[newCluster] || newCluster, surname);
+  showToast(`✓ थर '${surname}' लाई '${cLabels[newCluster]}' मा सुरक्षित गरियो।`, 'success');
+  renderCasteStudioTable();
+  renderCasteDemographics(true);
+}
+
+function applyStudioBatchMapping() {
+  const selCluster = document.getElementById('studioBatchClusterSelect')?.value || 'khas_arya';
+  const cLabels = {
+    'janajati': 'आदिवासी जनजाति',
+    'khas_arya': 'खस आर्य',
+    'newar': 'नेवार समुदाय',
+    'dalit': 'दलित समुदाय',
+    'madhesi': 'मधेशी / थारु',
+    'muslim': 'मुस्लिम समुदाय',
+    'other': 'मधेसी / अन्य'
+  };
+
+  const selectedList = Array.from(_studioFilterState.selectedSurnames);
+  if (selectedList.length === 0) return showToast('कृपया कम्तिमा एउटा थर छान्नुहोस्', 'warning');
+
+  selectedList.forEach(sur => {
+    saveCustomCasteRule(sur, selCluster, cLabels[selCluster] || selCluster, sur);
+  });
+
+  showToast(`✓ ${selectedList.length} वटा थरहरू एकैपटक '${cLabels[selCluster]}' मा सफलतापूर्वक सारियो!`, 'success');
+  clearStudioSelection();
+  renderCasteDemographics(true);
+}
+
+function syncStudioCasteRulesToCloud() {
+  syncAndBroadcastAllCasteRules();
+  showToast('☁️ थर तथा जातीय समूहका सम्पूर्ण नियमहरू क्लाउड र सबै डिभाइसमा सिंक गरियो!', 'success');
+}
+
+function rescanTenantSurnamesStudio() {
+  showToast('🔄 डेटाबेसबाट थरहरूको प्रत्यक्ष स्क्यान रिफ्रेस भयो!', 'info');
+  initCasteStudio();
+}
+
+function quickFilterCasteRosterBySurname(surname) {
+  switchCasteSubTab('voters');
+  const sSel = document.getElementById('casteFilterSurnameSelect');
+  if (sSel) {
+    sSel.value = surname.toLowerCase();
+    _casteFilterState.surname = surname.toLowerCase();
+  }
+  const sInp = document.getElementById('casteVoterSearchInput');
+  if (sInp) {
+    sInp.value = surname;
+    _casteFilterState.search = surname;
+  }
+  loadLiveCasteVotersList();
 }
 
 function exportCasteVotersCsv() {
