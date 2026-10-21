@@ -39844,7 +39844,39 @@ function toggleCasteSort(field) {
 }
 
 function getComputedTenantCasteClusters(tenantId) {
-  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU' || tenantId === 'TNT_HELAMBU_RSP');
+  const activeTId = tenantId || ((typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX');
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const resolvedTId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+
+  // 1. Calculate dynamically from the active tenant studio surnames (reflecting all custom mappings!)
+  const studioList = (typeof getActiveTenantStudioSurnames === 'function') ? getActiveTenantStudioSurnames() : [];
+  
+  if (Array.isArray(studioList) && studioList.length > 0) {
+    const dynamicClusters = {
+      khas_arya: 0,
+      janajati: 0,
+      dalit: 0,
+      newar: 0,
+      madhesi: 0,
+      muslim: 0,
+      other: 0
+    };
+
+    studioList.forEach(item => {
+      const c = item.cluster || 'other';
+      const cnt = item.cnt || 0;
+      if (dynamicClusters.hasOwnProperty(c)) {
+        dynamicClusters[c] += cnt;
+      } else {
+        dynamicClusters.other += cnt;
+      }
+    });
+
+    return dynamicClusters;
+  }
+
+  // 2. Fallback to calibrated base clusters if studio not yet loaded
+  const isHelambu = (resolvedTId === 'TNT_MVF9LYO3' || resolvedTId === 'TNT_HELAMBU');
   const baseClusters = isHelambu ? {
     janajati: 13350,
     khas_arya: 4150,
@@ -41852,8 +41884,31 @@ function onStudioRowClusterChanged(surname, newCluster) {
     'muslim': 'मुस्लिम समुदाय',
     'other': 'मधेसी / अन्य'
   };
-  saveCustomCasteRule(surname, newCluster, cLabels[newCluster] || newCluster, surname);
-  showToast(`✓ थर '${surname}' लाई '${cLabels[newCluster]}' मा सुरक्षित गरियो।`, 'success');
+
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+
+  // Find the surname item to obtain its voter count
+  const allSurnames = getActiveTenantStudioSurnames();
+  const item = allSurnames.find(x => x.sur.toLowerCase() === surname.toLowerCase());
+  const vCount = item ? item.cnt : 1;
+
+  // Save the custom rule (persists to localStorage + Cloud + Realtime Broadcast)
+  saveCustomCasteRule(surname, newCluster, cLabels[newCluster] || newCluster, surname, tenantId);
+
+  // Update in-memory cache if present
+  if (_tenantStudioSurnameCache[tenantId]) {
+    const cachedItem = _tenantStudioSurnameCache[tenantId].find(x => x.sur.toLowerCase() === surname.toLowerCase());
+    if (cachedItem) {
+      cachedItem.cluster = newCluster;
+      cachedItem.isCustom = true;
+    }
+  }
+
+  showToast(`⚡ '${surname}' (${vCount.toLocaleString()} मतदाता) लाई '${cLabels[newCluster]}' मा सारियो! तथ्याङ्क अद्यावधिक भयो।`, 'success');
+
+  // Immediately re-render studio table, top KPIs, filter pills & matrix
   renderCasteStudioTable();
   renderCasteDemographics(true);
 }
@@ -41870,15 +41925,36 @@ function applyStudioBatchMapping() {
     'other': 'मधेसी / अन्य'
   };
 
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+
   const selectedList = Array.from(_studioFilterState.selectedSurnames);
   if (selectedList.length === 0) return showToast('कृपया कम्तिमा एउटा थर छान्नुहोस्', 'warning');
 
+  let totalShiftedVoters = 0;
+  const allSurnames = getActiveTenantStudioSurnames();
+
   selectedList.forEach(sur => {
-    saveCustomCasteRule(sur, selCluster, cLabels[selCluster] || selCluster, sur);
+    const item = allSurnames.find(x => x.sur.toLowerCase() === sur.toLowerCase());
+    if (item) totalShiftedVoters += item.cnt;
+
+    saveCustomCasteRule(sur, selCluster, cLabels[selCluster] || selCluster, sur, tenantId);
+
+    if (_tenantStudioSurnameCache[tenantId]) {
+      const cachedItem = _tenantStudioSurnameCache[tenantId].find(x => x.sur.toLowerCase() === sur.toLowerCase());
+      if (cachedItem) {
+        cachedItem.cluster = selCluster;
+        cachedItem.isCustom = true;
+      }
+    }
   });
 
-  showToast(`✓ ${selectedList.length} वटा थरहरू एकैपटक '${cLabels[selCluster]}' मा सफलतापूर्वक सारियो!`, 'success');
+  showToast(`⚡ ${selectedList.length} वटा थरहरू (${totalShiftedVoters.toLocaleString()} मतदाता) एकैपटक '${cLabels[selCluster]}' मा सारियो!`, 'success');
   clearStudioSelection();
+
+  // Immediately re-render studio table, top KPIs, filter pills & matrix
+  renderCasteStudioTable();
   renderCasteDemographics(true);
 }
 
