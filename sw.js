@@ -1,5 +1,5 @@
 // Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v72-gokarneshwor-real-37759-surnames-fixed';
+const CACHE_NAME = 'election-ops-v73-surname-intelligence-profile-engine';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
