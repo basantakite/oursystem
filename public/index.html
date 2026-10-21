@@ -6088,7 +6088,7 @@
           <div id="surnameProfileModal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center; padding: 16px; animation: fadeIn 0.18s ease-out;">
             <div class="card" style="width: 100%; max-width: 840px; max-height: 90vh; display: flex; flex-direction: column; background: #ffffff !important; color: #0f172a !important; border: 2px solid #cbd5e1; border-radius: 18px; box-shadow: 0 25px 60px rgba(0,0,0,0.55); padding: 0; overflow: hidden; position: relative;">
               <!-- Header -->
-              <div style="padding: 18px 24px; background: linear-gradient(135deg, #1e1b4b 0%, #1e3a8a 100%); color: #fff; display: flex; justify-content: space-between; align-items: center;">
+              <div style="padding: 16px 24px; background: linear-gradient(135deg, #1e1b4b 0%, #1e3a8a 100%); color: #fff; display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 12px;">
                   <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 24px; border: 1px solid rgba(255,255,255,0.25);">
                     🧬
@@ -6105,101 +6105,155 @@
                 <button type="button" class="btn btn-sm btn-icon" onclick="closeSurnameProfileModal()" style="font-size: 16px; border-radius: 50%; background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">✕</button>
               </div>
 
+              <!-- SURNAME PROFILE INTERNAL SUB-NAV TABS -->
+              <div style="display: flex; gap: 8px; background: #f8fafc; border-bottom: 2px solid #e2e8f0; padding: 0 24px;">
+                <button type="button" id="surProfSubTab_overview" class="btn active" onclick="switchSurnameProfileSubTab('overview')" style="background: transparent; border: none; border-bottom: 3px solid #3b82f6; border-radius: 0; padding: 11px 16px; font-weight: 800; font-size: 13.5px; color: #1e293b; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  <span>📊 हिज्जे तथा कुल विश्लेषण (Overview & Variants)</span>
+                </button>
+                <button type="button" id="surProfSubTab_voters" class="btn" onclick="switchSurnameProfileSubTab('voters')" style="background: transparent; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 11px 16px; font-weight: 800; font-size: 13.5px; color: #64748b; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  <span>👥 मतदाता नामावली (Voter Roster)</span>
+                  <span class="badge" id="surProfVotersCountTabBadge" style="background: #e2e8f0; color: #334155; font-size: 11px; font-weight: 800;">० जना</span>
+                </button>
+              </div>
+
               <!-- Body with scroll -->
               <div style="padding: 20px 24px; overflow-y: auto; flex: 1;">
-                <!-- 4 Snapshot KPIs -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 20px;">
-                  <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px 14px;">
-                    <div style="font-size: 11.5px; font-weight: 700; color: #64748b;">कुल मतदाता (Total Voters)</div>
-                    <div id="surProfKpiTotal" style="font-size: 22px; font-weight: 900; color: #1e3a8a; margin-top: 2px;">० जना</div>
-                    <div id="surProfKpiTotalPct" style="font-size: 11px; color: #64748b; margin-top: 1px;">पालिकाको ०%</div>
+                
+                <!-- PANE A: OVERVIEW & VARIANTS (TAB 1) -->
+                <div id="surProfPane_overview">
+                  <!-- 4 Snapshot KPIs -->
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                    <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px 14px;">
+                      <div style="font-size: 11.5px; font-weight: 700; color: #64748b;">कुल मतदाता (Total Voters)</div>
+                      <div id="surProfKpiTotal" style="font-size: 22px; font-weight: 900; color: #1e3a8a; margin-top: 2px;">० जना</div>
+                      <div id="surProfKpiTotalPct" style="font-size: 11px; color: #64748b; margin-top: 1px;">पालिकाको ०%</div>
+                    </div>
+                    <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; padding: 12px 14px;">
+                      <div style="font-size: 11.5px; font-weight: 700; color: #166534;">तोकिएको जातीय क्लस्टर</div>
+                      <div id="surProfKpiCluster" style="font-size: 16px; font-weight: 900; color: #15803d; margin-top: 4px;">खस आर्य</div>
+                      <div id="surProfKpiSub" style="font-size: 11px; color: #166534; margin-top: 1px;">उप-जाति: -</div>
+                    </div>
+                    <div style="background: #fdf4ff; border: 1.5px solid #f0abfc; border-radius: 10px; padding: 12px 14px;">
+                      <div style="font-size: 11.5px; font-weight: 700; color: #86198f;">भेटिएका फरक हिज्जे/रूप</div>
+                      <div id="surProfKpiVariantsCount" style="font-size: 22px; font-weight: 900; color: #a21caf; margin-top: 2px;">० वटा</div>
+                      <div style="font-size: 11px; color: #86198f; margin-top: 1px;">एउटै छातामुनि गाभिएका</div>
+                    </div>
+                    <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 10px; padding: 12px 14px;">
+                      <div style="font-size: 11.5px; font-weight: 700; color: #1e40af;">मुख्य उपस्थिति (Top Ward)</div>
+                      <div id="surProfKpiTopWard" style="font-size: 18px; font-weight: 900; color: #2563eb; margin-top: 3px;">वडा नं -</div>
+                      <div id="surProfKpiTopWardCount" style="font-size: 11px; color: #1e40af; margin-top: 1px;">० जना मतदाता</div>
+                    </div>
                   </div>
-                  <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; padding: 12px 14px;">
-                    <div style="font-size: 11.5px; font-weight: 700; color: #166534;">तोकिएको जातीय क्लस्टर</div>
-                    <div id="surProfKpiCluster" style="font-size: 16px; font-weight: 900; color: #15803d; margin-top: 4px;">खस आर्य</div>
-                    <div id="surProfKpiSub" style="font-size: 11px; color: #166534; margin-top: 1px;">उप-जाति: -</div>
-                  </div>
-                  <div style="background: #fdf4ff; border: 1.5px solid #f0abfc; border-radius: 10px; padding: 12px 14px;">
-                    <div style="font-size: 11.5px; font-weight: 700; color: #86198f;">भेटिएका फरक हिज्जे/रूप</div>
-                    <div id="surProfKpiVariantsCount" style="font-size: 22px; font-weight: 900; color: #a21caf; margin-top: 2px;">० वटा</div>
-                    <div style="font-size: 11px; color: #86198f; margin-top: 1px;">एउटै छातामुनि गाभिएका</div>
-                  </div>
-                  <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 10px; padding: 12px 14px;">
-                    <div style="font-size: 11.5px; font-weight: 700; color: #1e40af;">मुख्य उपस्थिति (Top Ward)</div>
-                    <div id="surProfKpiTopWard" style="font-size: 18px; font-weight: 900; color: #2563eb; margin-top: 3px;">वडा नं -</div>
-                    <div id="surProfKpiTopWardCount" style="font-size: 11px; color: #1e40af; margin-top: 1px;">० जना मतदाता</div>
-                  </div>
-                </div>
 
-                <!-- SECTION 1: DETECTED VARIANTS & TYPO TABLE -->
-                <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                    <div>
-                      <h4 style="margin: 0; font-size: 14.5px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px;">
-                        <span>⚠️ डेटाबेसमा दर्ता भएका फरक-फरक हिज्जे र टाइपिङ रूपहरू (Raw Variants Breakdown)</span>
-                      </h4>
-                      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
-                        स्वचालित रूपमा गाभिएका रूपहरू हेर्नुहोस्, वा आवश्यक परे म्यानुअल अलग (Unlink) गर्नुहोस्
+                  <!-- SECTION 1: DETECTED VARIANTS & TYPO TABLE -->
+                  <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                      <div>
+                        <h4 style="margin: 0; font-size: 14.5px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                          <span>⚠️ डेटाबेसमा दर्ता भएका फरक-फरक हिज्जे र टाइपिङ रूपहरू (Raw Variants Breakdown)</span>
+                        </h4>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                          स्वचालित रूपमा गाभिएका रूपहरू हेर्नुहोस्, वा आवश्यक परे म्यानुअल अलग (Unlink) गर्नुहोस्
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div style="overflow-x: auto;">
-                    <table class="table" style="width: 100%; margin: 0; font-size: 12.5px;">
-                      <thead style="background: #f8fafc; border-bottom: 1.5px solid #e2e8f0;">
-                        <tr>
-                          <th style="padding: 8px 10px; text-align: left;">दर्ता भएको हिज्जे/रूप</th>
-                          <th style="padding: 8px 10px; text-align: right; width: 110px;">मतदाता संख्या</th>
-                          <th style="padding: 8px 10px; text-align: center; width: 90px;">हिस्सा (%)</th>
-                          <th style="padding: 8px 10px; text-align: left;">प्रकृति / कैफियत</th>
-                          <th style="padding: 8px 10px; text-align: center; width: 110px;">व्यवस्थापन</th>
-                        </tr>
-                      </thead>
-                      <tbody id="surProfVariantsTableBody">
-                        <!-- Injected via renderSurnameProfileVariants() -->
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <!-- Add Custom Variant Input Bar -->
-                  <div style="display: flex; gap: 8px; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e2e8f0; flex-wrap: wrap;">
-                    <span style="font-size: 12px; font-weight: 700; color: #475569;">➕ थप नयाँ हिज्जे जोड्नुहोस्:</span>
-                    <input type="text" id="surProfNewVariantInput" class="form-control" placeholder="उदा: Lamichaney, Lamicchane..." style="width: auto; min-width: 200px; font-size: 12px; padding: 5px 10px; border-radius: 6px;">
-                    <button type="button" class="btn btn-sm btn-primary" onclick="addCustomSurnameVariantFromModal()" style="font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 6px;">
-                      ✓ यसै कुलमा जोड्नुहोस्
-                    </button>
-                  </div>
-                </div>
-
-                <!-- SECTION 2: WARD DISTRIBUTION & DEMOGRAPHICS -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 16px;">
-                  <!-- Ward Breakdown -->
-                  <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px;">
-                    <h4 style="margin: 0 0 10px; font-size: 14px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px;">
-                      <span>📍 वडागत उपस्थिति (Ward Concentration)</span>
-                    </h4>
-                    <div id="surProfWardList" style="display: flex; flex-direction: column; gap: 8px; font-size: 12.5px;">
-                      <!-- Populated dynamically -->
+                    <div style="overflow-x: auto;">
+                      <table class="table" style="width: 100%; margin: 0; font-size: 12.5px;">
+                        <thead style="background: #f8fafc; border-bottom: 1.5px solid #e2e8f0;">
+                          <tr>
+                            <th style="padding: 8px 10px; text-align: left;">दर्ता भएको हिज्जे/रूप</th>
+                            <th style="padding: 8px 10px; text-align: right; width: 110px;">मतदाता संख्या</th>
+                            <th style="padding: 8px 10px; text-align: center; width: 90px;">हिस्सा (%)</th>
+                            <th style="padding: 8px 10px; text-align: left;">प्रकृति / कैफियत</th>
+                            <th style="padding: 8px 10px; text-align: center; width: 110px;">व्यवस्थापन</th>
+                          </tr>
+                        </thead>
+                        <tbody id="surProfVariantsTableBody">
+                          <!-- Injected via renderSurnameProfileVariants() -->
+                        </tbody>
+                      </table>
                     </div>
-                  </div>
 
-                  <!-- Quick Clan Action & Overview -->
-                  <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
-                    <div>
-                      <h4 style="margin: 0 0 8px; font-size: 14px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px;">
-                        <span>⚡ रणनीतिक कार्यहरू (Strategic Actions)</span>
-                      </h4>
-                      <p style="font-size: 12px; color: #64748b; margin: 0 0 12px; line-height: 1.4;">
-                        यस कुलका सम्पूर्ण मतदाताहरूलाई सिधै फिल्टर गरी प्रोफाइल, पारिवारिक भोट ब्लक र सम्पर्क विवरण हेर्नुहोस्।
-                      </p>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                      <button type="button" class="btn btn-primary" id="surProfBtnViewAllVoters" style="font-weight: 800; padding: 9px; border-radius: 8px; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <span>👥 यस कुलका सम्पूर्ण मतदाता नामावली हेर्नुहोस्</span>
+                    <!-- Add Custom Variant Input Bar -->
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e2e8f0; flex-wrap: wrap;">
+                      <span style="font-size: 12px; font-weight: 700; color: #475569;">➕ थप नयाँ हिज्जे जोड्नुहोस्:</span>
+                      <input type="text" id="surProfNewVariantInput" class="form-control" placeholder="उदा: Lamichaney, Lamicchane..." style="width: auto; min-width: 200px; font-size: 12px; padding: 5px 10px; border-radius: 6px;">
+                      <button type="button" class="btn btn-sm btn-primary" onclick="addCustomSurnameVariantFromModal()" style="font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 6px;">
+                        ✓ यसै कुलमा जोड्नुहोस्
                       </button>
                     </div>
                   </div>
+
+                  <!-- SECTION 2: WARD DISTRIBUTION & DEMOGRAPHICS -->
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                    <!-- Ward Breakdown -->
+                    <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px;">
+                      <h4 style="margin: 0 0 10px; font-size: 14px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                        <span>📍 वडागत उपस्थिति (Ward Concentration)</span>
+                      </h4>
+                      <div id="surProfWardList" style="display: flex; flex-direction: column; gap: 8px; font-size: 12.5px;">
+                        <!-- Populated dynamically -->
+                      </div>
+                    </div>
+
+                    <!-- Quick Clan Action & Overview -->
+                    <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+                      <div>
+                        <h4 style="margin: 0 0 8px; font-size: 14px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+                          <span>⚡ रणनीतिक कार्यहरू (Strategic Actions)</span>
+                        </h4>
+                        <p style="font-size: 12px; color: #64748b; margin: 0 0 12px; line-height: 1.4;">
+                          यस कुलका सम्पूर्ण मतदाताहरूलाई सिधै फिल्टर गरी प्रोफाइल, पारिवारिक भोट ब्लक र सम्पर्क विवरण हेर्नुहोस्।
+                        </p>
+                      </div>
+                      <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button type="button" class="btn btn-primary" id="surProfBtnViewAllVoters" style="font-weight: 800; padding: 9px; border-radius: 8px; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                          <span>👥 यस कुलका सम्पूर्ण मतदाता नामावली ट्याब खोल्नुहोस्</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
+                <!-- PANE B: EMBEDDED VOTER ROSTER (TAB 2) -->
+                <div id="surProfPane_voters" style="display: none;">
+                  <!-- Filter bar within profile -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                      <input type="text" id="surProfVoterSearchInput" class="form-control" placeholder="🔍 नाम, मतदाता नं, टोलबाट खोज्नुहोस्..." oninput="onSurProfVoterSearchChanged()" style="font-size: 12.5px; border-radius: 6px; width: 220px; padding: 5px 10px;">
+                      <select id="surProfWardFilterSelect" class="form-control" onchange="onSurProfWardFilterChanged()" style="font-size: 12.5px; border-radius: 6px; width: auto; padding: 5px 10px;">
+                        <option value="all">सबै वडा</option>
+                      </select>
+                    </div>
+                    <div style="font-size: 12.5px; color: #64748b; font-weight: 700;">
+                      देखाउँदै: <strong id="surProfShowingCount" style="color: #1e3a8a;">०</strong> जना
+                    </div>
+                  </div>
+
+                  <!-- Table of Voters -->
+                  <div style="border: 1.5px solid #e2e8f0; border-radius: 10px; overflow: hidden; background: #fff;">
+                    <div style="overflow-x: auto; max-height: 480px;">
+                      <table class="table" style="width: 100%; margin: 0; font-size: 12.5px;">
+                        <thead style="background: #f8fafc; border-bottom: 2px solid #cbd5e1; position: sticky; top: 0; z-index: 2;">
+                          <tr>
+                            <th style="padding: 10px 12px; width: 50px; text-align: center;">क्र.सं.</th>
+                            <th style="padding: 10px 12px; text-align: left;">मतदाताको नाम (Voter Name)</th>
+                            <th style="padding: 10px 12px; width: 90px; text-align: center;">उमेर/लिङ्ग</th>
+                            <th style="padding: 10px 12px; text-align: left;">ठेगाना (वडा र टोल)</th>
+                            <th style="padding: 10px 12px; width: 110px; text-align: center;">मतदाता नं</th>
+                            <th style="padding: 10px 12px; text-align: center; width: 100px;">भोट स्थिति</th>
+                            <th style="padding: 10px 12px; text-align: center; width: 90px;">कार्य</th>
+                          </tr>
+                        </thead>
+                        <tbody id="surProfVotersTableBody">
+                          <!-- Injected via renderSurnameProfileVoterList() -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
               <!-- Footer -->
@@ -42296,6 +42350,205 @@ function unlinkSurnameVariant(variantForm) {
   }
   showToast(`✓ हिज्जे '${variantForm}' लाई अलग गरियो।`, 'info');
   openSurnameProfileModal(_currentSurnameProfileTarget);
+}
+
+// =========================================================================
+// 👥 EMBEDDED SURNAME VOTERS LIST (WITH LIVE SUPABASE REST CALL)
+// =========================================================================
+
+let _surProfVotersData = [];
+let _surProfFilterState = {
+  search: '',
+  ward: 'all'
+};
+
+function switchSurnameProfileSubTab(tabName) {
+  const pOverview = document.getElementById('surProfPane_overview');
+  const pVoters = document.getElementById('surProfPane_voters');
+  const btnOverview = document.getElementById('surProfSubTab_overview');
+  const btnVoters = document.getElementById('surProfSubTab_voters');
+
+  if (tabName === 'overview') {
+    if (pOverview) pOverview.style.display = 'block';
+    if (pVoters) pVoters.style.display = 'none';
+    if (btnOverview) {
+      btnOverview.style.borderBottom = '3px solid #3b82f6';
+      btnOverview.style.color = '#1e293b';
+    }
+    if (btnVoters) {
+      btnVoters.style.borderBottom = '3px solid transparent';
+      btnVoters.style.color = '#64748b';
+    }
+  } else {
+    if (pOverview) pOverview.style.display = 'none';
+    if (pVoters) pVoters.style.display = 'block';
+    if (btnVoters) {
+      btnVoters.style.borderBottom = '3px solid #3b82f6';
+      btnVoters.style.color = '#1e293b';
+    }
+    if (btnOverview) {
+      btnOverview.style.borderBottom = '3px solid transparent';
+      btnOverview.style.color = '#64748b';
+    }
+    loadSurnameProfileVoters();
+  }
+}
+
+async function loadSurnameProfileVoters() {
+  const tbody = document.getElementById('surProfVotersTableBody');
+  const badge = document.getElementById('surProfVotersCountTabBadge');
+  const showingEl = document.getElementById('surProfShowingCount');
+  if (!tbody || !_currentSurnameProfileTarget) return;
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="7" style="padding: 30px; text-align: center; color: #64748b;">
+        <div class="spinner" style="margin: 0 auto 8px; width: 22px; height: 22px; border-width: 2.5px;"></div>
+        <div>'${esc(_currentSurnameProfileTarget)}' का मतदाताहरू लोड हुँदैछन्...</div>
+      </td>
+    </tr>
+  `;
+
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+
+  // Initialize Ward dropdown options
+  const wSel = document.getElementById('surProfWardFilterSelect');
+  if (wSel && wSel.options.length <= 1) {
+    const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+    const maxWards = isHelambu ? 7 : 9;
+    let wHtml = '<option value="all">सबै वडा</option>';
+    for (let w = 1; w <= maxWards; w++) {
+      wHtml += `<option value="${w}">वडा नं ${nepaliNumerals(w)}</option>`;
+    }
+    wSel.innerHTML = wHtml;
+  }
+
+  // 1. Gather all variant pattern strings for this target surname
+  const sKey = _currentSurnameProfileTarget.toLowerCase().replace(/[^a-z]/g, '');
+  const variants = MASTER_SURNAME_VARIANTS_MAP[sKey] || [{ form: _currentSurnameProfileTarget }];
+  const patterns = Array.from(new Set([_currentSurnameProfileTarget, ...variants.map(v => v.form)])).filter(Boolean);
+
+  // 2. Fetch directly from Supabase
+  try {
+    const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+    const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+
+    let orParts = [];
+    patterns.forEach(p => {
+      orParts.push(`full_name.ilike.*${encodeURIComponent(p.trim())}*`);
+    });
+
+    const queryUrl = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&or=(${orParts.join(',')})&select=voter_id,official_voter_id,full_name,gender,age,ward_no,booth_no,tole,voted_status,is_influencer,phone&order=ward_no.asc,full_name.asc&limit=1000`;
+    
+    const resp = await fetch(queryUrl, {
+      headers: {
+        'apikey': key,
+        'Authorization': `Bearer ${key}`
+      }
+    });
+
+    if (resp.ok) {
+      _surProfVotersData = await resp.json();
+    } else {
+      _surProfVotersData = [];
+    }
+  } catch(e) {
+    console.warn('Error loading surname voters:', e);
+    _surProfVotersData = [];
+  }
+
+  if (badge) badge.textContent = `${_surProfVotersData.length.toLocaleString()} जना`;
+  renderSurnameProfileVoterList();
+}
+
+function renderSurnameProfileVoterList() {
+  const tbody = document.getElementById('surProfVotersTableBody');
+  const showingEl = document.getElementById('surProfShowingCount');
+  if (!tbody) return;
+
+  const q = (_surProfFilterState.search || '').toLowerCase().trim();
+  const w = _surProfFilterState.ward || 'all';
+
+  const filtered = _surProfVotersData.filter(v => {
+    if (w !== 'all' && String(v.ward_no || '') !== w) return false;
+    if (q) {
+      const matchName = (v.full_name || '').toLowerCase().includes(q);
+      const matchId = (v.official_voter_id || v.voter_id || '').toLowerCase().includes(q);
+      const matchTole = (v.tole || '').toLowerCase().includes(q);
+      if (!matchName && !matchId && !matchTole) return false;
+    }
+    return true;
+  });
+
+  if (showingEl) showingEl.textContent = filtered.length.toLocaleString();
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="padding: 26px; text-align: center; color: #64748b;">
+          <div>कुनै पनि मतदाता फेला परेन।</div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((v, i) => {
+    const toleStr = (v.tole && v.tole.trim()) ? v.tole : '-';
+    const isVoted = (v.voted_status === true || v.voted_status === 'true');
+    const genderLabel = (v.gender === 'Male' || v.gender === 'पुरुष') ? 'पुरुष' : ((v.gender === 'Female' || v.gender === 'महिला') ? 'महिला' : (v.gender || '-'));
+
+    return `
+      <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.1s ease;">
+        <td style="padding: 8px 10px; text-align: center; color: #64748b; font-family: monospace;">${i + 1}</td>
+        <td style="padding: 8px 10px;">
+          <div style="font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 4px;">
+            <span>${esc(v.full_name || '-')}</span>
+            ${v.is_influencer ? '<span class="badge" style="background: #fef08a; color: #854d0e; font-size: 10px; padding: 1px 4px;">⭐ अगुवा</span>' : ''}
+          </div>
+          <div style="font-size: 11px; color: #64748b; margin-top: 1px;">
+            सम्पर्क: <strong>${esc(v.phone || '-')}</strong>
+          </div>
+        </td>
+        <td style="padding: 8px 10px; text-align: center; font-size: 12px; color: #334155;">
+          ${genderLabel} / ${v.age || '-'} वर्ष
+        </td>
+        <td style="padding: 8px 10px;">
+          <span class="badge" style="background: #dbeafe; color: #1e40af; font-size: 10.5px; font-weight: 700;">वडा ${v.ward_no || 1}</span>
+          <span style="font-size: 11.5px; color: #475569; margin-left: 4px;">📍 ${esc(toleStr)}</span>
+        </td>
+        <td style="padding: 8px 10px; text-align: center; font-family: monospace; font-size: 11.5px; color: #475569;">
+          ${esc(v.official_voter_id || v.voter_id || '-')}
+        </td>
+        <td style="padding: 8px 10px; text-align: center;">
+          ${isVoted ? `
+            <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 11px; font-weight: 700;">✓ मतदान सम्पन्न</span>
+          ` : `
+            <span class="badge" style="background: #f1f5f9; color: #475569; font-size: 11px;">बाँकी</span>
+          `}
+        </td>
+        <td style="padding: 8px 10px; text-align: center;">
+          <button type="button" class="btn btn-sm btn-primary" onclick="viewVoterProfile('${v.voter_id}', 'family')" style="font-size: 11px; padding: 2px 7px; font-weight: 700;" title="पारिवारिक भोट ब्लक हेर्नुहोस्">
+            🌳 परिवार
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function onSurProfVoterSearchChanged() {
+  const inp = document.getElementById('surProfVoterSearchInput');
+  _surProfFilterState.search = inp ? inp.value : '';
+  renderSurnameProfileVoterList();
+}
+
+function onSurProfWardFilterChanged() {
+  const sel = document.getElementById('surProfWardFilterSelect');
+  _surProfFilterState.ward = sel ? sel.value : 'all';
+  renderSurnameProfileVoterList();
 }
 
 function exportCasteVotersCsv() {
