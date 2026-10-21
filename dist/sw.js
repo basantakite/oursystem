@@ -1,5 +1,5 @@
 // Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v60-smooth-touch-sliders-and-instant-views';
+const CACHE_NAME = 'election-ops-v61-independent-manual-sliders-and-compact-cards';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

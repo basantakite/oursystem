@@ -36200,50 +36200,69 @@ function renderElectionDayStrikeSheet() {
       fastSyncWarRoomValues(wardNo, null, false);
     }
 
+    // 100% INDEPENDENT MANUAL SLIDER - DOES NOT ALTER OTHER PARTIES
     function onWardPartyShareSliderChanged(wardNo, partyCode, val) {
       const p = parseFloat(val);
       if (isNaN(p)) return;
-      const cleanVal = Math.min(95, Math.max(0, Math.round(p * 10) / 10));
 
-      balanceWardParties100(wardNo, partyCode, cleanVal);
+      const allPalettes = getAllPartyPalettes();
+      const keys = Object.keys(allPalettes);
+      if (!_warRoomWardPartyShares[wardNo]) {
+        _warRoomWardPartyShares[wardNo] = { ..._warRoomPartyShares };
+      }
+
+      // Calculate sum of all OTHER parties in this ward
+      const otherKeys = keys.filter(k => k !== partyCode);
+      const otherSum = otherKeys.reduce((acc, k) => acc + (_warRoomWardPartyShares[wardNo][k] !== undefined ? _warRoomWardPartyShares[wardNo][k] : 0), 0);
+      const maxAllowed = Math.max(0, Math.round((100 - otherSum) * 10) / 10);
+
+      let cleanVal = Math.min(maxAllowed, Math.max(0, Math.round(p * 10) / 10));
+      _warRoomWardPartyShares[wardNo][partyCode] = cleanVal;
+
+      // Update slider and number input if value was capped
+      const sliderEl = document.getElementById('wrWardSlider_' + wardNo + '_' + partyCode);
+      if (sliderEl && parseFloat(sliderEl.value) !== cleanVal) sliderEl.value = cleanVal;
+
+      const numInput = document.getElementById('wrWardInput_' + wardNo + '_' + partyCode);
+      if (numInput && parseFloat(numInput.value) !== cleanVal) numInput.value = cleanVal;
+
+      if (p > maxAllowed) {
+        showToast('कुल मत १००% भन्दा बढी हुन सक्दैन। बाँकी दलको प्रतिशत घटाएर यसलाई बढाउन सक्नुहुन्छ।', 'warning');
+      }
+
       fastSyncWarRoomValues(wardNo, partyCode, false);
     }
 
     function onWardPartyShareInputChanged(wardNo, partyCode, val) {
       const p = parseFloat(val);
       if (isNaN(p) || p < 0 || p > 100) return;
-      const cleanVal = Math.min(95, Math.max(0, Math.round(p * 10) / 10));
-      balanceWardParties100(wardNo, partyCode, cleanVal);
-      const sliderEl = document.getElementById('wrWardSlider_' + wardNo + '_' + partyCode);
-      if (sliderEl && parseFloat(sliderEl.value) !== cleanVal) sliderEl.value = cleanVal;
-      fastSyncWarRoomValues(wardNo, partyCode, false);
+      onWardPartyShareSliderChanged(wardNo, partyCode, p);
     }
 
-    function balanceWardParties100(wardNo, activeParty, targetVal) {
+    // HELPER: ADD REMAINING UNALLOCATED % TO A SPECIFIC PARTY IN WARD
+    function addRemainingToWardParty(wardNo, partyCode) {
       const allPalettes = getAllPartyPalettes();
       const keys = Object.keys(allPalettes);
-      if (!keys.includes(activeParty)) keys.push(activeParty);
-
       if (!_warRoomWardPartyShares[wardNo]) {
         _warRoomWardPartyShares[wardNo] = { ..._warRoomPartyShares };
       }
 
-      targetVal = Math.min(95, Math.max(0, targetVal));
-      _warRoomWardPartyShares[wardNo][activeParty] = targetVal;
+      const totalAllocated = keys.reduce((acc, k) => acc + (_warRoomWardPartyShares[wardNo][k] || 0), 0);
+      const remaining = Math.max(0, Math.round((100 - totalAllocated) * 10) / 10);
+      if (remaining <= 0) return;
 
-      const remainingBudget = Math.max(0, 100 - targetVal);
-      const otherKeys = keys.filter(k => k !== activeParty);
-      const currentOtherSum = otherKeys.reduce((acc, k) => acc + (_warRoomWardPartyShares[wardNo][k] !== undefined ? _warRoomWardPartyShares[wardNo][k] : 5), 0);
+      const curVal = _warRoomWardPartyShares[wardNo][partyCode] || 0;
+      const newVal = Math.round((curVal + remaining) * 10) / 10;
+      _warRoomWardPartyShares[wardNo][partyCode] = newVal;
 
-      if (currentOtherSum > 0) {
-        otherKeys.forEach(k => {
-          const cur = _warRoomWardPartyShares[wardNo][k] !== undefined ? _warRoomWardPartyShares[wardNo][k] : 5;
-          _warRoomWardPartyShares[wardNo][k] = Math.round((cur / currentOtherSum) * remainingBudget * 10) / 10;
-        });
-      } else {
-        const equalShare = Math.round((remainingBudget / otherKeys.length) * 10) / 10;
-        otherKeys.forEach(k => { _warRoomWardPartyShares[wardNo][k] = equalShare; });
-      }
+      const sliderEl = document.getElementById('wrWardSlider_' + wardNo + '_' + partyCode);
+      if (sliderEl) sliderEl.value = newVal;
+
+      const numInput = document.getElementById('wrWardInput_' + wardNo + '_' + partyCode);
+      if (numInput) numInput.value = newVal;
+
+      fastSyncWarRoomValues(wardNo, partyCode, false);
+      showToast(`वडा ${wardNo}: बाँकी ${remaining}% मत थप गरियो।`, 'success');
     }
 
     function resetWarRoomSliders() {
@@ -36293,16 +36312,32 @@ function renderElectionDayStrikeSheet() {
       fastSyncWarRoomValues(null, null, true);
     }
 
+    // 100% INDEPENDENT MANUAL SLIDER FOR PALIKA LEVEL
     function onWarRoomPartyShareSliderChanged(partyCode, val) {
       const p = parseFloat(val);
       if (isNaN(p)) return;
-      const cleanVal = Math.min(100, Math.max(0, Math.round(p * 10) / 10));
 
-      balanceWarRoomParties100(partyCode, cleanVal);
+      const allPalettes = getAllPartyPalettes();
+      const keys = Object.keys(allPalettes);
+
+      const otherKeys = keys.filter(k => k !== partyCode);
+      const otherSum = otherKeys.reduce((acc, k) => acc + (_warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 0), 0);
+      const maxAllowed = Math.max(0, Math.round((100 - otherSum) * 10) / 10);
+
+      const cleanVal = Math.min(maxAllowed, Math.max(0, Math.round(p * 10) / 10));
+      _warRoomPartyShares[partyCode] = cleanVal;
 
       const numInput = document.getElementById('wrPartyInput_' + partyCode);
       if (numInput && parseFloat(numInput.value) !== cleanVal) {
         numInput.value = cleanVal;
+      }
+      const sliderEl = document.getElementById('wrPartySlider_' + partyCode);
+      if (sliderEl && parseFloat(sliderEl.value) !== cleanVal) {
+        sliderEl.value = cleanVal;
+      }
+
+      if (p > maxAllowed) {
+        showToast('पालिका स्तरमा कुल मत १००% भन्दा बढी हुन सक्दैन। बाँकी दल घटाउनुहोस्।', 'warning');
       }
 
       fastSyncWarRoomValues(null, partyCode, true);
@@ -36311,38 +36346,7 @@ function renderElectionDayStrikeSheet() {
     function onWarRoomPartyShareInputChanged(partyCode, val) {
       const p = parseFloat(val);
       if (isNaN(p) || p < 0 || p > 100) return;
-      const cleanVal = Math.min(100, Math.max(0, Math.round(p * 10) / 10));
-      balanceWarRoomParties100(partyCode, cleanVal);
-
-      const sliderEl = document.getElementById('wrPartySlider_' + partyCode);
-      if (sliderEl && parseFloat(sliderEl.value) !== cleanVal) {
-        sliderEl.value = cleanVal;
-      }
-
-      fastSyncWarRoomValues(null, partyCode, true);
-    }
-
-    function balanceWarRoomParties100(activeParty, targetVal) {
-      const allPalettes = getAllPartyPalettes();
-      const keys = Object.keys(allPalettes);
-      if (!keys.includes(activeParty)) keys.push(activeParty);
-
-      targetVal = Math.min(95, Math.max(0, targetVal));
-      _warRoomPartyShares[activeParty] = targetVal;
-
-      const remainingBudget = Math.max(0, 100 - targetVal);
-      const otherKeys = keys.filter(k => k !== activeParty);
-      const currentOtherSum = otherKeys.reduce((acc, k) => acc + (_warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 5), 0);
-
-      if (currentOtherSum > 0) {
-        otherKeys.forEach(k => {
-          const cur = _warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 5;
-          _warRoomPartyShares[k] = Math.round((cur / currentOtherSum) * remainingBudget * 10) / 10;
-        });
-      } else {
-        const equalShare = Math.round((remainingBudget / otherKeys.length) * 10) / 10;
-        otherKeys.forEach(k => { _warRoomPartyShares[k] = equalShare; });
-      }
+      onWarRoomPartyShareSliderChanged(partyCode, p);
     }
 
     function toggleWardLock(wardNo) {
@@ -36383,7 +36387,7 @@ function renderElectionDayStrikeSheet() {
       showToast('सबै वडालाई पालिकाको औसत अनुपातमा सफलतापूर्वक रिसेट गरियो।', 'success');
     }
 
-    // FAST IN-PLACE DOM SYNC ENGINE (60-120 FPS, ZERO-LAG, NO DOM RECREATION)
+    // FAST IN-PLACE DOM SYNC ENGINE (60-120 FPS, ZERO-LAG, MANUAL INDEPENDENT SLIDERS)
     let _fastSyncRafId = null;
     function fastSyncWarRoomValues(activeWardNo = null, activePartyKey = null, isPalika = false) {
       if (_fastSyncRafId) cancelAnimationFrame(_fastSyncRafId);
@@ -36443,8 +36447,11 @@ function renderElectionDayStrikeSheet() {
 
         const wardVotes = {};
         const wShares = _warRoomWardPartyShares[w.ward] || _warRoomPartyShares;
+        let wardTotalPct = 0;
+
         partyKeys.forEach(k => {
-          const pct = wShares[k] !== undefined ? wShares[k] : 5;
+          const pct = wShares[k] !== undefined ? wShares[k] : 0;
+          wardTotalPct += pct;
           const votes = Math.round(wValid * (pct / 100));
           wardVotes[k] = votes;
           palikaRivalPartyVotes[k] += votes;
@@ -36476,10 +36483,10 @@ function renderElectionDayStrikeSheet() {
         else if (wardMargin < 150 && wardMargin >= -100) battlegroundWardsCount++;
         else deficitWardsCount++;
 
-        // IN-PLACE UPDATE FOR THIS WARD CARD (No DOM recreation!)
+        // Turnout & Badar Meta
         const metaEl = document.getElementById('wrWardMeta_' + w.ward);
         if (metaEl) {
-          metaEl.textContent = `सदर: ${wValid.toLocaleString()} मत (${wTurn.toLocaleString()} खसेको, ${wBadar.toLocaleString()} बदर)`;
+          metaEl.textContent = `सदर मत: ${wValid.toLocaleString()} (${wTurn.toLocaleString()} खसेको, ${wBadar.toLocaleString()} बदर)`;
         }
 
         // Update each party's slider, input, and vote count in this ward
@@ -36500,7 +36507,23 @@ function renderElectionDayStrikeSheet() {
           if (vEl) vEl.textContent = votes.toLocaleString() + ' मत';
         });
 
-        // Update Mini-Bar in this ward
+        // Remaining Unallocated Budget in this Ward
+        const remainingWardPct = Math.max(0, Math.round((100 - wardTotalPct) * 10) / 10);
+        const budgetEl = document.getElementById('wrWardBudget_' + w.ward);
+        if (budgetEl) {
+          if (remainingWardPct <= 0) {
+            budgetEl.innerHTML = `<span style="color: #16a34a; font-weight: 800; font-size: 11px;">✓ कुल १००% बाँडफाँड पूर्ण</span>`;
+          } else {
+            budgetEl.innerHTML = `
+              <span style="color: #d97706; font-weight: 800; font-size: 11px;">बाँकी: ${remainingWardPct}%</span>
+              <button type="button" onclick="addRemainingToWardParty(${w.ward}, '${candPartyKey}')" style="padding: 1px 7px; font-size: 10px; font-weight: 800; background: #dcfce7; color: #166534; border: 1px solid #86efac; border-radius: 4px; cursor: pointer;" title="बाँकी रहेको मत हाम्रो दलमा जोड्नुहोस्">
+                + बाँकी मत थप्नुहोस्
+              </button>
+            `;
+          }
+        }
+
+        // Update Mini-Bar in this ward (includes unallocated gray segment if any)
         const miniBarEl = document.getElementById('wrWardMiniBar_' + w.ward);
         if (miniBarEl) {
           let mbHtml = '';
@@ -36508,9 +36531,12 @@ function renderElectionDayStrikeSheet() {
             const pInfo = allPalettes[k] || { primary: '#64748b' };
             const pct = wShares[k] || 0;
             if (pct > 0) {
-              mbHtml += `<div style="width: ${pct}%; background: ${pInfo.primary}; height: 8px;"></div>`;
+              mbHtml += `<div style="width: ${pct}%; background: ${pInfo.primary}; height: 8px;" title="${pInfo.name}: ${pct}%"></div>`;
             }
           });
+          if (remainingWardPct > 0) {
+            mbHtml += `<div style="width: ${remainingWardPct}%; background: #e2e8f0; height: 8px;" title="बाँकी / नतोकिएको: ${remainingWardPct}%"></div>`;
+          }
           miniBarEl.innerHTML = mbHtml;
         }
 
@@ -36761,7 +36787,7 @@ function renderElectionDayStrikeSheet() {
         return;
       }
 
-      // BUILD FULL DOM FOR WARD CARDS
+      // BUILD FULL DOM FOR WARD CARDS WITH UNIFORM COMPACT HEIGHT & INTERNAL SCROLL
       const wardCardsEl = document.getElementById('wrWardCardsGrid');
       if (wardCardsEl) {
         wardCardsEl.innerHTML = wards.map(w => {
@@ -36779,72 +36805,90 @@ function renderElectionDayStrikeSheet() {
             const pPct = wShares[k] !== undefined ? wShares[k] : 0;
 
             partySlidersHtml += `
-              <div style="margin-bottom: 8px; background: ${isOur ? '#f0fdf4' : '#f8fafc'}; padding: 6px 8px; border-radius: 8px; border: 1px solid ${isOur ? '#86efac' : '#e2e8f0'};">
+              <div style="margin-bottom: 6px; background: ${isOur ? '#f0fdf4' : '#f8fafc'}; padding: 5px 8px; border-radius: 8px; border: 1px solid ${isOur ? '#86efac' : '#e2e8f0'};">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                   <span style="font-size: 11.5px; font-weight: ${isOur ? '900' : '700'}; color: ${isOur ? '#166534' : '#1e293b'}; display: flex; align-items: center; gap: 4px;">
                     <span>${pInfo.symbol || '🚩'}</span>
-                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px;">${pInfo.name}</span>
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 95px;">${pInfo.name}</span>
                   </span>
                   <div style="display: flex; align-items: center; gap: 2px;">
-                    <input type="number" id="wrWardInput_${wNo}_${k}" min="0" max="95" step="0.5" value="${pPct}" oninput="onWardPartyShareInputChanged(${wNo}, '${k}', this.value)" style="width: 44px; padding: 1px 3px; font-size: 11px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px; color: ${isOur ? '#166534' : '#0f172a'}; background: #fff;">
+                    <input type="number" id="wrWardInput_${wNo}_${k}" min="0" max="100" step="0.5" value="${pPct}" oninput="onWardPartyShareInputChanged(${wNo}, '${k}', this.value)" style="width: 44px; padding: 1px 3px; font-size: 11px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px; color: ${isOur ? '#166534' : '#0f172a'}; background: #fff;">
                     <span style="font-size: 10px; font-weight: 700; color: #64748b;">%</span>
                     <span id="wrWardVotes_${wNo}_${k}" style="font-size: 11px; font-weight: 800; color: ${pInfo.primary || '#334155'}; margin-left: 4px;">0 मत</span>
                   </div>
                 </div>
-                <input type="range" class="wr-slider" id="wrWardSlider_${wNo}_${k}" min="0" max="95" step="0.5" value="${pPct}" oninput="onWardPartyShareSliderChanged(${wNo}, '${k}', this.value)" style="width: 100%; cursor: pointer; accent-color: ${pInfo.primary || '#3b82f6'}; height: 5px;">
+                <input type="range" class="wr-slider" id="wrWardSlider_${wNo}_${k}" min="0" max="100" step="0.5" value="${pPct}" oninput="onWardPartyShareSliderChanged(${wNo}, '${k}', this.value)" style="width: 100%; cursor: pointer; accent-color: ${pInfo.primary || '#3b82f6'}; height: 4px;">
               </div>
             `;
           });
 
           return `
-            <div id="wrWardCard_${wNo}" class="card" style="margin: 0; background: ${isLocked ? '#fefce8' : '#ffffff'}; border: 2px solid #cbd5e1; border-radius: 12px; padding: 14px; box-shadow: 0 4px 12px rgba(15,23,42,0.04); position: relative;">
-              <!-- Ward Card Header -->
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 8px;">
-                <div>
-                  <h4 style="margin: 0; font-size: 16px; font-weight: 900; color: #0f172a;">📍 वडा नं. ${wNo}</h4>
-                  <div style="font-size: 11.5px; color: #64748b; font-weight: 700;">
-                    कुल मतदाता: ${wCount.toLocaleString()} जना
+            <div id="wrWardCard_${wNo}" class="card" style="margin: 0; background: ${isLocked ? '#fefce8' : '#ffffff'}; border: 2px solid #cbd5e1; border-radius: 12px; padding: 12px; box-shadow: 0 4px 12px rgba(15,23,42,0.04); position: relative; height: 520px; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
+              
+              <!-- 1. Top Section: Header & Turnout/Badar -->
+              <div>
+                <!-- Ward Card Header -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 6px;">
+                  <div>
+                    <h4 style="margin: 0; font-size: 15px; font-weight: 900; color: #0f172a;">📍 वडा नं. ${wNo}</h4>
+                    <div style="font-size: 11px; color: #64748b; font-weight: 700;">
+                      कुल मतदाता: ${wCount.toLocaleString()} जना
+                    </div>
+                  </div>
+                  <div>
+                    <button type="button" id="wrWardLockBtn_${wNo}" class="btn btn-sm" onclick="toggleWardLock(${wNo})" style="padding: 2px 8px; font-size: 11px; font-weight: 800; border-radius: 6px; background: ${isLocked ? '#fef3c7' : '#f1f5f9'}; color: ${isLocked ? '#92400e' : '#475569'}; border: 1px solid #cbd5e1;">
+                      ${isLocked ? '🔒 लक' : '🔓 अनलक'}
+                    </button>
                   </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <button type="button" id="wrWardLockBtn_${wNo}" class="btn btn-sm" onclick="toggleWardLock(${wNo})" style="padding: 3px 8px; font-size: 11px; font-weight: 800; border-radius: 6px; background: ${isLocked ? '#fef3c7' : '#f1f5f9'}; color: ${isLocked ? '#92400e' : '#475569'}; border: 1px solid #cbd5e1;">
-                    ${isLocked ? '🔒 लक' : '🔓 अनलक'}
-                  </button>
+
+                <!-- Ward Turnout & Badar Sliders -->
+                <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 6px 8px; margin-bottom: 8px;">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                      <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 800; color: #334155; margin-bottom: 1px;">
+                        <span>🗳️ खसेको:</span>
+                        <span id="wrWardTurnoutVal_${wNo}" style="color: #2563eb;">${wTurnPct}%</span>
+                      </div>
+                      <input type="range" class="wr-slider" id="wrWardTurnoutSlider_${wNo}" min="40" max="95" step="1" value="${wTurnPct}" oninput="onWardTurnoutSliderChanged(${wNo}, this.value)" style="width: 100%; cursor: pointer; height: 3px; accent-color: #2563eb;">
+                    </div>
+                    <div>
+                      <div style="display: flex; justify-content: space-between; font-size: 10.5px; font-weight: 800; color: #64748b; margin-bottom: 1px;">
+                        <span>❌ बदर:</span>
+                        <span id="wrWardBadarVal_${wNo}" style="color: #dc2626;">${wBadarPct}%</span>
+                      </div>
+                      <input type="range" class="wr-slider" id="wrWardBadarSlider_${wNo}" min="0" max="15" step="0.5" value="${wBadarPct}" oninput="onWardBadarSliderChanged(${wNo}, this.value)" style="width: 100%; cursor: pointer; height: 3px; accent-color: #dc2626;">
+                    </div>
+                  </div>
+                  <div id="wrWardMeta_${wNo}" style="font-size: 9.5px; color: #64748b; font-weight: 700; margin-top: 3px; text-align: right;"></div>
                 </div>
               </div>
 
-              <!-- Ward Verdict Badge -->
-              <div id="wrWardVerdict_${wNo}" style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                <span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 800; font-size: 11.5px; padding: 4px 10px;">गणना हुँदैछ...</span>
-              </div>
-
-              <!-- Ward Mini Stacked Share Bar -->
-              <div id="wrWardMiniBar_${wNo}" style="display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 12px; background: #e2e8f0;"></div>
-
-              <!-- Ward Turnout & Badar Sliders -->
-              <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 8px 10px; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 800; color: #334155; margin-bottom: 2px;">
-                  <span>🗳️ खसेको मत (Turnout)</span>
-                  <span id="wrWardTurnoutVal_${wNo}" style="color: #2563eb;">${wTurnPct}%</span>
-                </div>
-                <input type="range" class="wr-slider" id="wrWardTurnoutSlider_${wNo}" min="40" max="95" step="1" value="${wTurnPct}" oninput="onWardTurnoutSliderChanged(${wNo}, this.value)" style="width: 100%; cursor: pointer; height: 4px; accent-color: #2563eb;">
-
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; font-weight: 700; color: #64748b; margin-top: 6px; margin-bottom: 2px;">
-                  <span>❌ बदर मत (Badar)</span>
-                  <span id="wrWardBadarVal_${wNo}" style="color: #dc2626;">${wBadarPct}%</span>
-                </div>
-                <input type="range" class="wr-slider" id="wrWardBadarSlider_${wNo}" min="0" max="15" step="0.5" value="${wBadarPct}" oninput="onWardBadarSliderChanged(${wNo}, this.value)" style="width: 100%; cursor: pointer; height: 4px; accent-color: #dc2626;">
-
-                <div id="wrWardMeta_${wNo}" style="font-size: 10px; color: #64748b; font-weight: 700; margin-top: 5px; text-align: right;"></div>
-              </div>
-
-              <!-- Multi-party Sliders Container -->
-              <div>
-                <div style="font-size: 11px; font-weight: 800; color: #475569; margin-bottom: 6px; display: flex; justify-content: space-between;">
-                  <span>📊 दलगत मत बाँडफाँड (कुल १००%)</span>
+              <!-- 2. Middle Section: Scrollable Multi-party Sliders Container -->
+              <div style="flex: 1; min-height: 0; max-height: 240px; overflow-y: auto; padding-right: 3px; margin-bottom: 6px; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;">
+                <div style="font-size: 10.5px; font-weight: 800; color: #475569; margin-bottom: 4px; display: flex; justify-content: space-between; position: sticky; top: 0; background: ${isLocked ? '#fefce8' : '#ffffff'}; z-index: 2; padding: 2px 0;">
+                  <span>📊 दलगत मत (स्वतन्त्र म्यानुअल)</span>
+                  <span>अधिकतम १००%</span>
                 </div>
                 ${partySlidersHtml}
               </div>
+
+              <!-- 3. Bottom Section: Budget Meter, Mini-bar & Verdict Badge -->
+              <div style="border-top: 1.5px solid #e2e8f0; padding-top: 6px; background: ${isLocked ? '#fefce8' : '#ffffff'};">
+                <!-- Ward Budget Allocation Status -->
+                <div id="wrWardBudget_${wNo}" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; min-height: 20px;">
+                  <span style="font-size: 11px; color: #64748b;">हिसाब हुँदैछ...</span>
+                </div>
+
+                <!-- Ward Mini Stacked Share Bar -->
+                <div id="wrWardMiniBar_${wNo}" style="display: flex; height: 7px; border-radius: 4px; overflow: hidden; margin-bottom: 8px; background: #e2e8f0;"></div>
+
+                <!-- Ward Verdict Badge -->
+                <div id="wrWardVerdict_${wNo}" style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 800; font-size: 11px; padding: 3px 8px;">गणना हुँदैछ...</span>
+                </div>
+              </div>
+
             </div>
           `;
         }).join('');
@@ -36865,11 +36909,11 @@ function renderElectionDayStrikeSheet() {
                 <span>${candPalette.name}</span>
               </label>
               <div style="display: flex; align-items: center; gap: 3px;">
-                <input type="number" id="wrPartyInput_${candPartyKey}" min="1" max="95" step="0.5" value="${_warRoomPartyShares[candPartyKey] || 48}" oninput="onWarRoomPartyShareInputChanged('${candPartyKey}', this.value)" style="width: 52px; padding: 2px 4px; font-size: 12px; font-weight: 900; text-align: center; border: 1.5px solid #22c55e; border-radius: 6px; color: #166534; background: #fff;">
+                <input type="number" id="wrPartyInput_${candPartyKey}" min="0" max="100" step="0.5" value="${_warRoomPartyShares[candPartyKey] || 48}" oninput="onWarRoomPartyShareInputChanged('${candPartyKey}', this.value)" style="width: 52px; padding: 2px 4px; font-size: 12px; font-weight: 900; text-align: center; border: 1.5px solid #22c55e; border-radius: 6px; color: #166534; background: #fff;">
                 <span style="font-size: 11px; font-weight: 800; color: #166534;">%</span>
               </div>
             </div>
-            <input type="range" class="wr-slider" id="wrPartySlider_${candPartyKey}" min="1" max="95" step="0.5" value="${_warRoomPartyShares[candPartyKey] || 48}" oninput="onWarRoomPartyShareSliderChanged('${candPartyKey}', this.value)" style="width: 100%; cursor: pointer; accent-color: #16a34a;">
+            <input type="range" class="wr-slider" id="wrPartySlider_${candPartyKey}" min="0" max="100" step="0.5" value="${_warRoomPartyShares[candPartyKey] || 48}" oninput="onWarRoomPartyShareSliderChanged('${candPartyKey}', this.value)" style="width: 100%; cursor: pointer; accent-color: #16a34a;">
             <div style="display: flex; justify-content: space-between; font-size: 11px; color: #166534; margin-top: 3px; font-weight: 700;">
               <span id="wrPalikaVotes_${candPartyKey}">0 मत</span>
               <span>समग्र हिस्सा</span>
@@ -36890,11 +36934,11 @@ function renderElectionDayStrikeSheet() {
                   <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;" title="${pInfo.name}">${pInfo.name}</span>
                 </label>
                 <div style="display: flex; align-items: center; gap: 3px;">
-                  <input type="number" id="wrPartyInput_${k}" min="0" max="60" step="0.5" value="${rPct}" oninput="onWarRoomPartyShareInputChanged('${k}', this.value)" style="width: 48px; padding: 2px 4px; font-size: 12px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; color: ${pInfo.primary || '#0f172a'};">
+                  <input type="number" id="wrPartyInput_${k}" min="0" max="100" step="0.5" value="${rPct}" oninput="onWarRoomPartyShareInputChanged('${k}', this.value)" style="width: 48px; padding: 2px 4px; font-size: 12px; font-weight: 800; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; color: ${pInfo.primary || '#0f172a'};">
                   <span style="font-size: 11px; font-weight: 800; color: #475569;">%</span>
                 </div>
               </div>
-              <input type="range" class="wr-slider" id="wrPartySlider_${k}" min="0" max="60" step="0.5" value="${rPct}" oninput="onWarRoomPartyShareSliderChanged('${k}', this.value)" style="width: 100%; cursor: pointer; accent-color: ${pInfo.primary || '#3b82f6'};">
+              <input type="range" class="wr-slider" id="wrPartySlider_${k}" min="0" max="100" step="0.5" value="${rPct}" oninput="onWarRoomPartyShareSliderChanged('${k}', this.value)" style="width: 100%; cursor: pointer; accent-color: ${pInfo.primary || '#3b82f6'};">
               <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b; margin-top: 3px;">
                 <span id="wrPalikaVotes_${k}" style="font-weight: 700; color: ${pInfo.primary || '#334155'};">0 मत</span>
                 <span>हिस्सा</span>
