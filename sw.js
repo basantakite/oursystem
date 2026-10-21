@@ -1,5 +1,5 @@
 // Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v75-surname-profile-embedded-voter-roster';
+const CACHE_NAME = 'election-ops-v76-surname-profile-exact-word-voter-filter';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

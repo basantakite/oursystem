@@ -42428,16 +42428,20 @@ async function loadSurnameProfileVoters() {
   // 1. Gather all variant pattern strings for this target surname
   const sKey = _currentSurnameProfileTarget.toLowerCase().replace(/[^a-z]/g, '');
   const variants = MASTER_SURNAME_VARIANTS_MAP[sKey] || [{ form: _currentSurnameProfileTarget }];
-  const patterns = Array.from(new Set([_currentSurnameProfileTarget, ...variants.map(v => v.form)])).filter(Boolean);
+  const rawPatterns = Array.from(new Set([_currentSurnameProfileTarget, ...variants.map(v => v.form)])).filter(Boolean);
 
-  // 2. Fetch directly from Supabase
+  // 2. Fetch directly from Supabase with precise surname word-boundary matching
   try {
     const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
     const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
 
     let orParts = [];
-    patterns.forEach(p => {
-      orParts.push(`full_name.ilike.*${encodeURIComponent(p.trim())}*`);
+    rawPatterns.forEach(rawP => {
+      const p = rawP.trim();
+      // Match surname at end of name (e.g. "* Sharma", "* K", "* Wi K") or exact match
+      orParts.push(`full_name.ilike.* ${encodeURIComponent(p)}`);
+      orParts.push(`full_name.ilike.* ${encodeURIComponent(p)}.*`);
+      orParts.push(`full_name.ilike.${encodeURIComponent(p)}`);
     });
 
     const queryUrl = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&or=(${orParts.join(',')})&select=voter_id,official_voter_id,full_name,gender,age,ward_no,booth_no,tole,voted_status,is_influencer,phone&order=ward_no.asc,full_name.asc&limit=1000`;
@@ -42450,7 +42454,18 @@ async function loadSurnameProfileVoters() {
     });
 
     if (resp.ok) {
-      _surProfVotersData = await resp.json();
+      const rawRows = await resp.json();
+      // Strict client-side filter: Ensure extracted surname matches target surname or its variants!
+      const targetLower = _currentSurnameProfileTarget.toLowerCase();
+      const variantLowers = new Set(rawPatterns.map(p => p.toLowerCase()));
+
+      _surProfVotersData = (Array.isArray(rawRows) ? rawRows : []).filter(v => {
+        const extracted = extractVoterSurnameFromCleanName(v.full_name).toLowerCase();
+        if (extracted === targetLower || variantLowers.has(extracted)) return true;
+        // Also allow matching if full_name ends with target word
+        const words = (v.full_name || '').toLowerCase().split(/\s+/).filter(Boolean);
+        return words.some(w => variantLowers.has(w) || w === targetLower);
+      });
     } else {
       _surProfVotersData = [];
     }
