@@ -1,5 +1,5 @@
 // Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v53-caste-rule-manager-live-override';
+const CACHE_NAME = 'election-ops-v54-oneclick-caste-shift';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

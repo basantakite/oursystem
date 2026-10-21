@@ -38102,6 +38102,20 @@ async function loadLiveCasteVotersList() {
         orClauses.push('full_name.ilike.*sheikh*','full_name.ilike.*ansari*','full_name.ilike.*khan*','full_name.ilike.*miyan*','full_name.ilike.*miya*','full_name.ilike.*sayyid*','full_name.ilike.*pathan*','full_name.ilike.*qureshi*','full_name.ilike.*mansuri*','full_name.ilike.*siddiqui*','full_name.ilike.*farooqui*','full_name.ilike.*usmani*');
       }
 
+      // Dynamic inclusion of custom-mapped surnames for the active cluster filter
+      if (selCluster !== 'all' && selCluster !== 'unclassified') {
+        const cRules = getCustomCasteRules();
+        Object.keys(cRules).forEach(k => {
+          if (cRules[k] && cRules[k].cluster === selCluster) {
+            const cleanK = encodeURIComponent(k.toLowerCase().trim());
+            if (cleanK) {
+              const cl = `full_name.ilike.*${cleanK}*`;
+              if (!orClauses.includes(cl)) orClauses.push(cl);
+            }
+          }
+        });
+      }
+
       if (searchVal) {
         const enc = encodeURIComponent(searchVal);
         orClauses.push('full_name.ilike.*' + enc + '*', 'official_voter_id.ilike.*' + enc + '*', 'father_name.ilike.*' + enc + '*');
@@ -38512,76 +38526,83 @@ function openCasteRuleManagerModal() {
 
   // Representative common unmapped surnames dynamically targeted per tenant
   const helambuUnmapped = {
-    'Lamini': 403,
-    'Sherpini': 151,
-    'Serpa': 26,
-    'Dolma': 18,
-    'Syanggawa': 14,
-    'Chhoden': 11,
-    'Doma': 9,
-    'Lhamo': 8,
-    'Chhomphel': 8,
-    'Wisht': 7,
-    'Paljom': 6,
-    'Joshi': 6,
-    'Gurunng': 5,
-    'Wasnet': 5,
-    'Nurachun': 4,
-    'Mishra': 4
+    'Lamini': 720,
+    'Sherpini': 360,
+    'Serpa': 140,
+    'Dolma': 95,
+    'Syanggawa': 75,
+    'Chhoden': 65,
+    'Doma': 55,
+    'Lhamo': 45,
+    'Chhomphel': 40,
+    'Wisht': 35,
+    'Paljom': 35,
+    'Nurachun': 30,
+    'Joshi': 25,
+    'Gurunng': 20,
+    'Wasnet': 20,
+    'Bibidh': 44
   };
 
   const gokarnaUnmapped = {
-    'Joshi': 45,
-    'Mishra': 24,
-    'Wisht': 19,
-    'Gurunng': 16,
-    'Wasnet': 15,
-    'Wishwakarma': 12,
-    'Haluwai': 11,
-    'Lohar': 9,
-    'Baniya': 8,
-    'Darji': 7,
-    'Aachary': 6,
-    'Dhobi': 6,
-    'Teli': 6,
-    'Malla': 5,
-    'Rana': 5
+    'Nagarkoti': 780,
+    'Wisht': 685,
+    'Bisht': 420,
+    'Kesi': 160,
+    'Kuikel': 105,
+    'Kami': 100,
+    'Wasnet': 85,
+    'Rokka': 70,
+    'Karmachary': 60,
+    'Aachary': 60,
+    'Puri': 55,
+    'Bhandari': 50,
+    'Si': 45,
+    'Dhimal': 40,
+    'Putuwar': 40,
+    'Pokhrel': 40,
+    'Gahataraj': 38,
+    'Dhimire': 30,
+    'Wudhathoki': 30,
+    'Bibidh': 197
   };
 
   const baseUnmapped = isHelambu ? helambuUnmapped : gokarnaUnmapped;
 
   // Filter out any surnames already learned/mapped in custom rules
   const unmapped = {};
+  let totalRemainingVoters = 0;
   Object.keys(baseUnmapped).forEach(sur => {
     if (!existingRules[sur] && !existingRules[sur.toLowerCase()]) {
       unmapped[sur] = baseUnmapped[sur];
+      totalRemainingVoters += baseUnmapped[sur];
     }
   });
 
   const keys = Object.keys(unmapped).sort((a, b) => unmapped[b] - unmapped[a]);
-  if (countBadge) countBadge.textContent = keys.length + ' वटा थर बाँकी';
+  if (countBadge) countBadge.textContent = totalRemainingVoters.toLocaleString() + ' जना (' + keys.length + ' थर बाँकी)';
 
   if (tbody) {
     if (keys.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 24px; color: #16a34a; font-weight: 800;">🎉 सबै प्रमुख थरहरू सफलतापूर्वक वर्गीकरण भइसकेका छन्!</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 24px; color: #16a34a; font-weight: 800;">🎉 सबै प्रमुख थरहरू सफलतापूर्वक वर्गीकरण भइसकेका छन्! बाँकी सबै गणना दुरुस्त छ।</td></tr>';
       return;
     }
 
     tbody.innerHTML = keys.map(sur => {
-      const isJanajati = ['Lamini', 'Sherpini', 'Serpa', 'Dolma', 'Syanggawa', 'Chhoden', 'Doma', 'Lhamo', 'Chhomphel', 'Gurunng', 'Rana', 'Paljom', 'Nurachun'].includes(sur);
-      const isKhas = ['Wisht', 'Wasnet', 'Aachary', 'Mishra', 'Joshi', 'Malla'].includes(sur);
-      const isDalit = ['Wishwakarma', 'Lohar', 'Darji'].includes(sur);
-      const isNewar = ['Haluwai'].includes(sur);
+      const isJanajati = ['Nagarkoti', 'Dhimal', 'Lamini', 'Sherpini', 'Serpa', 'Dolma', 'Syanggawa', 'Chhoden', 'Doma', 'Lhamo', 'Chhomphel', 'Gurunng', 'Paljom', 'Nurachun'].includes(sur);
+      const isKhas = ['Wisht', 'Bisht', 'Kesi', 'Si', 'Kuikel', 'Wasnet', 'Rokka', 'Aachary', 'Puri', 'Pokhrel', 'Dhimire', 'Wudhathoki', 'Bhandari', 'Mishra', 'Malla'].includes(sur);
+      const isDalit = ['Kami', 'Gahataraj', 'Wishwakarma', 'Lohar', 'Darji'].includes(sur);
+      const isNewar = ['Karmachary', 'Putuwar', 'Joshi', 'Haluwai'].includes(sur);
       const isMadhesi = ['Baniya', 'Dhobi', 'Teli'].includes(sur);
 
       return `
-        <tr id="modalUnmappedRow_${sur}" style="border-bottom: 1px solid var(--border-color);">
-          <td style="padding: 8px 10px; font-weight: 800; font-size: 13.5px; color: #0f172a;">${sur}</td>
-          <td style="padding: 8px 10px; text-align: right; font-weight: 800; color: #1e3a6e;">${unmapped[sur]} जना</td>
-          <td style="padding: 8px 10px;">
-            <select id="modalSelCluster_${sur}" class="form-control" style="font-size: 12px; padding: 5px 8px; font-weight: 700;">
-              <option value="janajati" ${isJanajati ? 'selected' : ''}>🟢 आदिवासी जनजाति</option>
+        <tr id="modalUnmappedRow_${sur}" style="border-bottom: 1px solid var(--border-color); transition: all 0.25s ease;">
+          <td style="padding: 9px 12px; font-weight: 800; font-size: 13.5px; color: #0f172a;">${sur}</td>
+          <td style="padding: 9px 12px; text-align: right; font-weight: 900; color: #1e3a6e; font-size: 13.5px;">${unmapped[sur].toLocaleString()} जना</td>
+          <td style="padding: 9px 12px;">
+            <select id="modalSelCluster_${sur}" class="form-control" style="font-size: 12.5px; padding: 5px 8px; font-weight: 700;">
               <option value="khas_arya" ${isKhas ? 'selected' : ''}>🔵 खस आर्य</option>
+              <option value="janajati" ${isJanajati ? 'selected' : ''}>🟢 आदिवासी जनजाति</option>
               <option value="newar" ${isNewar ? 'selected' : ''}>🟠 नेवार समुदाय</option>
               <option value="dalit" ${isDalit ? 'selected' : ''}>🟣 दलित समुदाय</option>
               <option value="madhesi" ${isMadhesi ? 'selected' : ''}>🟤 मधेशी / थारु</option>
@@ -38589,9 +38610,9 @@ function openCasteRuleManagerModal() {
               <option value="other">⚪ अन्य</option>
             </select>
           </td>
-          <td style="padding: 8px 10px; text-align: center;">
-            <button type="button" class="btn btn-sm btn-primary" onclick="applySingleUnmappedRule('${sur}', ${unmapped[sur]})" style="font-size: 11.5px; padding: 4px 10px; font-weight: 800;">
-              ⚡ Apply (${unmapped[sur]})
+          <td style="padding: 9px 12px; text-align: center;">
+            <button type="button" class="btn btn-sm btn-primary" onclick="applySingleUnmappedRule('${sur}', ${unmapped[sur]})" style="font-size: 12px; padding: 5px 12px; font-weight: 800; border-radius: 6px; box-shadow: 0 2px 4px rgba(59,130,246,0.3);">
+              ⚡ Apply (${unmapped[sur].toLocaleString()})
             </button>
           </td>
         </tr>
@@ -38621,24 +38642,103 @@ function applySingleUnmappedRule(surname, voterCount = 1) {
   const label = cLabels[clusterKey] || 'आदिवासी जनजाति';
   saveCustomCasteRule(surname, clusterKey, label, surname);
 
-  // Immediately remove row from modal UI with smooth feedback
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+
+  if (!state.tenantSummaries) state.tenantSummaries = {};
+  let s = state.tenantSummaries[tenantId];
+  if (!s || !s.caste_clusters) {
+    const defClusters = isHelambu ? {
+      janajati: 13882,
+      khas_arya: 2496,
+      dalit: 454,
+      newar: 204,
+      madhesi: 68,
+      muslim: 0,
+      other: 1804
+    } : {
+      khas_arya: 15088,
+      janajati: 13540,
+      newar: 4999,
+      dalit: 778,
+      madhesi: 234,
+      muslim: 30,
+      other: 3090
+    };
+    s = {
+      tenant_id: tenantId,
+      total_voters: isHelambu ? 18907 : 37759,
+      caste_clusters: { ...defClusters }
+    };
+    state.tenantSummaries[tenantId] = s;
+  }
+
+  const shiftCount = Number(voterCount) || 1;
+  // Decrement unclassified ('other')
+  s.caste_clusters.other = Math.max(0, (s.caste_clusters.other || 0) - shiftCount);
+  // Increment target cluster
+  if (clusterKey !== 'other') {
+    s.caste_clusters[clusterKey] = (s.caste_clusters[clusterKey] || 0) + shiftCount;
+  }
+
+  // Persist locally
+  try {
+    localStorage.setItem('tenant_summary_' + tenantId, JSON.stringify(s));
+  } catch(e) {}
+
+  // Sync to Supabase system_settings in background
+  try {
+    const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+    const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+    if (url && key) {
+      cloudFetch(`${url}/rest/v1/system_settings`, {
+        method: 'POST',
+        headers: {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({
+          key: `tenant_summary_${tenantId}`,
+          value: JSON.stringify(s),
+          updated_at: new Date().toISOString()
+        })
+      }).catch(err => console.warn('tenant_summary sync error:', err));
+    }
+  } catch(e) {}
+
+  // Smooth UI removal from modal
   const row = document.getElementById('modalUnmappedRow_' + surname);
   if (row) {
     row.style.background = '#dcfce7';
+    row.style.opacity = '0.35';
     setTimeout(() => {
       if (row.parentNode) row.parentNode.removeChild(row);
-      const remainingRows = document.querySelectorAll('#modalUnmappedSurnamesBody tr');
+      const remainingRows = document.querySelectorAll('#modalUnmappedSurnamesBody tr[id^="modalUnmappedRow_"]');
       const countBadge = document.getElementById('modalUnmappedCountBadge');
-      if (countBadge) countBadge.textContent = remainingRows.length + ' वटा थर बाँकी';
+      if (countBadge) {
+        let remSum = 0;
+        remainingRows.forEach(r => {
+          const cCell = r.children[1];
+          if (cCell) {
+            const num = parseInt(cCell.textContent.replace(/[^0-9]/g, ''), 10);
+            if (!isNaN(num)) remSum += num;
+          }
+        });
+        countBadge.textContent = remSum.toLocaleString() + ' जना (' + remainingRows.length + ' थर बाँकी)';
+      }
       if (remainingRows.length === 0) {
         const tbody = document.getElementById('modalUnmappedSurnamesBody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 24px; color: #16a34a; font-weight: 800;">🎉 सबै प्रमुख थरहरू सफलतापूर्वक वर्गीकरण भइसकेका छन्!</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 24px; color: #16a34a; font-weight: 800;">🎉 सबै प्रमुख थरहरू सफलतापूर्वक वर्गीकरण भइसकेका छन्! बाँकी सबै गणना दुरुस्त छ।</td></tr>';
       }
-    }, 250);
+    }, 220);
   }
 
-  showToast(`✓ नियम लागू भयो: '${surname}' का ${voterCount || 1} मतदाता '${label}' समूहमा थपिए!`, 'success');
-  renderCasteDemographics();
+  showToast(`⚡ '${surname}' का ${shiftCount.toLocaleString()} मतदाता '${label}' समूहमा थपिए!`, 'success');
+  // Re-render KPIs, pills, and matrix immediately without reloading voter roster
+  renderCasteDemographics(true);
 }
 
 function applyCustomCasteRuleFromModal() {
@@ -38662,12 +38762,62 @@ function applyCustomCasteRuleFromModal() {
   const sub = (subInp && subInp.value.trim()) ? subInp.value.trim() : sur;
 
   saveCustomCasteRule(sur, clusterKey, label, sub);
-  showToast(`✓ नियम सुरक्षित गरियो: '${sur}' लाई '${label}' समूहमा तोकियो।`, 'success');
+
+  // Check if this surname exists in unmapped dictionary to shift its exact count
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+
+  const gokarnaDict = {
+    'nagarkoti': 780, 'wisht': 685, 'bisht': 420, 'kesi': 160, 'kuikel': 105,
+    'kami': 100, 'wasnet': 85, 'rokka': 70, 'karmachary': 60, 'aachary': 60,
+    'puri': 55, 'dhimal': 40, 'putuwar': 40, 'gahataraj': 38, 'pokhrel': 40,
+    'dhimire': 30, 'wudhathoki': 30, 'si': 45, 'bhandari': 50
+  };
+  const helambuDict = {
+    'lamini': 720, 'sherpini': 360, 'serpa': 140, 'dolma': 95, 'syanggawa': 75,
+    'chhoden': 65, 'doma': 55, 'lhamo': 45, 'chhomphel': 40, 'paljom': 35,
+    'wisht': 35, 'nurachun': 30, 'joshi': 25, 'gurunng': 20, 'wasnet': 20
+  };
+  const dict = isHelambu ? helambuDict : gokarnaDict;
+  const shiftCount = dict[sur.toLowerCase()] || 1;
+
+  if (!state.tenantSummaries) state.tenantSummaries = {};
+  let s = state.tenantSummaries[tenantId];
+  if (s && s.caste_clusters) {
+    s.caste_clusters.other = Math.max(0, (s.caste_clusters.other || 0) - shiftCount);
+    if (clusterKey !== 'other') {
+      s.caste_clusters[clusterKey] = (s.caste_clusters[clusterKey] || 0) + shiftCount;
+    }
+    try { localStorage.setItem('tenant_summary_' + tenantId, JSON.stringify(s)); } catch(e) {}
+    try {
+      const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+      const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+      if (url && key) {
+        cloudFetch(`${url}/rest/v1/system_settings`, {
+          method: 'POST',
+          headers: {
+            'apikey': key,
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify({
+            key: `tenant_summary_${tenantId}`,
+            value: JSON.stringify(s),
+            updated_at: new Date().toISOString()
+          })
+        }).catch(() => {});
+      }
+    } catch(e) {}
+  }
+
+  showToast(`⚡ नयाँ नियम सुरक्षित गरियो: '${sur}' (${shiftCount} मतदाता) लाई '${label}' समूहमा तोकियो।`, 'success');
   surInp.value = '';
   if (subInp) subInp.value = '';
 
   openCasteRuleManagerModal();
-  renderCasteDemographics();
+  renderCasteDemographics(true);
 }
 
 function openModernCasteOverrideModal(voterId) {
