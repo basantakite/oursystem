@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v78-war-room-silent-slider-auto-cap';
+// Service Worker for Offline & Installable App Experience (v79)
+const CACHE_NAME = 'election-ops-v79-clean-profile-and-dedup-fix';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

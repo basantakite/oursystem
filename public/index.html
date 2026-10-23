@@ -9448,6 +9448,12 @@
         if (found) return (typeof mapCloudVoterToLocal === 'function') ? mapCloudVoterToLocal(found) : found;
       }
 
+      // 3b. Surname profile modal cached live voters
+      if (window._surProfVotersData && Array.isArray(window._surProfVotersData)) {
+        const found = window._surProfVotersData.find(v => String(v.voter_id).trim() === sId || String(v.official_voter_id).trim() === sId || String(v.VoterID).trim() === sId);
+        if (found) return (typeof mapCloudVoterToLocal === 'function') ? mapCloudVoterToLocal(found) : found;
+      }
+
       // 4. In-memory state cache
       if (!_voterIdMap || _voterIdMap.size !== (state.voters ? state.voters.length : 0)) {
         _voterIdMap = new Map();
@@ -15236,7 +15242,9 @@ async function saveQuickCreatedTole(e) {
 
     function updateHouseholdsNavBadge() {
       const scopedHh = (typeof getScopedHouseholds === 'function') ? getScopedHouseholds() : (state.households || []);
-      const count = (scopedHh && scopedHh.length) || 0;
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : '';
+      const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(activeTId) : null;
+      const count = (scopedHh && scopedHh.length) || (s && s.household_count) || 0;
       const valStr = count ? count.toLocaleString() : '०';
       const el1 = document.getElementById('householdsCountBadge');
       const el2 = document.getElementById('householdsNavBadge');
@@ -19343,9 +19351,17 @@ async function saveQuickCreatedTole(e) {
 
     function getVoterByIdFast(voterId) {
       if (!voterId) return null;
-      const sId = String(voterId);
+      const sId = String(voterId).trim();
       if (window._currentLivePageVoters && window._currentLivePageVoters.has(sId)) {
         return window._currentLivePageVoters.get(sId);
+      }
+      if (window._surProfVotersData && Array.isArray(window._surProfVotersData)) {
+        const found = window._surProfVotersData.find(v => String(v.voter_id).trim() === sId || String(v.official_voter_id).trim() === sId);
+        if (found) return (typeof mapCloudVoterToLocal === 'function') ? mapCloudVoterToLocal(found) : found;
+      }
+      if (window._currentLiveCasteVoters && Array.isArray(window._currentLiveCasteVoters)) {
+        const found = window._currentLiveCasteVoters.find(v => String(v.voter_id).trim() === sId || String(v.official_voter_id).trim() === sId);
+        if (found) return (typeof mapCloudVoterToLocal === 'function') ? mapCloudVoterToLocal(found) : found;
       }
       const idx = ensureVoterFastIndex();
       const activeT = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : '';
@@ -19968,11 +19984,11 @@ async function saveQuickCreatedTole(e) {
         return;
       }
 
-      const visits = state.visits.filter(x => x.VoterID === id);
-      const followups = state.followups.filter(x => x.VoterID === id);
-      const household = v.HouseholdID ? state.households.find(h => h.HouseholdID === v.HouseholdID) : 
-        (v.HouseNo ? state.households.find(h => h.HouseNo === v.HouseNo && h.WardNo == v.Ward) : null);
-      const booth = state.booths.find(b => b.BoothCode === v.BoothNo && b.WardNo == v.Ward);
+      const visits = (state.visits || []).filter(x => x.VoterID === id);
+      const followups = (state.followups || []).filter(x => x.VoterID === id);
+      const household = v.HouseholdID ? (state.households || []).find(h => h.HouseholdID === v.HouseholdID) : 
+        (v.HouseNo ? (state.households || []).find(h => h.HouseNo === v.HouseNo && h.WardNo == v.Ward) : null);
+      const booth = (state.booths || []).find(b => b.BoothCode === v.BoothNo && b.WardNo == v.Ward);
       const familyMembers = getFamilyMembers(v);
       const daysToBday = getDaysUntilBirthday(v.DOB);
 
@@ -24165,14 +24181,12 @@ async function loadLiveHouseholdsPage() {
       openModal('🏠 परिवार संरचना', '<div style="text-align:center; padding:30px;"><div class="spinner" style="margin:0 auto 12px;"></div>५-नियम त्रुटिरहित पारिवारिक संरचना लोड हुँदैछ...</div>');
 
       try {
-        function cleanStr(s) {
-          return (s || '').trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_~`()]/g, '');
-        }
-        function extractSurname(name) {
+        const cleanStr = (s) => (s || '').trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_~`()]/g, '');
+        const extractSurname = (name) => {
           if (!name) return '';
           const parts = name.trim().split(/\s+/);
           return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
-        }
+        };
         function cleanQueryTerm(s) {
           if (!s) return '';
           return s.replace(/[,()"'*&:;]/g, '').trim();
@@ -36751,45 +36765,6 @@ function renderElectionDayStrikeSheet() {
       renderCandidateWarRoom();
     }
 
-    function resetWarRoomSliders() {
-      _warRoomTurnoutPct = 68;
-      _warRoomBadarPct = 4.2;
-      _warRoomPartyShares = {
-        NC: 48,
-        UML: 24,
-        MAOIST: 10,
-        RSP: 8,
-        RPP: 4,
-        SSP: 3,
-        INDEPENDENT: 3
-      };
-      _warRoomWardPartyShares = {};
-      _warRoomWardTurnout = {};
-      _warRoomWardBadar = {};
-      _warRoomWardShares = {};
-      _warRoomWardLocks = {};
-      renderCandidateWarRoom();
-      showToast('सिमुलेटरका सबै वडा तथा बहुदलीय स्लाइडरहरू रिसेट गरियो।', 'info');
-    }
-
-    function resetWardsToPalikaBaseline() {
-      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
-      const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
-      const s = (typeof getActiveTenantSummary === 'function') ? getActiveTenantSummary(tenantId) : null;
-      const wards = (s && s.wards) || [
-        { ward: 1 }, { ward: 2 }, { ward: 3 }, { ward: 4 }, { ward: 5 }, { ward: 6 }, { ward: 7 }, { ward: 8 }, { ward: 9 }
-      ];
-
-      wards.forEach(w => {
-        _warRoomWardTurnout[w.ward] = _warRoomTurnoutPct;
-        _warRoomWardBadar[w.ward] = _warRoomBadarPct;
-        _warRoomWardPartyShares[w.ward] = { ..._warRoomPartyShares };
-      });
-
-      renderCandidateWarRoom();
-      showToast('✅ सबै वडाका स्लाइडरहरू पालिका औसत अनुपातमा रिसेट गरियो!', 'success');
-    }
-
     function onWardTurnoutSliderChanged(wardNo, val) {
       const p = parseFloat(val);
       if (isNaN(p)) return;
@@ -42026,11 +42001,6 @@ function syncStudioCasteRulesToCloud() {
   showToast('☁️ थर तथा जातीय समूहका सम्पूर्ण नियमहरू क्लाउड र सबै डिभाइसमा सिंक गरियो!', 'success');
 }
 
-function rescanTenantSurnamesStudio() {
-  showToast('🔄 डेटाबेसबाट थरहरूको प्रत्यक्ष स्क्यान रिफ्रेस भयो!', 'info');
-  initCasteStudio();
-}
-
 function quickFilterCasteRosterBySurname(surname) {
   if (surname && surname.toLowerCase().startsWith('bibidh')) {
     openSurnameProfileModal(surname);
@@ -42228,6 +42198,11 @@ function openSurnameProfileModal(targetSurname) {
   const modal = document.getElementById('surnameProfileModal');
   if (!modal) return;
   _currentSurnameProfileTarget = targetSurname;
+  _surProfFilterState = { search: '', ward: 'all' };
+  const sInp = document.getElementById('surProfVoterSearchInput');
+  if (sInp) sInp.value = '';
+  const wSel = document.getElementById('surProfWardFilterSelect');
+  if (wSel) wSel.value = 'all';
 
   // Always reset to Overview tab when opening
   switchSurnameProfileSubTab('overview');
@@ -42238,7 +42213,11 @@ function openSurnameProfileModal(targetSurname) {
   const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU' || tenantId === 'TNT_HELAMBU_RSP');
 
   const allStudioList = getActiveTenantStudioSurnames();
-  const surItem = allStudioList.find(x => x.sur.toLowerCase() === targetSurname.toLowerCase()) || {
+  const targetLower = String(targetSurname || '').toLowerCase().trim();
+  const surItem = allStudioList.find(x => {
+    const sLower = String(x.sur || '').toLowerCase();
+    return sLower === targetLower || (targetLower.startsWith('bibidh') && sLower.startsWith('bibidh'));
+  }) || {
     sur: targetSurname,
     cnt: 0,
     dev: targetSurname,
@@ -42621,14 +42600,17 @@ async function loadSurnameProfileVoters() {
     let constituentPatterns = [];
 
     if (isBibidh) {
-      const cList = BIBIDH_CONSTITUENTS_MAP[bibidhCluster] || BIBIDH_CONSTITUENTS_MAP['other'];
-      constituentPatterns = cList.map(x => x.form).filter(f => f && !f.includes(' ') && !f.includes('/'));
-      constituentPatterns.forEach(p => {
-        orParts.push(`full_name.ilike.* ${encodeURIComponent(p)}`);
-        orParts.push(`full_name.ilike.* ${encodeURIComponent(p)}.*`);
-      });
-      if (orParts.length === 0) {
-        orParts.push(`full_name.ilike.*`);
+      if (bibidhCluster === 'other') {
+        // 'other' contains rare / unmapped / typos / single names
+      } else {
+        const cList = BIBIDH_CONSTITUENTS_MAP[bibidhCluster] || [];
+        constituentPatterns = cList.map(x => x.form).filter(Boolean);
+        constituentPatterns.forEach(p => {
+          const cleanP = p.replace(/[()]/g, '').trim();
+          if (cleanP) {
+            orParts.push(`full_name.ilike.*${encodeURIComponent(cleanP)}*`);
+          }
+        });
       }
     } else {
       const sKey = _currentSurnameProfileTarget.toLowerCase().replace(/[^a-z]/g, '');
@@ -42637,13 +42619,13 @@ async function loadSurnameProfileVoters() {
       rawPatterns.forEach(rawP => {
         const p = rawP.replace(/[()]/g, '').trim();
         if (!p) return;
-        orParts.push(`full_name.ilike.* ${encodeURIComponent(p)}`);
-        orParts.push(`full_name.ilike.* ${encodeURIComponent(p)}.*`);
-        orParts.push(`full_name.ilike.${encodeURIComponent(p)}`);
+        orParts.push(`full_name.ilike.*${encodeURIComponent(p)}*`);
       });
     }
 
-    const queryUrl = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&or=(${orParts.join(',')})&select=voter_id,official_voter_id,full_name,gender,age,ward_no,booth_no,tole,voted_status,is_influencer,phone&order=ward_no.asc,full_name.asc&limit=1000`;
+    const queryUrl = orParts.length > 0
+      ? `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&or=(${orParts.join(',')})&select=voter_id,official_voter_id,full_name,gender,age,ward_no,booth_no,tole,voted_status,is_influencer,phone&order=ward_no.asc,full_name.asc&limit=1000`
+      : `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&select=voter_id,official_voter_id,full_name,gender,age,ward_no,booth_no,tole,voted_status,is_influencer,phone&order=ward_no.asc,full_name.asc&limit=1000`;
     
     const resp = await fetch(queryUrl, {
       headers: {
@@ -42655,13 +42637,20 @@ async function loadSurnameProfileVoters() {
     if (resp.ok) {
       const rawRows = await resp.json();
       if (isBibidh) {
-        const cLowerSet = new Set(constituentPatterns.map(p => p.toLowerCase()));
-        _surProfVotersData = (Array.isArray(rawRows) ? rawRows : []).filter(v => {
-          const fn = (v.full_name || '').toLowerCase();
-          const extracted = extractVoterSurnameFromCleanName(v.full_name).toLowerCase();
-          if (cLowerSet.has(extracted)) return true;
-          return constituentPatterns.some(p => fn.includes(p.toLowerCase()));
-        });
+        if (bibidhCluster === 'other') {
+          _surProfVotersData = (Array.isArray(rawRows) ? rawRows : []).filter(v => {
+            const c = (typeof getVoterCasteClassification === 'function') ? getVoterCasteClassification(v) : null;
+            return !c || c.cluster === 'other' || c.cluster === 'unclassified';
+          });
+        } else {
+          const cLowerSet = new Set(constituentPatterns.map(p => p.toLowerCase()));
+          _surProfVotersData = (Array.isArray(rawRows) ? rawRows : []).filter(v => {
+            const fn = (v.full_name || '').toLowerCase();
+            const extracted = (typeof extractVoterSurnameFromCleanName === 'function' ? extractVoterSurnameFromCleanName(v.full_name) : '').toLowerCase();
+            if (cLowerSet.has(extracted)) return true;
+            return constituentPatterns.some(p => fn.includes(p.toLowerCase()));
+          });
+        }
       } else {
         const targetLower = _currentSurnameProfileTarget.toLowerCase();
         const sKey = _currentSurnameProfileTarget.toLowerCase().replace(/[^a-z]/g, '');
@@ -42669,7 +42658,7 @@ async function loadSurnameProfileVoters() {
         const variantLowers = new Set([targetLower, ...variants.map(v => v.form.toLowerCase())]);
 
         _surProfVotersData = (Array.isArray(rawRows) ? rawRows : []).filter(v => {
-          const extracted = extractVoterSurnameFromCleanName(v.full_name).toLowerCase();
+          const extracted = (typeof extractVoterSurnameFromCleanName === 'function' ? extractVoterSurnameFromCleanName(v.full_name) : '').toLowerCase();
           if (extracted === targetLower || variantLowers.has(extracted)) return true;
           const words = (v.full_name || '').toLowerCase().split(/\s+/).filter(Boolean);
           return words.some(w => variantLowers.has(w) || w === targetLower);
@@ -42683,6 +42672,7 @@ async function loadSurnameProfileVoters() {
     _surProfVotersData = [];
   }
 
+  window._surProfVotersData = _surProfVotersData;
   if (badge) badge.textContent = `${_surProfVotersData.length.toLocaleString()} जना`;
   renderSurnameProfileVoterList();
 }
@@ -42698,10 +42688,19 @@ function renderSurnameProfileVoterList() {
   const filtered = _surProfVotersData.filter(v => {
     if (w !== 'all' && String(v.ward_no || '') !== w) return false;
     if (q) {
-      const matchName = (v.full_name || '').toLowerCase().includes(q);
-      const matchId = (v.official_voter_id || v.voter_id || '').toLowerCase().includes(q);
-      const matchTole = (v.tole || '').toLowerCase().includes(q);
-      if (!matchName && !matchId && !matchTole) return false;
+      if (q === 'single-name') {
+        const parts = (v.full_name || '').trim().split(/\s+/);
+        if (parts.length > 1) return false;
+      } else if (q.includes('parenthes') || q.includes('typo')) {
+        if (!/[()/]/.test(v.full_name || '')) return false;
+      } else if (q.includes('rare') || q.includes('unmapped')) {
+        // all unmapped / rare
+      } else {
+        const matchName = (v.full_name || '').toLowerCase().includes(q);
+        const matchId = (v.official_voter_id || v.voter_id || '').toLowerCase().includes(q);
+        const matchTole = (v.tole || '').toLowerCase().includes(q);
+        if (!matchName && !matchId && !matchTole) return false;
+      }
     }
     return true;
   });
