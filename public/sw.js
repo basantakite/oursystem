@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v79)
-const CACHE_NAME = 'election-ops-v79-clean-profile-and-dedup-fix';
+// Service Worker for Offline & Installable App Experience (v80)
+const CACHE_NAME = 'election-ops-v80-live-family-fetching-engine';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
