@@ -1,5 +1,5 @@
 // Service Worker for Offline & Installable App Experience (v28-winmargin)
-const CACHE_NAME = 'election-ops-v77-bibidh-cluster-surname-profile-deep-intelligence';
+const CACHE_NAME = 'election-ops-v78-war-room-silent-slider-auto-cap';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

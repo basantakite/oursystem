@@ -36563,11 +36563,28 @@ function renderElectionDayStrikeSheet() {
     // ==========================================
     function showToast(msg, type = 'info') {
       const box = document.getElementById('toastBox');
+      if (!box || !msg) return;
+
+      // Anti-flood: Do not stack duplicate identical toasts
+      const existingToasts = box.querySelectorAll('.toast');
+      for (const ex of existingToasts) {
+        if (ex.textContent.includes(msg)) {
+          return; // Ignore duplicate
+        }
+      }
+
+      // Max simultaneous toasts: Keep at most 2 toasts on mobile screen
+      if (existingToasts.length >= 2) {
+        existingToasts[0].remove();
+      }
+
       const t = document.createElement('div');
       t.className = 'toast';
       t.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span> <span>${esc(msg)}</span>`;
       box.appendChild(t);
-      setTimeout(() => t.remove(), 3500);
+      setTimeout(() => {
+        if (t.parentNode) t.remove();
+      }, 3000);
     }
 
     function esc(str) {
@@ -36817,10 +36834,6 @@ function renderElectionDayStrikeSheet() {
       const numInput = document.getElementById('wrWardInput_' + wardNo + '_' + partyCode);
       if (numInput && parseFloat(numInput.value) !== cleanVal) numInput.value = cleanVal;
 
-      if (p > maxAllowed) {
-        showToast('कुल मत १००% भन्दा बढी हुन सक्दैन। बाँकी दलको प्रतिशत घटाएर यसलाई बढाउन सक्नुहुन्छ।', 'warning');
-      }
-
       fastSyncWarRoomValues(wardNo, partyCode, false);
     }
 
@@ -36925,10 +36938,6 @@ function renderElectionDayStrikeSheet() {
       const sliderEl = document.getElementById('wrPartySlider_' + partyCode);
       if (sliderEl && parseFloat(sliderEl.value) !== cleanVal) {
         sliderEl.value = cleanVal;
-      }
-
-      if (p > maxAllowed) {
-        showToast('पालिका स्तरमा कुल मत १००% भन्दा बढी हुन सक्दैन। बाँकी दल घटाउनुहोस्।', 'warning');
       }
 
       fastSyncWarRoomValues(null, partyCode, true);
