@@ -2191,6 +2191,206 @@
     /* ==========================================================================
        MODERN VOTER DOSSIER HERO CARD (Target Image 2 Specification)
        ========================================================================== */
+    /* ==========================================================================
+       HIMALAYAN HERO DOSSIER CARD (GovTech Enterprise Specification)
+       ========================================================================== */
+    .voter-hero-himalayan {
+      border-radius: 16px;
+      border: 1px solid #bfdbfe;
+      background: linear-gradient(135deg, rgba(239, 246, 255, 0.95) 0%, rgba(219, 234, 254, 0.88) 55%, rgba(191, 219, 254, 0.8) 100%),
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" preserveAspectRatio="none"><path fill="%2360a5fa" fill-opacity="0.22" d="M0,360 L0,260 L140,210 L260,280 L380,180 L500,240 L640,130 L780,210 L920,90 L1060,180 L1200,80 L1200,360 Z"/><path fill="%232563eb" fill-opacity="0.14" d="M0,360 L0,290 L160,250 L320,310 L480,210 L640,260 L800,160 L960,230 L1120,130 L1200,170 L1200,360 Z"/><path fill="%23ffffff" fill-opacity="0.4" d="M640,130 L660,160 L620,160 Z M920,90 L945,130 L895,130 Z M1200,80 L1200,120 L1170,120 Z"/></svg>');
+      background-size: cover, cover;
+      background-position: center, bottom right;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .voter-hero-avatar-wrap {
+      position: relative;
+      width: 68px;
+      height: 68px;
+      flex-shrink: 0;
+    }
+    .voter-hero-avatar {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: 900;
+      border: 3px solid #ffffff;
+      box-shadow: 0 4px 14px rgba(30, 58, 138, 0.28);
+    }
+    .voter-hero-camera-badge {
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #0f172a;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+    }
+    .voter-hero-booth-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 10px 14px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      min-width: 220px;
+    }
+    .voter-hero-actions-bar {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 768px) {
+      .voter-hero-actions-bar {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+    @media (max-width: 480px) {
+      .voter-hero-actions-bar {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    .voter-overview-3col-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 980px) {
+      .voter-overview-3col-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .voter-info-box {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .voter-info-box-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .voter-info-box-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .voter-info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      font-size: 12px;
+      border-bottom: 1px dashed #f1f5f9;
+    }
+    .voter-info-row:last-child {
+      border-bottom: none;
+    }
+    .voter-info-label {
+      color: #64748b;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .voter-info-val {
+      color: #0f172a;
+      font-weight: 700;
+      text-align: right;
+    }
+    .voter-mini-map-preview {
+      height: 72px;
+      background: #e2e8f0;
+      background-image: radial-gradient(#94a3b8 1px, transparent 1px), radial-gradient(#cbd5e1 1px, #f8fafc 1px);
+      background-size: 16px 16px;
+      background-position: 0 0, 8px 8px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      margin-top: 8px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .voter-mini-map-pin {
+      background: #dc2626;
+      color: #ffffff;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 10.5px;
+      font-weight: 800;
+      box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .voter-overview-lower-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 980px) {
+      .voter-overview-lower-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .voter-quick-stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .voter-quick-stat-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .voter-dossier-card {
       background: #ffffff;
       border-radius: 16px;
@@ -11377,7 +11577,7 @@
           bar.style.background = sDisp.bg;
           bar.style.color = sDisp.color;
           bar.style.boxShadow = `0 1px 5px ${sDisp.glow}`;
-          bar.innerHTML = `<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${sDisp.label}</span><span style="font-size: 10px; opacity: 0.85; margin-left: 6px; flex-shrink: 0;">∨</span>`;
+          bar.innerHTML = `<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${sDisp.label}</span><span style="font-size: 11px; opacity: 0.85; margin-left: 6px; flex-shrink: 0;">🔄</span>`;
         }
         const avatar = card.querySelector('div[onclick*="viewVoterProfile"]');
         if (avatar) avatar.style.background = isSure ? '#10b981' : '#2563eb';
@@ -18931,10 +19131,10 @@ async function saveQuickCreatedTole(e) {
             </div>
 
             <!-- Right Party Stance Pill Dropdown -->
-            <div onclick="quickCycleParty('${v.VoterID}')" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 15px; padding: 3px 8px; font-size: 11px; font-weight: 700; color: #334155; display: inline-flex; align-items: center; gap: 3.5px; cursor: pointer; flex-shrink: 0; height: 30px; box-sizing: border-box;" title="पार्टी झुकाव">
+            <div onclick="quickCycleParty('${v.VoterID}')" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 15px; padding: 3px 8px; font-size: 11px; font-weight: 700; color: #334155; display: inline-flex; align-items: center; gap: 3.5px; cursor: pointer; flex-shrink: 0; height: 30px; box-sizing: border-box;" title="पार्टी झुकाव बदल्नुहोस्">
               <span>${partyDot}</span>
               <span>${partyLabel}</span>
-              <span style="font-size: 9px; color: #94a3b8; font-weight: 800;">∨</span>
+              <span style="font-size: 10px; opacity: 0.75;">🔄</span>
             </div>
           </div>
 
@@ -18984,7 +19184,7 @@ async function saveQuickCreatedTole(e) {
           <div style="margin-bottom: 9px;">
             <div id="voterCardSupportBar_${v.VoterID}" onclick="quickCycleSupportTier('${v.VoterID}')" style="background: ${stanceBg}; color: #ffffff; border-radius: 10px; padding: 7px 11px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 800; cursor: pointer; box-shadow: 0 1px 5px ${stanceGlow};" title="समर्थन अवस्था परिवर्तन">
               <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${stanceLabel}</span>
-              <span style="font-size: 10px; opacity: 0.85; margin-left: 6px; flex-shrink: 0;">∨</span>
+              <span style="font-size: 11px; opacity: 0.85; margin-left: 6px; flex-shrink: 0;">🔄</span>
             </div>
           </div>
 
@@ -19108,8 +19308,10 @@ async function saveQuickCreatedTole(e) {
     }
 
     async function quickCycleParty(voterId, activeTab = '') {
-      const v = state.voters.find(x => x.VoterID === voterId);
+      const v = (typeof getVoterById === 'function' ? getVoterById(voterId) : null) || state.voters.find(x => x.VoterID === voterId);
       if (!v) return;
+      if (typeof markVoterLocallyEdited === 'function') markVoterLocallyEdited(voterId);
+
       const parties = ['UML', 'Congress', 'RSP', 'Maoist', 'RPP', 'Independent', 'Undecided'];
       const curIdx = parties.indexOf(v.PartyLeaning);
       const nextIdx = (curIdx + 1) % parties.length;
@@ -19117,8 +19319,12 @@ async function saveQuickCreatedTole(e) {
       saveState();
       if (typeof pushVoterToSupabase === 'function') await pushVoterToSupabase(v);
       refreshDashboardMetrics();
-      renderVotersList();
-      showToast(`✓ सेभ भयो: ${getPartyLabel(v.PartyLeaning)}`, 'success');
+      if (typeof updateVoterInPlaceInDom === 'function') updateVoterInPlaceInDom(v);
+      else renderVotersList();
+
+      const pMeta = PARTY_META[v.PartyLeaning];
+      const pText = pMeta ? `${pMeta.icon} ${pMeta.name}` : (v.PartyLeaning || 'दोधार');
+      showToast(`✓ सेभ भयो: ${pText}`, 'success');
       
       const modal = document.getElementById('modalOverlay');
       if (modal && modal.classList.contains('active')) {
@@ -20770,7 +20976,7 @@ async function saveQuickCreatedTole(e) {
     }
 
     // ==========================================
-    // 7. MODERN 4-TAB VOTER PROFILE MODAL
+    // 7. MODERN 4-TAB VOTER PROFILE MODAL (GovTech Himalayan Enterprise Specification)
     // ==========================================
     async function viewVoterProfile(id, activeTab = 'overview') {
       let v = (typeof getVoterById === 'function' ? getVoterById(id) : null) || (state.voters || []).find(x => String(x.VoterID) === String(id));
@@ -20786,7 +20992,11 @@ async function saveQuickCreatedTole(e) {
       const followups = (state.followups || []).filter(x => x.VoterID === id);
       const household = v.HouseholdID ? (state.households || []).find(h => h.HouseholdID === v.HouseholdID) : 
         (v.HouseNo ? (state.households || []).find(h => h.HouseNo === v.HouseNo && h.WardNo == v.Ward) : null);
-      const booth = (state.booths || []).find(b => b.BoothCode === v.BoothNo && b.WardNo == v.Ward);
+      const booth = (state.booths || []).find(b => b.BoothCode === v.BoothNo && b.WardNo == v.Ward) || {
+        BoothName: (v.booth_no || ('बुथ ' + (v.BoothNo || '०१'))),
+        LocationName: 'स्थानीय विद्यालय प्राङ्गण'
+      };
+
       let familyMembers = (window._voterFamilyCache && window._voterFamilyCache.get(String(v.VoterID))) || getFamilyMembers(v);
       if (activeTab === 'family' && (!window._voterFamilyCache || !window._voterFamilyCache.has(String(v.VoterID)))) {
         if (navigator.onLine && typeof fetchLiveFamilyForVoter === 'function') {
@@ -20801,34 +21011,54 @@ async function saveQuickCreatedTole(e) {
 
       const initial = (v.Name || 'V').trim().charAt(0).toUpperCase();
 
+      // Sibling voter navigation for previous/next arrows in modal header
+      let siblingList = [];
+      if (Array.isArray(window._lastLiveVotersRows) && window._lastLiveVotersRows.length > 0) {
+        siblingList = window._lastLiveVotersRows;
+      } else if (Array.isArray(window._currentLivePageVoters) && window._currentLivePageVoters.length > 0) {
+        siblingList = window._currentLivePageVoters;
+      } else if (window._currentLivePageVoters instanceof Map) {
+        siblingList = Array.from(window._currentLivePageVoters.values());
+      } else if (Array.isArray(state.voters) && state.voters.length > 0) {
+        siblingList = state.voters;
+      }
+      const sId = String(v.VoterID);
+      const vIdx = siblingList.findIndex(x => String(x.voter_id || x.VoterID) === sId);
+      const prevVoterId = vIdx > 0 ? (siblingList[vIdx - 1].voter_id || siblingList[vIdx - 1].VoterID) : null;
+      const nextVoterId = (vIdx >= 0 && vIdx < siblingList.length - 1) ? (siblingList[vIdx + 1].voter_id || siblingList[vIdx + 1].VoterID) : null;
+
+      const isFemale = (v.Gender === 'Female' || v.Gender === 'महिला');
+
       openModal(
         `मतदाता प्रोफाइल: ${v.Name}`,
         `
-        <!-- TOP PROFILE HEADER CARD (Material 3 Intelligence Dossier - Image 2 Target Layout) -->
-        <div class="voter-dossier-card">
-          <div class="voter-dossier-top-accent"></div>
+        <!-- 1. TOP BREADCRUMB & CONTROLS STRIP (Target Specification) -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #ffffff; border-bottom: 1px solid #e2e8f0; border-radius: 14px 14px 0 0; margin: -14px -16px 14px -16px; flex-wrap: wrap; gap: 8px;">
+          <!-- Left Breadcrumb -->
+          <div style="font-size: 12px; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <span onclick="closeModal()" style="cursor: pointer; color: #1e3a8a; display: inline-flex; align-items: center; gap: 3px;">
+              <span>‹</span> <b>मतदाता प्रोफाइल</b>
+            </span>
+            <span style="color: #cbd5e1;">›</span>
+            <span>${esc(state.settings.MUNICIPALITY || 'हेलम्बु गाउँपालिका')}</span>
+            <span style="color: #cbd5e1;">›</span>
+            <span class="badge" style="background: #e0e7ff; color: #3730a3; font-weight: 800; font-size: 11px;">वडा नं. ${v.Ward}</span>
+            <span style="color: #cbd5e1;">›</span>
+            <span style="color: #0f172a; font-weight: 800;">${esc(booth.BoothName || ('बुथ ' + (v.BoothNo || '०१')))}</span>
+            <span style="color: #cbd5e1;">›</span>
+            <code style="font-size: 11px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #1e3a6e;">ID: ${esc(v.VoterID)}</code>
+          </div>
 
-          <!-- Profile Row: Avatar + Name & ID + More Options Menu -->
-          <div class="voter-dossier-profile-row">
-            <div class="voter-dossier-avatar-wrap">
-              <div class="voter-dossier-avatar">
-                ${initial}
-              </div>
-              <div class="voter-dossier-identity">
-                <h2 class="voter-dossier-name" title="${esc(v.Name)}">${esc(v.Name)}</h2>
-                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
-                  <div class="voter-dossier-id-pill" onclick="copyTextToClipboard('${v.VoterID}')" title="मतदाता ID कपी गर्न क्लिक गर्नुहोस्">
-                    <span>${esc(v.VoterID)}</span>
-                    <span style="font-size: 13px; opacity: 0.75;">📋</span>
-                  </div>
-                  ${bdayBadge}
-                </div>
-              </div>
-            </div>
-
-            <!-- More Options 3-Dots Button -->
+          <!-- Right Action Buttons & Prev/Next Arrows -->
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button type="button" class="btn btn-sm btn-secondary" onclick="printVoterSlip('${v.VoterID}')" style="font-size: 11.5px; font-weight: 700; padding: 4px 10px; display: inline-flex; align-items: center; gap: 4px;">
+              <span>🖨️</span> <span>Print</span>
+            </button>
+            
             <div style="position: relative;">
-              <button type="button" class="voter-dossier-more-btn" onclick="toggleVoterHeaderMoreMenu('${v.VoterID}', event)" title="थप विकल्पहरू">⋮</button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="toggleVoterHeaderMoreMenu('${v.VoterID}', event)" style="font-size: 11.5px; font-weight: 700; padding: 4px 10px; display: inline-flex; align-items: center; gap: 4px;">
+                <span>कार्यहरू</span> <span>▼</span>
+              </button>
               <div id="voterHeaderMoreMenu_${v.VoterID}" class="voter-header-more-menu" style="display: none;" onclick="event.stopPropagation()">
                 <button type="button" onclick="copyTextToClipboard('${v.VoterID}'); closeVoterHeaderMoreMenu();">📋 मतदाता ID कपी</button>
                 <button type="button" onclick="printVoterSlip('${v.VoterID}'); closeVoterHeaderMoreMenu();">🖨️ परिचय पर्चा (Slip)</button>
@@ -20837,127 +21067,126 @@ async function saveQuickCreatedTole(e) {
                 <button type="button" onclick="openEditVoterModal('${v.VoterID}'); closeVoterHeaderMoreMenu();">✏️ पूर्ण सम्पादन (Edit)</button>
               </div>
             </div>
-          </div>
 
-          <!-- 4 Micro-Metric Cards (Row 1) -->
-          <div class="voter-metrics-grid">
-            <!-- Box 1: Ward -->
-            <div class="voter-metric-card is-clickable" onclick="closeModal(); filterByWard(${v.Ward});" title="वडा ${v.Ward} का मतदाता फिल्टर गर्न क्लिक गर्नुहोस्">
-              <span class="voter-metric-icon">🏛️</span>
-              <div class="voter-metric-content">
-                <div class="voter-metric-label">वडा नं.</div>
-                <div class="voter-metric-val" style="color: #1e3a8a;">${v.Ward}</div>
-              </div>
-            </div>
-
-            <!-- Box 2: Location (Tole) -->
-            <div class="voter-metric-card ${v.Tole ? 'is-clickable' : ''}" ${v.Tole ? `onclick="closeModal(); filterByTole('${esc(v.Tole)}');" title="टोल '${esc(v.Tole)}' का मतदाता खोज्नुहोस्"` : ''}>
-              <span class="voter-metric-icon" style="color: #dc2626;">📍</span>
-              <div class="voter-metric-content">
-                <div class="voter-metric-label">स्थान</div>
-                <div class="voter-metric-val" title="${esc(v.Tole || 'केन्द्र')}">${esc(v.Tole || 'केन्द्र')}</div>
-              </div>
-            </div>
-
-            <!-- Box 3: Booth No -->
-            <div class="voter-metric-card" title="मतदान बुथ नम्बर">
-              <span class="voter-metric-icon">🗳️</span>
-              <div class="voter-metric-content">
-                <div class="voter-metric-label">बुथ नं.</div>
-                <div class="voter-metric-val" style="color: #1d4ed8;">${esc(v.BoothNo || '०१')}</div>
-              </div>
-            </div>
-
-            <!-- Box 4: Serial No -->
-            <div class="voter-metric-card" title="मतदाता क्रम संख्या">
-              <span class="voter-metric-icon">🔢</span>
-              <div class="voter-metric-content">
-                <div class="voter-metric-label">क्रम सं.</div>
-                <div class="voter-metric-val" style="color: #4338ca; font-family: monospace;">${esc(v.VoterSerial || '-')}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Dual Status Switcher Pills (Row 2 - 2 Columns) -->
-          <div class="voter-status-grid">
-            <!-- Party / Support Switcher -->
-            <div class="voter-status-pill voter-status-pill-party" onclick="quickCycleParty('${v.VoterID}', '${activeTab}');" title="क्लिक गरी पार्टी झुकाव परिवर्तन गर्नुहोस्">
-              <div style="display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden;">
-                ${getPartyLabel(v.PartyLeaning)}
-              </div>
-              <span style="font-size: 13px; opacity: 0.7; margin-left: 6px; flex-shrink: 0;">🔄</span>
-            </div>
-
-            <!-- Verification Switcher -->
-            <div class="voter-status-pill voter-status-pill-verify" onclick="toggleVoterVerification('${v.VoterID}'); viewVoterProfile('${v.VoterID}', '${activeTab}');" title="क्लिक गरी प्रमाणीकरण बदल्नुहोस्">
-              <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
-                <span style="font-size: 14px; font-weight: 900;">${v.VerificationStatus === 'Verified' ? '✓' : '⏳'}</span>
-                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.VerificationStatus === 'Verified' ? 'प्रमाणित' : 'पुष्टि बाँकी'}</span>
-              </div>
-              <span style="font-size: 13px; opacity: 0.7; margin-left: 6px; flex-shrink: 0;">🔄</span>
-            </div>
-          </div>
-
-          <!-- Structured Action Tiles Grid (Tier 1: Outreach, Tier 2: Field & Slip) -->
-          <div class="voter-actions-grid">
-            <!-- Row 1: Direct Communications (3 Equal Columns) -->
-            <div class="voter-actions-row-3">
-              ${v.Phone ? `
-                <a href="tel:${cleanPhone(v.Phone)}" class="voter-action-tile tile-phone" title="सिधा फोन गर्नुहोस्">
-                  <span>📞</span> <span>फोन</span>
-                </a>
-                <a href="https://wa.me/977${cleanPhone(v.Phone)}?text=${encodeURIComponent(getWhatsAppTemplate(v))}" target="_blank" rel="noopener noreferrer" class="voter-action-tile tile-whatsapp" onclick="logActivity('message', '${esc(v.Name)} लाई WhatsApp पठाइयो')" title="WhatsApp सन्देश पठाउनुहोस्">
-                  <span>💬</span> <span>WhatsApp</span>
-                </a>
-              ` : `
-                <button type="button" class="voter-action-tile tile-phone" onclick="openEditVoterModal('${v.VoterID}')" title="फोन नम्बर थप्नुहोस्">
-                  <span>📞</span> <span>फोन</span>
-                </button>
-                <button type="button" class="voter-action-tile tile-whatsapp" onclick="openEditVoterModal('${v.VoterID}')" title="नम्बर थपेर WhatsApp पठाउनुहोस्">
-                  <span>💬</span> <span>WhatsApp</span>
-                </button>
-              `}
-              <button type="button" class="voter-action-tile tile-sms" onclick="openCustomMessageModal('${v.VoterID}')" title="कस्टम सन्देश (SMS)">
-                <span>✉️</span> <span>सन्देश</span>
+            <!-- Prev / Next Navigation Arrows -->
+            <div style="display: flex; gap: 2px; background: #f1f5f9; border-radius: 8px; padding: 2px; border: 1px solid #e2e8f0;">
+              <button type="button" class="btn btn-sm" onclick="${prevVoterId ? `viewVoterProfile('${prevVoterId}', '${activeTab}')` : ''}" ${!prevVoterId ? 'disabled style="opacity: 0.35; cursor: not-allowed; padding: 3px 8px; background: transparent; border: none;"' : 'style="padding: 3px 8px; background: transparent; border: none; cursor: pointer; font-weight: 800;"'} title="अघिल्लो मतदाता">
+                ‹
+              </button>
+              <button type="button" class="btn btn-sm" onclick="${nextVoterId ? `viewVoterProfile('${nextVoterId}', '${activeTab}')` : ''}" ${!nextVoterId ? 'disabled style="opacity: 0.35; cursor: not-allowed; padding: 3px 8px; background: transparent; border: none;"' : 'style="padding: 3px 8px; background: transparent; border: none; cursor: pointer; font-weight: 800;"'} title="पछिल्लो मतदाता">
+                ›
               </button>
             </div>
-
-            <!-- Row 2: Field Operations & Records (3 Equal Columns) -->
-            <div class="voter-actions-row-3">
-              <button type="button" class="voter-action-tile tile-visit" onclick="openRecordVisitModal('${v.VoterID}')" title="घरदैलो भेटघाट दर्ता गर्नुहोस्">
-                <span>🚶</span> <span>घरदैलो भेट</span>
-              </button>
-              <button type="button" class="voter-action-tile tile-slip" onclick="printVoterSlip('${v.VoterID}')" title="मतदाता परिचय पर्चा हेर्नुहोस् र प्रिन्ट गर्नुहोस्">
-                <span>🖨️</span> <span>पर्चा (Slip)</span>
-              </button>
-              <button type="button" class="voter-action-tile tile-edit" onclick="openEditVoterModal('${v.VoterID}')" title="मतदाता विवरण सम्पादन गर्नुहोस्">
-                <span>✏️</span> <span>सम्पादन</span>
-              </button>
-            </div>
-
-            <!-- Row 3: Optional Social Media Links -->
-            ${(v.FacebookUrl || v.TiktokUrl) ? `
-              <div class="voter-actions-social-row">
-                <span style="font-size: 11px; font-weight: 700; color: #64748b;">डिजिटल प्रोफाइल:</span>
-                ${v.FacebookUrl ? `
-                  <a href="${formatSocialUrl(v.FacebookUrl, 'facebook')}" target="_blank" rel="noopener noreferrer" class="tile-social-pill tile-social-facebook" title="Facebook प्रोफाइल खोल्नुहोस्">
-                    <span style="font-weight: 900; font-family: sans-serif;">f</span> <span>Facebook</span>
-                  </a>
-                ` : ''}
-                ${v.TiktokUrl ? `
-                  <a href="${formatSocialUrl(v.TiktokUrl, 'tiktok')}" target="_blank" rel="noopener noreferrer" class="tile-social-pill tile-social-tiktok" title="TikTok प्रोफाइल खोल्नुहोस्">
-                    <span>♪</span> <span>TikTok</span>
-                  </a>
-                ` : ''}
-              </div>
-            ` : ''}
           </div>
         </div>
 
-        <!-- SEGMENTED TAB NAVIGATION STRIP -->
+        <!-- 2. HIMALAYAN HERO DOSSIER CARD (Exact Target Design) -->
+        <div class="voter-hero-himalayan">
+          <!-- Left: Avatar + Name + Subtitle + Badge Pills -->
+          <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1;">
+            <div class="voter-hero-avatar-wrap">
+              <div class="voter-hero-avatar">
+                ${initial}
+              </div>
+              <div class="voter-hero-camera-badge" onclick="openEditVoterModal('${v.VoterID}')" title="फोटो परिवर्तन">
+                📷
+              </div>
+            </div>
+
+            <div style="min-width: 0; flex: 1;">
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <h2 style="margin: 0; font-size: 20px; font-weight: 900; color: #0f172a; letter-spacing: -0.01em;">
+                  ${esc(v.Name)}
+                </h2>
+                <span style="color: #16a34a; font-size: 18px; font-weight: 900;" title="आधिकारिक नामावलीमा प्रमाणित">✓</span>
+              </div>
+
+              <div style="font-size: 13px; color: #475569; font-weight: 600; margin-top: 1px;">
+                ${esc(v.Name)}
+              </div>
+
+              <!-- Badges Row -->
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px;">
+                <div class="voter-dossier-id-pill" onclick="copyTextToClipboard('${v.VoterID}')" title="मतदाता ID कपी गर्न क्लिक गर्नुहोस्" style="margin-top: 0;">
+                  <span style="font-size: 11px; opacity: 0.8;">Voter ID</span>
+                  <span>${esc(v.VoterID)}</span>
+                  <span style="font-size: 12px; opacity: 0.75;">📋</span>
+                </div>
+
+                <span class="badge" style="background: ${isFemale ? '#fdf2f8' : '#eff6ff'}; color: ${isFemale ? '#be185d' : '#1d4ed8'}; border: 1px solid ${isFemale ? '#fbcfe8' : '#bfdbfe'}; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 6px;">
+                  ${formatGenderDisplay(v.Gender)}
+                </span>
+
+                <span class="badge" style="background: #ffffff; color: #334155; border: 1px solid #cbd5e1; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 6px;">
+                  उमेर <b>${esc(getVoterAgeDisplay(v))} वर्ष</b>
+                </span>
+
+                <span class="badge" style="background: #dcfce7; color: #166534; border: 1px solid #86efac; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 6px;">
+                  🟢 सक्रिय मतदाता
+                </span>
+
+                ${bdayBadge}
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Floating Booth Card -->
+          <div class="voter-hero-booth-card">
+            <div style="width: 38px; height: 38px; border-radius: 10px; background: #e0e7ff; color: #3730a3; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
+              🏛️
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-size: 12px; font-weight: 800; color: #1e3a8a;">
+                वडा नं. ${v.Ward}
+              </div>
+              <div style="font-size: 13px; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${esc(booth.BoothName || 'मतदान केन्द्र')}">
+                ${esc(booth.BoothName || ('बुथ ' + (v.BoothNo || '०१')))}
+              </div>
+              <div style="font-size: 11px; color: #64748b; font-family: monospace; font-weight: 700;">
+                क्रम संख्या: ${esc(v.VoterSerial || '-')}
+              </div>
+            </div>
+            <div style="font-size: 18px; color: #dc2626; flex-shrink: 0;" title="मतदान स्थल">
+              📍
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. UNIFIED 6-TILE ACTION BAR (Single Row Target Specification) -->
+        <div class="voter-hero-actions-bar">
+          ${v.Phone ? `
+            <a href="tel:${cleanPhone(v.Phone)}" class="voter-action-tile tile-phone" title="सिधा फोन कल">
+              <span>📞</span> <span>फोन</span>
+            </a>
+            <a href="https://wa.me/977${cleanPhone(v.Phone)}?text=${encodeURIComponent(getWhatsAppTemplate(v))}" target="_blank" rel="noopener noreferrer" class="voter-action-tile tile-whatsapp" onclick="logActivity('message', '${esc(v.Name)} लाई WhatsApp')" title="WhatsApp सन्देश">
+              <span>💬</span> <span>WhatsApp</span>
+            </a>
+          ` : `
+            <button type="button" class="voter-action-tile tile-phone" onclick="openEditVoterModal('${v.VoterID}')" title="फोन नम्बर थप्नुहोस्">
+              <span>📞</span> <span>फोन</span>
+            </button>
+            <button type="button" class="voter-action-tile tile-whatsapp" onclick="openEditVoterModal('${v.VoterID}')" title="WhatsApp का लागि नम्बर थप्नुहोस्">
+              <span>💬</span> <span>WhatsApp</span>
+            </button>
+          `}
+          <button type="button" class="voter-action-tile tile-sms" onclick="openCustomMessageModal('${v.VoterID}')" title="कस्टम सन्देश">
+            <span>✉️</span> <span>सन्देश (SMS)</span>
+          </button>
+          <button type="button" class="voter-action-tile tile-visit" onclick="openRecordVisitModal('${v.VoterID}')" title="घरदैलो भेटघाट दर्ता गर्नुहोस्">
+            <span>🚶</span> <span>घरदैलो भेट</span>
+          </button>
+          <button type="button" class="voter-action-tile tile-slip" onclick="printVoterSlip('${v.VoterID}')" title="मतदाता परिचय पर्चा">
+            <span>🖨️</span> <span>पर्चा (Slip)</span>
+          </button>
+          <button type="button" class="voter-action-tile tile-edit" onclick="openEditVoterModal('${v.VoterID}')" title="मतदाता विवरण सम्पादन">
+            <span>✏️</span> <span>सम्पादन</span>
+          </button>
+        </div>
+
+        <!-- 4. SEGMENTED TAB NAVIGATION STRIP -->
         <div class="voter-modal-tabs">
           <button type="button" class="voter-modal-tab-btn ${activeTab === 'overview' ? 'is-active' : ''}" onclick="viewVoterProfile('${v.VoterID}', 'overview')">
-            📋 व्यक्तिगत विवरण
+            📋 संक्षिप्त (Overview)
           </button>
           <button type="button" class="voter-modal-tab-btn ${activeTab === 'family' ? 'is-active' : ''}" onclick="viewVoterProfile('${v.VoterID}', 'family')">
             🌳 पारिवारिक संरचना (${familyMembers.length})
@@ -20976,9 +21205,9 @@ async function saveQuickCreatedTole(e) {
           </button>
         </div>
 
-        <!-- TAB BODY CONTENT -->
+        <!-- 5. TAB BODY CONTENT -->
         <div id="voterTabContent">
-          ${activeTab === 'overview' ? renderVoterOverviewTab(v, booth, household) : ''}
+          ${activeTab === 'overview' ? renderVoterOverviewTab(v, booth, household, familyMembers) : ''}
           ${activeTab === 'family' ? renderVoterFamilyTab(v, familyMembers, household) : ''}
           ${activeTab === 'timeline' ? renderVoterTimelineTab(v, visits, followups) : ''}
           ${activeTab === 'profession' ? renderVoterProfessionTab(v, familyMembers, household) : ''}
@@ -21221,85 +21450,275 @@ async function saveQuickCreatedTole(e) {
       renderVotersList();
     }
 
-    // TAB 1: OVERVIEW & BIO
-    function renderVoterOverviewTab(v, booth, household) {
+    // TAB 1: OVERVIEW & BIO (GovTech 3-Column + Quick Stats Specification)
+    function renderVoterOverviewTab(v, booth, household, familyMembers = []) {
       const age = calculateAge(v.DOB);
+      const famArr = Array.isArray(familyMembers) ? familyMembers : [];
+      const spouseName = v.SpouseName || '-';
+      const fatherName = v.FatherName || v.ParentName || '-';
+      const motherName = v.MotherName || '-';
+      const sonDaughterCount = famArr.filter(m => m.relation && (m.relation.includes('छोरा') || m.relation.includes('छोरी'))).length;
+      const siblingsCount = famArr.filter(m => m.relation && (m.relation.includes('दाजु') || m.relation.includes('भाइ') || m.relation.includes('दिदी') || m.relation.includes('बहिनी'))).length;
+      const autoCount = famArr.filter(m => m.matchType === 'auto').length;
+
       return `
         <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px;">
           
-          <!-- CARD 1: OFFICIAL VOTER ROLL RECORD (Matches Election Commission Format) -->
-          <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-            <div style="background: #1e3a6e; color: #ffffff; padding: 10px 16px; font-size: 13px; font-weight: 800; display: flex; justify-content: space-between; align-items: center;">
-              <span>🏛️ आधिकारिक मतदाता नामावली विवरण (Official Roll Record)</span>
-              <span style="font-family: monospace; background: rgba(255,255,255,0.18); padding: 2px 8px; border-radius: 6px;">वडा ${v.Ward} • बुथ ${esc(v.BoothNo || 'A')}</span>
+          <!-- 1. TOP 3-COLUMN INTELLIGENCE GRID (Core Bio, Family Breakdown, Location & Mini-Map) -->
+          <div class="voter-overview-3col-grid">
+            <!-- Box 1: मुख्य विवरण (Core Bio) -->
+            <div class="voter-info-box">
+              <div>
+                <div class="voter-info-box-header">
+                  <span class="voter-info-box-title">📋 मुख्य विवरण</span>
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="openEditVoterModal('${v.VoterID}')" style="font-size: 11px; padding: 2px 7px; font-weight: 700;">
+                    ✏️ सम्पादन
+                  </button>
+                </div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">👤 पूरा नाम</span>
+                  <span class="voter-info-val">${esc(v.Name)}</span>
+                </div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">🎂 उमेर</span>
+                  <span class="voter-info-val">${esc(getVoterAgeDisplay(v))} वर्ष <small style="color:#64748b;">(${v.DOB ? esc(v.DOB) : 'जन्म: -'})</small></span>
+                </div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">⚤ लिङ्ग</span>
+                  <span class="voter-info-val">${formatGenderDisplay(v.Gender)}</span>
+                </div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">💍 विवाह स्थिति</span>
+                  <span class="voter-info-val">${v.SpouseName ? 'विवाहित (Married)' : '-'}</span>
+                </div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">🆔 मतदाता ID</span>
+                  <span class="voter-info-val"><code class="voter-id-mono-badge" onclick="copyTextToClipboard('${esc(v.OfficialVoterID || v.VoterID)}')">${esc(v.OfficialVoterID || v.VoterID)} 📋</code></span>
+                </div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">🟢 स्थिति</span>
+                  <span class="voter-info-val"><span class="badge" style="background:#dcfce7; color:#166534; font-weight:800; font-size:10.5px;">सक्रिय</span></span>
+                </div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">📅 दर्ता मिति</span>
+                  <span class="voter-info-val">-</span>
+                </div>
+              </div>
             </div>
 
-            <!-- Desktop View (> 640px) -->
-            <div class="overview-roll-desktop table-responsive" style="margin: 0; border-radius: 0;">
-              <table class="official-roll-table" style="border: none; border-radius: 0;">
-                <thead>
-                  <tr class="official-navy-header">
-                    <th>S.N.</th>
-                    <th>Voter ID</th>
-                    <th>Full Name</th>
-                    <th>Age</th>
-                    <th>Gender</th>
-                    <th>Spouse Name</th>
-                    <th>Father Name</th>
-                    <th>Mother Name</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><b>${esc(v.VoterSerial || '-')}</b></td>
-                    <td><span class="voter-id-mono-badge">${esc(v.OfficialVoterID || v.VoterID)}</span></td>
-                    <td><b>${esc(v.Name)}</b></td>
-                    <td><b>${esc(getVoterAgeDisplay(v))}</b></td>
-                    <td>${formatGenderDisplay(v.Gender)}</td>
-                    <td><b>${esc(v.SpouseName || '-')}</b></td>
-                    <td><b>${esc(v.FatherName || v.ParentName || '-')}</b></td>
-                    <td><b>${esc(v.MotherName || '-')}</b></td>
-                  </tr>
-                </tbody>
-              </table>
+            <!-- Box 2: परिवार विवरण (Family Summary) -->
+            <div class="voter-info-box">
+              <div>
+                <div class="voter-info-box-header">
+                  <span class="voter-info-box-title">👥 परिवार विवरण</span>
+                  <a href="javascript:void(0)" onclick="viewVoterProfile('${v.VoterID}', 'family')" style="font-size: 11px; font-weight: 800; color: #2563eb; text-decoration: none;">
+                    सबै हेर्नुहोस् →
+                  </a>
+                </div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">💍 श्रीमान्/श्रीमती</span>
+                  <span class="voter-info-val">${esc(spouseName)}</span>
+                </div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">👨 बुवाको नाम</span>
+                  <span class="voter-info-val">${esc(fatherName)}</span>
+                </div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">👩 आमाको नाम</span>
+                  <span class="voter-info-val">${esc(motherName)}</span>
+                </div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">👦👧 छोराछोरी</span>
+                  <span class="voter-info-val">${sonDaughterCount > 0 ? (sonDaughterCount + ' जना') : '-'}</span>
+                </div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">👥 दाजुभाइ/दिदीबहिनी</span>
+                  <span class="voter-info-val">${siblingsCount > 0 ? (siblingsCount + ' जना') : '-'}</span>
+                </div>
+              </div>
+
+              <!-- Blue Info Notice & Link Family Button -->
+              <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 9px 10px; margin-top: 10px;">
+                <div style="font-size: 11px; color: #1e40af; line-height: 1.35; margin-bottom: 6px;">
+                  ℹ️ यस मतदाताको परिवारको लागि ५-नियम सम्बन्ध खोजी र प्रमाणीकरण गर्न सक्नुहुन्छ।
+                </div>
+                <button type="button" class="btn btn-sm btn-primary" onclick="openLinkFamilyModal('${v.VoterID}')" style="width: 100%; font-size: 11.5px; font-weight: 800; padding: 4px 8px; background: #2563eb; border-color: #1d4ed8;">
+                  🔍 परिवार खोज्नुहोस् / जोड्नुहोस्
+                </button>
+              </div>
             </div>
 
-            <!-- Mobile View (<= 640px) -->
-            <div class="overview-roll-mobile" style="padding: 12px;">
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
-                  <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">क्र.सं. (S.N.)</div>
-                  <div style="font-size: 14px; font-weight: 900; color: #1e3a6e; font-family: monospace; margin-top: 1px;">${esc(v.VoterSerial || '-')}</div>
+            <!-- Box 3: स्थान विवरण (Location & Mini-Map Preview) -->
+            <div class="voter-info-box">
+              <div>
+                <div class="voter-info-box-header">
+                  <span class="voter-info-box-title">📍 स्थान विवरण</span>
+                  <a href="javascript:void(0)" onclick="viewVoterProfile('${v.VoterID}', 'comm')" style="font-size: 11px; font-weight: 800; color: #2563eb; text-decoration: none;">
+                    🗺️ नक्सामा हेर्नुहोस्
+                  </a>
                 </div>
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
-                  <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">मतदाता ID</div>
-                  <div style="font-size: 13px; font-weight: 800; color: #0f172a; font-family: monospace; margin-top: 1px;">${esc(v.OfficialVoterID || v.VoterID)}</div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">प्रदेश</span>
+                  <span class="voter-info-val">बागमती प्रदेश</span>
                 </div>
-                <div style="grid-column: 1 / -1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
-                  <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">पूरा नाम (Full Name)</div>
-                  <div style="font-size: 15px; font-weight: 900; color: #0f172a; margin-top: 1px;">${esc(v.Name)}</div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">जिल्ला</span>
+                  <span class="voter-info-val">${esc(state.settings.DISTRICT || 'सिन्धुपाल्चोक')}</span>
                 </div>
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
-                  <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">उमेर र लिङ्ग</div>
-                  <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 1px;">${esc(getVoterAgeDisplay(v))} वर्ष • ${formatGenderDisplay(v.Gender)}</div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">पालिका</span>
+                  <span class="voter-info-val">${esc(state.settings.MUNICIPALITY || 'हेलम्बु गाउँपालिका')}</span>
                 </div>
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
-                  <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">पति / पत्नी</div>
-                  <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 1px;">${esc(v.SpouseName || '-')}</div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">वडा नं.</span>
+                  <span class="voter-info-val">${v.Ward}</span>
                 </div>
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
-                  <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">बुबाको नाम</div>
-                  <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 1px;">${esc(v.FatherName || v.ParentName || '-')}</div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">मतदान केन्द्र</span>
+                  <span class="voter-info-val" title="${esc(booth.BoothName || 'मतदान केन्द्र')}">${esc(booth.BoothName || ('बुथ ' + (v.BoothNo || '०१')))}</span>
                 </div>
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
-                  <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">आमाको नाम</div>
-                  <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 1px;">${esc(v.MotherName || '-')}</div>
+                <div class="voter-info-row">
+                  <span class="voter-info-label">क्रम संख्या</span>
+                  <span class="voter-info-val" style="font-family: monospace;">${esc(v.VoterSerial || '-')}</span>
+                </div>
+              </div>
+
+              <!-- Mini-Map Preview Component with Map Pin -->
+              <div class="voter-mini-map-preview" title="मतदान केन्द्र स्थल नक्सा">
+                <div class="voter-mini-map-pin">
+                  <span>📍</span> <span>${esc(booth.BoothName || 'मतदान केन्द्र')}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- CARD 2: POLITICAL ALIGNMENT & FIELD TURNOUT INTELLIGENCE -->
+          <!-- 2. LOWER SECTION: Official Roll Record (Left) + Quick Stats (Right) -->
+          <div class="voter-overview-lower-grid">
+            <!-- Left: Official Roll Record Card -->
+            <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+              <div style="background: #1e3a6e; color: #ffffff; padding: 10px 16px; font-size: 13px; font-weight: 800; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                <span>🏛️ आधिकारिक मतदाता नामावली विवरण (Official Roll Record)</span>
+                <span class="badge" style="background: #2563eb; color: #ffffff; font-size: 10.5px; font-weight: 800;">मूल स्रोत: निर्वाचन आयोग</span>
+              </div>
+
+              <!-- Desktop View (> 640px) -->
+              <div class="overview-roll-desktop table-responsive" style="margin: 0; border-radius: 0;">
+                <table class="official-roll-table" style="border: none; border-radius: 0;">
+                  <thead>
+                    <tr class="official-navy-header">
+                      <th>S.N.</th>
+                      <th>Voter ID</th>
+                      <th>Full Name</th>
+                      <th>Age</th>
+                      <th>Gender</th>
+                      <th>Spouse Name</th>
+                      <th>Father Name</th>
+                      <th>Mother Name</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>${esc(v.VoterSerial || '-')}</b></td>
+                      <td><span class="voter-id-mono-badge">${esc(v.OfficialVoterID || v.VoterID)}</span></td>
+                      <td><b>${esc(v.Name)}</b></td>
+                      <td><b>${esc(getVoterAgeDisplay(v))}</b></td>
+                      <td>${formatGenderDisplay(v.Gender)}</td>
+                      <td><b>${esc(v.SpouseName || '-')}</b></td>
+                      <td><b>${esc(v.FatherName || v.ParentName || '-')}</b></td>
+                      <td><b>${esc(v.MotherName || '-')}</b></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Mobile View (<= 640px) -->
+              <div class="overview-roll-mobile" style="padding: 12px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
+                    <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">क्र.सं. (S.N.)</div>
+                    <div style="font-size: 14px; font-weight: 900; color: #1e3a6e; font-family: monospace; margin-top: 1px;">${esc(v.VoterSerial || '-')}</div>
+                  </div>
+                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
+                    <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">मतदाता ID</div>
+                    <div style="font-size: 13px; font-weight: 800; color: #0f172a; font-family: monospace; margin-top: 1px;">${esc(v.OfficialVoterID || v.VoterID)}</div>
+                  </div>
+                  <div style="grid-column: 1 / -1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
+                    <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">पूरा नाम (Full Name)</div>
+                    <div style="font-size: 15px; font-weight: 900; color: #0f172a; margin-top: 1px;">${esc(v.Name)}</div>
+                  </div>
+                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
+                    <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">उमेर र लिङ्ग</div>
+                    <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 1px;">${esc(getVoterAgeDisplay(v))} वर्ष • ${formatGenderDisplay(v.Gender)}</div>
+                  </div>
+                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
+                    <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">पति / पत्नी</div>
+                    <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 1px;">${esc(v.SpouseName || '-')}</div>
+                  </div>
+                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
+                    <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">बुबाको नाम</div>
+                    <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 1px;">${esc(v.FatherName || v.ParentName || '-')}</div>
+                  </div>
+                  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
+                    <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">आमाको नाम</div>
+                    <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 1px;">${esc(v.MotherName || '-')}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: छिटो तथ्याङ्क (Quick Stats Grid) -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+              <div style="font-size: 13.5px; font-weight: 800; color: #0f172a; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <span>📊</span> छिटो तथ्याङ्क
+              </div>
+              <div class="voter-quick-stats-grid">
+                <div class="voter-quick-stat-card">
+                  <span style="font-size: 16px;">👤</span>
+                  <div>
+                    <div style="font-size: 10px; color: #64748b; font-weight: 600;">परिवार सदस्य</div>
+                    <div style="font-size: 14px; font-weight: 900; color: #0f172a;">${famArr.length > 0 ? (famArr.length + ' जना') : '-'}</div>
+                  </div>
+                </div>
+                <div class="voter-quick-stat-card">
+                  <span style="font-size: 16px;">🏠</span>
+                  <div>
+                    <div style="font-size: 10px; color: #64748b; font-weight: 600;">घरधुरी</div>
+                    <div style="font-size: 13px; font-weight: 800; color: #1e3a6e;">${household ? esc(household.HouseholdID) : '-'}</div>
+                  </div>
+                </div>
+                <div class="voter-quick-stat-card">
+                  <span style="font-size: 16px;">👥</span>
+                  <div>
+                    <div style="font-size: 10px; color: #64748b; font-weight: 600;">सम्भावित सम्बन्ध</div>
+                    <div style="font-size: 14px; font-weight: 900; color: #2563eb;">${autoCount}</div>
+                  </div>
+                </div>
+                <div class="voter-quick-stat-card">
+                  <span style="font-size: 16px;">📄</span>
+                  <div>
+                    <div style="font-size: 10px; color: #64748b; font-weight: 600;">पर्चा बनाएको</div>
+                    <div style="font-size: 14px; font-weight: 900; color: #0f172a;">०</div>
+                  </div>
+                </div>
+                <div class="voter-quick-stat-card">
+                  <span style="font-size: 16px;">💬</span>
+                  <div>
+                    <div style="font-size: 10px; color: #64748b; font-weight: 600;">सम्पर्क गरिएको</div>
+                    <div style="font-size: 14px; font-weight: 900; color: ${v.ContactStatus === 'Contacted' ? '#16a34a' : '#64748b'};">${v.ContactStatus === 'Contacted' ? '१' : '०'}</div>
+                  </div>
+                </div>
+                <div class="voter-quick-stat-card">
+                  <span style="font-size: 16px;">📅</span>
+                  <div>
+                    <div style="font-size: 10px; color: #64748b; font-weight: 600;">अन्तिम अपडेट</div>
+                    <div style="font-size: 12px; font-weight: 800; color: #475569;">${new Date().toLocaleDateString('ne-NP')}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. POLITICAL ALIGNMENT & FIELD TURNOUT INTELLIGENCE -->
           <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
             <div style="font-size: 13px; font-weight: 800; color: #b91c1c; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
               <span>🎯</span> राजनीतिक विश्लेषण तथा उपस्थिति (Political & Turnout Intelligence)
@@ -21309,7 +21728,7 @@ async function saveQuickCreatedTole(e) {
                 <span class="form-label" style="font-size: 11px; color: #64748b;">पार्टी झुकाव (Party Leaning)</span>
                 <div style="display: flex; align-items: center; gap: 8px; margin-top: 3px;">
                   <b style="font-size: 14.5px;">${getPartyLabel(v.PartyLeaning)}</b>
-                  <button class="btn btn-sm btn-secondary" onclick="quickCycleParty('${v.VoterID}', 'overview')" style="padding: 2px 8px; font-size: 11px; font-weight: 700;">🔄 बदल्नुहोस्</button>
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="quickCycleParty('${v.VoterID}', 'overview')" style="padding: 2px 8px; font-size: 11px; font-weight: 700;">🔄 बदल्नुहोस्</button>
                 </div>
               </div>
               <div style="background: #f8fafc; padding: 10px 12px; border-radius: 8px; border: 1px solid #f1f5f9;">
@@ -21332,13 +21751,16 @@ async function saveQuickCreatedTole(e) {
                       🏠 ${esc(household.HouseholdID)}
                     </a>
                   ` : `
-                    <button class="btn btn-sm btn-secondary" onclick="openLinkFamilyModal('${v.VoterID}')" style="font-size: 11px; padding: 2px 6px;">+ घरधुरी जोड्नुहोस्</button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openLinkFamilyModal('${v.VoterID}')" style="font-size: 11px; padding: 2px 6px;">+ घरधुरी जोड्नुहोस्</button>
                   `}
                   <span class="badge ${v.ContactStatus === 'Contacted' ? 'badge-contacted' : 'badge-notcontacted'}" style="font-size: 11px; cursor: pointer;" onclick="toggleVoterContactStatus('${v.VoterID}', 'overview')" title="क्लिक गरी सम्पर्क अवस्था बदल्नुहोस्">${v.ContactStatus === 'Contacted' ? '🟢 भेटिएको' : '⚪ भेट्न बाँकी'} 🔄</span>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+      `;
+    }
 
           <!-- CARD 3: CONTACT & DIGITAL PRESENCE -->
           <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
@@ -41064,50 +41486,74 @@ async function loadLiveCasteVotersList() {
       `;
     }).join('');
 
-    // 2. Populate Card View
+    // 2. Populate Card View (Minimal & Perfect Executive Specification)
     if (cardContainer) {
       cardContainer.innerHTML = voters.map((v, i) => {
         const c = getVoterCasteClassification(v);
         const pillStyle = clusterPillStyles[c.cluster] || 'background:#f1f5f9; color:#334155;';
         const toleStr = (v.tole && v.tole.trim()) ? v.tole : (v.booth_no ? v.booth_no.replace('Former VDC Building,', '').trim() : '-');
         const genderLabel = (v.gender === 'Male' || v.gender === 'पुरुष') ? 'पुरुष' : ((v.gender === 'Female' || v.gender === 'महिला') ? 'महिला' : (v.gender || '-'));
+        const pCode = v.party_leaning || v.PartyLeaning || 'Undecided';
+        const pMeta = PARTY_META[pCode];
+        const pIcon = pMeta ? pMeta.icon : '⚖️';
+        const pShort = pMeta ? pMeta.short : (pCode || 'दोधार');
 
         return `
-          <div class="card" style="padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-card); display: flex; flex-direction: column; justify-content: space-between; gap: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
-              <div style="display: flex; gap: 10px; align-items: center;">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; flex-shrink: 0;">
-                  ${(v.full_name || 'म').charAt(0)}
-                </div>
-                <div>
-                  <a href="javascript:void(0)" onclick="viewVoterProfile('${v.voter_id}', 'overview')" style="font-weight: 800; font-size: 14.5px; color: #0f172a; text-decoration: none;">
-                    ${esc(v.full_name)}
-                  </a>
-                  <div style="font-size: 11.5px; color: #64748b;">क्र.सं: ${offset + i + 1} • नं: <code>${esc(v.official_voter_id || v.voter_id)}</code></div>
+          <div class="voter-card" style="padding: 13px 14px; border-radius: 14px; border: 1px solid #e2e8f0; background: #ffffff; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);">
+            <!-- Top Bar: Cluster Badge & Ward/Tole -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+              <span class="badge" style="${pillStyle} font-weight: 800; font-size: 11px; padding: 2.5px 8px; border-radius: 6px;">
+                ${esc(c.clusterLabel || 'समुदाय')} • ${esc(c.sub || c.surname || '')}
+              </span>
+              <span style="font-size: 11px; font-weight: 700; color: #475569;">
+                वडा ${v.ward_no} • 📍 ${esc(toleStr)}
+              </span>
+            </div>
+
+            <!-- Voter Core Bio -->
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 1px;">
+              <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(30,58,138,0.2);">
+                ${(v.full_name || 'म').charAt(0)}
+              </div>
+              <div style="min-width: 0; flex: 1;">
+                <a href="javascript:void(0)" onclick="viewVoterProfile('${v.voter_id}', 'overview')" style="font-weight: 800; font-size: 14.5px; color: #0f172a; text-decoration: none; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="प्रोफाइल खोल्नुहोस्">
+                  ${esc(v.full_name)}
+                </a>
+                <div style="font-size: 11.5px; color: #64748b; margin-top: 1px;">
+                  ${genderLabel} / ${v.age || '-'} वर्ष • <code style="font-size: 11px; color: #1e3a6e;">ID: ${esc(v.official_voter_id || v.voter_id)}</code>
                 </div>
               </div>
-              <span class="badge" style="background:#e0e7ff; color:#1e3a6e; font-weight:800;">वडा ${v.ward_no}</span>
             </div>
 
-            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-              <span class="badge" style="${pillStyle} font-weight: 700; font-size: 11.5px;">${esc(c.clusterLabel)}</span>
-              <span class="badge" style="background: #f1f5f9; color: #334155; font-size: 11.5px; font-weight: 700;">${esc(c.sub || c.surname || '-')}</span>
-              <span class="badge" style="background: #f8fafc; color: #475569; font-size: 11px;">${genderLabel} / ${v.age || '-'} वर्ष</span>
+            <!-- Lineage Strip -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px; font-size: 11.5px; color: #334155; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 75%;">
+                👨 बुवा: <b>${esc(v.father_name || '-')}</b> ${v.spouse_name ? `• 💍 पत्नी/पति: <b>${esc(v.spouse_name)}</b>` : ''}
+              </span>
+              <span onclick="viewVoterProfile('${v.voter_id}', 'family')" style="font-weight: 800; color: #15803d; cursor: pointer; background: #dcfce7; padding: 2px 6px; border-radius: 4px; font-size: 10.5px; flex-shrink: 0;" title="पारिवारिक भोट संरचना हेर्नुहोस्">
+                🌳 परिवार
+              </span>
             </div>
 
-            <div style="font-size: 12px; color: #475569; border-top: 1px dashed var(--border-color); padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
-              <span>📍 ${esc(toleStr)}</span>
-              <span class="badge" style="background:#fefce8; color:#854d0e; font-weight:700;">🟡 दोधार</span>
-            </div>
+            <!-- Status & Quick Action Row (NO '∨' character!) -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; border-top: 1px solid #f1f5f9; padding-top: 6px; margin-top: 1px;">
+              <div onclick="quickCycleParty('${v.voter_id}')" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 5px 10px; font-size: 11.5px; font-weight: 800; color: #334155; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;" title="पार्टी झुकाव बदल्नुहोस्">
+                <span>${pIcon}</span>
+                <span>${pShort}</span>
+                <span style="font-size: 10px; opacity: 0.75;">🔄</span>
+              </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 8px; margin-top: 2px;">
-              <span style="font-size: 11.5px; color: #64748b;">बुवा: ${esc(v.father_name || '-')}</span>
-              <div style="display: flex; gap: 6px;">
-                <button type="button" class="btn btn-sm btn-secondary" onclick="openModernCasteOverrideModal('${v.voter_id}')" style="font-size: 11px; padding: 3px 8px; font-weight: 700;">
-                  ✏️
-                </button>
-                <button type="button" class="btn btn-sm btn-primary" onclick="viewVoterProfile('${v.voter_id}', 'family')" style="font-size: 11px; padding: 3px 8px; font-weight: 700;">
-                  🌳
+              <div style="display: flex; gap: 6px; align-items: center;">
+                ${(v.phone || v.mobile) ? `
+                  <a href="tel:${cleanPhone(v.phone || v.mobile)}" class="btn btn-sm" style="background: #059669; color: #fff; padding: 4px 8px; font-size: 11.5px; font-weight: 700; text-decoration: none; border-radius: 6px;" title="कल गर्नुहोस्">
+                    📞
+                  </a>
+                  <a href="https://wa.me/977${cleanPhone(v.phone || v.mobile)}" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background: #10b981; color: #fff; padding: 4px 8px; font-size: 11.5px; font-weight: 700; text-decoration: none; border-radius: 6px;" title="WhatsApp सन्देश">
+                    💬
+                  </a>
+                ` : ''}
+                <button type="button" class="btn btn-sm btn-secondary" onclick="openModernCasteOverrideModal('${v.voter_id}')" style="font-size: 11.5px; padding: 4px 8px; font-weight: 700; border-radius: 6px;" title="थर / क्लस्टर सच्याउनुहोस्">
+                  ✏️ सच्याउने
                 </button>
               </div>
             </div>
