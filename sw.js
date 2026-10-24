@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v100)
-const CACHE_NAME = 'election-ops-v100-zero-lag-caste-hub';
+// Service Worker for Offline & Installable App Experience (v101)
+const CACHE_NAME = 'election-ops-v101-surname-profile-fix';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

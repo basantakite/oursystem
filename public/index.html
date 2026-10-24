@@ -10160,7 +10160,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261024-v100-zero-lag-caste-hub';
+      const CURRENT_APP_BUILD = '20261024-v101-surname-profile-fix';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -40958,6 +40958,9 @@ function saveCustomCasteRule(surname, clusterKey, clusterLabel, subCaste, optTen
   if (typeof _tenantUnclassifiedVotersCache !== 'undefined') {
     delete _tenantUnclassifiedVotersCache[tenantId];
   }
+  if (typeof _surProfVotersCache !== 'undefined') {
+    Object.keys(_surProfVotersCache).forEach(k => delete _surProfVotersCache[k]);
+  }
 
   if (typeof broadcastCasteRules === 'function') broadcastCasteRules(rules, tenantId);
   pushCustomCasteRulesToCloud(rules, tenantId);
@@ -44406,34 +44409,27 @@ function openSurnameProfileModal(targetSurname) {
   _surProfFilterState = { search: '', ward: 'all' };
   const sInp = document.getElementById('surProfVoterSearchInput');
   if (sInp) sInp.value = '';
-  const wSel = document.getElementById('surProfWardFilterSelect');
-  if (wSel) wSel.value = 'all';
-
-  // Always reset to Overview tab when opening
-  switchSurnameProfileSubTab('overview');
 
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
   const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
   const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
   const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU' || tenantId === 'TNT_HELAMBU_RSP');
 
-  const allStudioList = getActiveTenantStudioSurnames();
-  const targetLower = String(targetSurname || '').toLowerCase().trim();
-  const surItem = allStudioList.find(x => {
-    const sLower = String(x.sur || '').toLowerCase();
-    return sLower === targetLower || (targetLower.startsWith('bibidh') && sLower.startsWith('bibidh'));
-  }) || {
-    sur: targetSurname,
-    cnt: 0,
-    dev: targetSurname,
-    cluster: 'other',
-    sub: targetSurname
-  };
+  const wSel = document.getElementById('surProfWardFilterSelect');
+  if (wSel) {
+    const maxWards = isHelambu ? 7 : 9;
+    let wHtml = '<option value="all">सबै वडा</option>';
+    for (let w = 1; w <= maxWards; w++) {
+      wHtml += `<option value="${w}">वडा नं ${nepaliNumerals(w)}</option>`;
+    }
+    wSel.innerHTML = wHtml;
+    wSel.value = 'all';
+  }
 
-  const totalTenantVoters = allStudioList.reduce((s, x) => s + (x.cnt || 0), 0) || (isHelambu ? 18907 : 37759);
-  const pct = totalTenantVoters > 0 ? ((surItem.cnt / totalTenantVoters) * 100).toFixed(1) : '0';
+  // Always reset to Overview tab when opening
+  switchSurnameProfileSubTab('overview');
 
-  const isBibidh = targetSurname.toLowerCase().startsWith('bibidh');
+  const isBibidh = String(targetSurname || '').toLowerCase().startsWith('bibidh');
   let bibidhCluster = 'other';
   if (targetSurname.includes('Khas Arya')) bibidhCluster = 'khas_arya';
   else if (targetSurname.includes('Janajati')) bibidhCluster = 'janajati';
@@ -44441,6 +44437,24 @@ function openSurnameProfileModal(targetSurname) {
   else if (targetSurname.includes('Dalit')) bibidhCluster = 'dalit';
   else if (targetSurname.includes('Madhesi')) bibidhCluster = 'madhesi';
   else if (targetSurname.includes('Muslim')) bibidhCluster = 'muslim';
+
+  const allStudioList = getActiveTenantStudioSurnames();
+  const targetLower = String(targetSurname || '').toLowerCase().trim();
+  const surItem = allStudioList.find(x => String(x.sur || '').toLowerCase().trim() === targetLower)
+    || (isBibidh ? allStudioList.find(x => String(x.sur || '').toLowerCase().startsWith('bibidh') && x.cluster === bibidhCluster) : null)
+    || {
+      sur: targetSurname,
+      cnt: 0,
+      dev: targetSurname,
+      cluster: isBibidh ? bibidhCluster : 'other',
+      sub: targetSurname
+    };
+
+  const tabBadge = document.getElementById('surProfVotersCountTabBadge');
+  if (tabBadge) tabBadge.textContent = `${(surItem.cnt || 0).toLocaleString()} जना`;
+
+  const totalTenantVoters = allStudioList.reduce((s, x) => s + (x.cnt || 0), 0) || (isHelambu ? 18907 : 37759);
+  const pct = totalTenantVoters > 0 ? ((surItem.cnt / totalTenantVoters) * 100).toFixed(1) : '0';
 
   const clusterLabels = {
     'khas_arya': '🔵 खस आर्य',
@@ -44523,10 +44537,18 @@ function openSurnameProfileModal(targetSurname) {
     variants = BIBIDH_CONSTITUENTS_MAP[bibidhCluster] || BIBIDH_CONSTITUENTS_MAP['other'];
   } else {
     const sKey = targetSurname.toLowerCase().replace(/[^a-z]/g, '');
-    variants = MASTER_SURNAME_VARIANTS_MAP[sKey] || [
-      { form: surItem.sur, nature: 'मानक शुद्ध हिज्जे' },
-      { form: surItem.dev || surItem.sur, nature: 'देवनागरी प्रविष्टि' }
-    ];
+    const rDict = (typeof ROMANIZED_CASTE_DICTIONARY !== 'undefined') ? ROMANIZED_CASTE_DICTIONARY[sKey] : null;
+    const devForm = surItem.dev || (rDict && rDict.devanagari) || surItem.sur;
+    variants = MASTER_SURNAME_VARIANTS_MAP[sKey] || (
+      devForm && devForm !== surItem.sur
+        ? [
+            { form: surItem.sur, dev: devForm, nature: 'मानक शुद्ध हिज्जे' },
+            { form: devForm, nature: 'देवनागरी लिपि प्रविष्टि' }
+          ]
+        : [
+            { form: surItem.sur, nature: 'मानक शुद्ध हिज्जे' }
+          ]
+    );
   }
 
   if (elVarCount) elVarCount.textContent = `${variants.length} वटा`;
@@ -44535,7 +44557,7 @@ function openSurnameProfileModal(targetSurname) {
   renderSurnameProfileVariants(variants, surItem.cnt);
 
   // Render Ward Distribution
-  renderSurnameWardDistribution(surItem.sur, surItem.cnt, isHelambu);
+  renderSurnameWardDistribution(surItem.sur, surItem.cnt, isHelambu, surItem.cluster);
 
   // Bind View All Voters Action Button
   const btnView = document.getElementById('surProfBtnViewAllVoters');
@@ -44559,12 +44581,25 @@ function renderSurnameProfileVariants(variants, totalCount) {
   if (!tbody) return;
 
   const isBibidh = _currentSurnameProfileTarget && _currentSurnameProfileTarget.toLowerCase().startsWith('bibidh');
+  const safeTotal = Math.max(0, Number(totalCount) || 0);
+
+  // Compute proportionally scaled counts that sum exactly to safeTotal (preventing >100% bugs)
+  const rawWeights = variants.map((v, i) => {
+    if (typeof v.count === 'number' && v.count > 0) return v.count;
+    if (variants.length === 1) return 1;
+    return i === 0 ? 0.88 : (0.12 / (variants.length - 1));
+  });
+  const weightSum = rawWeights.reduce((s, w) => s + w, 0) || 1;
+  const scaledCounts = rawWeights.map(w => Math.round((w / weightSum) * safeTotal));
+  const diff = safeTotal - scaledCounts.reduce((s, c) => s + c, 0);
+  if (scaledCounts.length > 0 && safeTotal > 0) {
+    scaledCounts[0] = Math.max(0, scaledCounts[0] + diff);
+  }
 
   tbody.innerHTML = variants.map((v, i) => {
-    let vCount = v.count || Math.round(totalCount * (i === 0 ? 0.91 : (0.09 / (variants.length - 1 || 1))));
-    if (variants.length === 1 && !isBibidh) vCount = totalCount;
-    const vPct = totalCount > 0 ? ((vCount / totalCount) * 100).toFixed(1) : '0';
-    const displayName = v.dev ? `${v.dev} (${v.form})` : v.form;
+    const vCount = scaledCounts[i] !== undefined ? scaledCounts[i] : 0;
+    const vPct = safeTotal > 0 ? ((vCount / safeTotal) * 100).toFixed(1) : '0.0';
+    const displayName = (v.dev && v.dev !== v.form) ? `${v.dev} (${v.form})` : v.form;
 
     return `
       <tr style="border-bottom: 1px solid #f1f5f9;">
@@ -44606,28 +44641,48 @@ function filterSurnameProfileByConstituent(form) {
   renderSurnameProfileVoterList();
 }
 
-function renderSurnameWardDistribution(surname, totalCount, isHelambu) {
+function renderSurnameWardDistribution(surname, totalCount, isHelambu, clusterKey) {
   const container = document.getElementById('surProfWardList');
   const topWardEl = document.getElementById('surProfKpiTopWard');
   const topWardCntEl = document.getElementById('surProfKpiTopWardCount');
   if (!container) return;
 
+  const safeTotal = Math.max(0, Number(totalCount) || 0);
+  const tenantId = isHelambu ? 'TNT_MVF9LYO3' : 'TNT_MVG3WXFX';
+  const wardMatrix = (typeof getCalibratedWardCasteMatrix === 'function') ? getCalibratedWardCasteMatrix(tenantId) : [];
   const maxWards = isHelambu ? 7 : 9;
-  // Calibrated typical ward breakdown
-  const wardWeights = isHelambu ? [0.08, 0.32, 0.28, 0.18, 0.02, 0.07, 0.05] : [0.12, 0.15, 0.18, 0.14, 0.16, 0.11, 0.04, 0.07, 0.03];
+
+  let wardWeights = isHelambu ? [0.08, 0.32, 0.28, 0.18, 0.02, 0.07, 0.05] : [0.12, 0.15, 0.18, 0.14, 0.16, 0.11, 0.04, 0.07, 0.03];
+  if (wardMatrix && wardMatrix.length === maxWards) {
+    const cField = (clusterKey && wardMatrix[0][clusterKey] !== undefined) ? clusterKey : 'total';
+    const rawWardVals = wardMatrix.map(r => r[cField] || 0);
+    const rawSum = rawWardVals.reduce((s, v) => s + v, 0);
+    if (rawSum > 0) {
+      wardWeights = rawWardVals.map(v => v / rawSum);
+    }
+  }
+
+  const wardCounts = wardWeights.map(r => Math.round(safeTotal * r));
+  const diff = safeTotal - wardCounts.reduce((s, c) => s + c, 0);
+  if (wardCounts.length > 0 && safeTotal > 0 && diff !== 0) {
+    let maxIdx = 0;
+    for (let i = 1; i < wardCounts.length; i++) {
+      if (wardCounts[i] > wardCounts[maxIdx]) maxIdx = i;
+    }
+    wardCounts[maxIdx] = Math.max(0, wardCounts[maxIdx] + diff);
+  }
 
   let topWard = 1;
   let topCount = 0;
 
   const rows = [];
   for (let w = 1; w <= maxWards; w++) {
-    const ratio = wardWeights[w - 1] || 0.1;
-    const cnt = Math.round(totalCount * ratio);
+    const cnt = wardCounts[w - 1] || 0;
     if (cnt > topCount) {
       topCount = cnt;
       topWard = w;
     }
-    const pct = totalCount > 0 ? ((cnt / totalCount) * 100).toFixed(1) : '0';
+    const pct = safeTotal > 0 ? ((cnt / safeTotal) * 100).toFixed(1) : '0.0';
 
     rows.push(`
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #f8fafc; border-radius: 6px; border: 1px solid #f1f5f9;">
@@ -44642,7 +44697,7 @@ function renderSurnameWardDistribution(surname, totalCount, isHelambu) {
 
   container.innerHTML = rows.join('');
   if (topWardEl) topWardEl.textContent = `वडा नं ${topWard}`;
-  if (topWardCntEl) topWardCntEl.textContent = `${topCount.toLocaleString()} जना मतदाता (${((topCount/totalCount)*100).toFixed(0)}%)`;
+  if (topWardCntEl) topWardCntEl.textContent = `${topCount.toLocaleString()} जना मतदाता (${safeTotal > 0 ? ((topCount / safeTotal) * 100).toFixed(0) : 0}%)`;
 }
 
 function addCustomSurnameVariantFromModal() {
@@ -44717,6 +44772,7 @@ function unlinkSurnameVariant(variantForm) {
 // =========================================================================
 
 let _surProfVotersData = [];
+let _surProfVotersCache = {};
 let _surProfFilterState = {
   search: '',
   ward: 'all'
@@ -44771,6 +44827,31 @@ async function loadSurnameProfileVoters() {
 
   const cleanLabel = isBibidh ? _currentSurnameProfileTarget.replace(/\([^)]*\)/g, '').trim() : _currentSurnameProfileTarget;
 
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+
+  // Initialize Ward dropdown options
+  const wSel = document.getElementById('surProfWardFilterSelect');
+  if (wSel && wSel.options.length <= 1) {
+    const maxWards = isHelambu ? 7 : 9;
+    let wHtml = '<option value="all">सबै वडा</option>';
+    for (let w = 1; w <= maxWards; w++) {
+      wHtml += `<option value="${w}">वडा नं ${nepaliNumerals(w)}</option>`;
+    }
+    wSel.innerHTML = wHtml;
+  }
+
+  const cacheKey = `${tenantId}|${_currentSurnameProfileTarget.toLowerCase()}`;
+  if (_surProfVotersCache[cacheKey] && _surProfVotersCache[cacheKey].length > 0) {
+    _surProfVotersData = _surProfVotersCache[cacheKey];
+    window._surProfVotersData = _surProfVotersData;
+    if (badge) badge.textContent = `${_surProfVotersData.length.toLocaleString()} जना`;
+    renderSurnameProfileVoterList();
+    return;
+  }
+
   tbody.innerHTML = `
     <tr>
       <td colspan="7" style="padding: 30px; text-align: center; color: #64748b;">
@@ -44780,103 +44861,189 @@ async function loadSurnameProfileVoters() {
     </tr>
   `;
 
-  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
-  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
-  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+  const allStudioList = getActiveTenantStudioSurnames();
+  const targetLower = String(_currentSurnameProfileTarget || '').toLowerCase().trim();
+  const surItem = allStudioList.find(x => String(x.sur || '').toLowerCase().trim() === targetLower)
+    || (isBibidh ? allStudioList.find(x => String(x.sur || '').toLowerCase().startsWith('bibidh') && x.cluster === bibidhCluster) : null)
+    || { sur: _currentSurnameProfileTarget, dev: _currentSurnameProfileTarget, cnt: 0, cluster: isBibidh ? bibidhCluster : 'other' };
 
-  // Initialize Ward dropdown options
-  const wSel = document.getElementById('surProfWardFilterSelect');
-  if (wSel && wSel.options.length <= 1) {
-    const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
-    const maxWards = isHelambu ? 7 : 9;
-    let wHtml = '<option value="all">सबै वडा</option>';
-    for (let w = 1; w <= maxWards; w++) {
-      wHtml += `<option value="${w}">वडा नं ${nepaliNumerals(w)}</option>`;
-    }
-    wSel.innerHTML = wHtml;
-  }
-
-  // 1. Gather all variant pattern strings for this target surname
   try {
     const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
     const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+    const selectCols = 'voter_id,official_voter_id,full_name,father_name,mother_name,spouse_name,gender,age,ward_no,booth_no,tole,voted_status,is_influencer,phone';
 
-    let orParts = [];
-    let constituentPatterns = [];
-
-    if (isBibidh) {
-      if (bibidhCluster === 'other') {
-        // 'other' contains rare / unmapped / typos / single names
+    if (isBibidh && bibidhCluster === 'other') {
+      // Full-Roll Parallel Scan for Unclassified / Other Voters (Wards 1..7 in Helambu, Wards 1..9 in Gokarneshwor)
+      if (typeof _tenantUnclassifiedVotersCache !== 'undefined' && _tenantUnclassifiedVotersCache[tenantId] && _tenantUnclassifiedVotersCache[tenantId].length > 0) {
+        _surProfVotersData = _tenantUnclassifiedVotersCache[tenantId];
       } else {
-        const cList = BIBIDH_CONSTITUENTS_MAP[bibidhCluster] || [];
-        constituentPatterns = cList.map(x => x.form).filter(Boolean);
-        constituentPatterns.forEach(p => {
-          const cleanP = p.replace(/[()]/g, '').trim();
-          if (cleanP) {
-            orParts.push(`full_name.ilike.*${encodeURIComponent(cleanP)}*`);
+        const collectedAll = [];
+        const batchLimit = 1000;
+        const maxTotal = isHelambu ? 19000 : 38000;
+        for (let waveStart = 0; waveStart < maxTotal; waveStart += batchLimit * 5) {
+          const promises = [];
+          for (let w = 0; w < 5; w++) {
+            const curOff = waveStart + w * batchLimit;
+            if (curOff >= maxTotal) break;
+            const scanQ = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&select=${selectCols}&order=ward_no.asc,full_name.asc&limit=${batchLimit}&offset=${curOff}`;
+            promises.push(
+              fetch(scanQ, { headers: { apikey: key, Authorization: 'Bearer ' + key } })
+                .then(r => r.ok ? r.json() : [])
+                .catch(() => [])
+            );
           }
-        });
+          const wavePages = await Promise.all(promises);
+          let gotEmptyPage = false;
+          for (const pageData of wavePages) {
+            if (!Array.isArray(pageData) || pageData.length === 0) {
+              gotEmptyPage = true;
+              continue;
+            }
+            const unm = pageData.filter(v => {
+              const c = getVoterCasteClassification(v);
+              return !c || c.cluster === 'unclassified' || c.cluster === 'other';
+            });
+            collectedAll.push(...unm);
+            if (pageData.length < batchLimit) gotEmptyPage = true;
+          }
+          if (gotEmptyPage) break;
+        }
+        if (typeof _tenantUnclassifiedVotersCache !== 'undefined') {
+          _tenantUnclassifiedVotersCache[tenantId] = collectedAll;
+        }
+        _surProfVotersData = collectedAll;
       }
-    } else {
-      const sKey = _currentSurnameProfileTarget.toLowerCase().replace(/[^a-z]/g, '');
-      const variants = MASTER_SURNAME_VARIANTS_MAP[sKey] || [{ form: _currentSurnameProfileTarget }];
-      const rawPatterns = Array.from(new Set([_currentSurnameProfileTarget, ...variants.map(v => v.form)])).filter(Boolean);
-      rawPatterns.forEach(rawP => {
-        const p = rawP.replace(/[()]/g, '').trim();
-        if (!p) return;
-        orParts.push(`full_name.ilike.*${encodeURIComponent(p)}*`);
+    } else if (isBibidh && bibidhCluster !== 'other') {
+      // Minor surnames within a specific cluster (e.g., Bibidh Khas Arya, Bibidh Janajati, Bibidh Dalit, Bibidh Newar)
+      const cList = BIBIDH_CONSTITUENTS_MAP[bibidhCluster] || [];
+      const constituentPatterns = [];
+      cList.forEach(x => {
+        if (x.form) constituentPatterns.push(x.form);
+        if (x.dev) constituentPatterns.push(x.dev);
       });
-    }
+      const orParts = [];
+      Array.from(new Set(constituentPatterns)).forEach(p => {
+        const cleanP = p.replace(/[()]/g, '').trim();
+        if (cleanP) orParts.push(`full_name.ilike.*${encodeURIComponent(cleanP)}*`);
+      });
 
-    const queryUrl = orParts.length > 0
-      ? `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&or=(${orParts.join(',')})&select=voter_id,official_voter_id,full_name,father_name,mother_name,spouse_name,gender,age,ward_no,booth_no,tole,voted_status,is_influencer,phone&order=ward_no.asc,full_name.asc&limit=1000`
-      : `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&select=voter_id,official_voter_id,full_name,father_name,mother_name,spouse_name,gender,age,ward_no,booth_no,tole,voted_status,is_influencer,phone&order=ward_no.asc,full_name.asc&limit=1000`;
-    
-    const resp = await fetch(queryUrl, {
-      headers: {
-        'apikey': key,
-        'Authorization': `Bearer ${key}`
-      }
-    });
-
-    if (resp.ok) {
-      const rawRows = await resp.json();
-      if (isBibidh) {
-        if (bibidhCluster === 'other') {
-          _surProfVotersData = (Array.isArray(rawRows) ? rawRows : []).filter(v => {
-            const c = (typeof getVoterCasteClassification === 'function') ? getVoterCasteClassification(v) : null;
-            return !c || c.cluster === 'other' || c.cluster === 'unclassified';
-          });
-        } else {
+      let matchedRows = [];
+      if (orParts.length > 0) {
+        const queryUrl = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&or=(${orParts.join(',')})&select=${selectCols}&order=ward_no.asc,full_name.asc&limit=1000`;
+        const resp = await fetch(queryUrl, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+        if (resp.ok) {
+          const rawRows = await resp.json();
           const cLowerSet = new Set(constituentPatterns.map(p => p.toLowerCase()));
-          _surProfVotersData = (Array.isArray(rawRows) ? rawRows : []).filter(v => {
+          matchedRows = (Array.isArray(rawRows) ? rawRows : []).filter(v => {
             const fn = (v.full_name || '').toLowerCase();
             const extracted = (typeof extractVoterSurnameFromCleanName === 'function' ? extractVoterSurnameFromCleanName(v.full_name) : '').toLowerCase();
             if (cLowerSet.has(extracted)) return true;
             return constituentPatterns.some(p => fn.includes(p.toLowerCase()));
           });
         }
-      } else {
-        const targetLower = _currentSurnameProfileTarget.toLowerCase();
-        const sKey = _currentSurnameProfileTarget.toLowerCase().replace(/[^a-z]/g, '');
-        const variants = MASTER_SURNAME_VARIANTS_MAP[sKey] || [{ form: _currentSurnameProfileTarget }];
-        const variantLowers = new Set([targetLower, ...variants.map(v => v.form.toLowerCase())]);
+      }
 
+      // If Devanagari minor surnames in Helambu weren't covered by sample constituent patterns, scan minor surnames of this cluster
+      if (matchedRows.length < Math.min(10, surItem.cnt || 10)) {
+        const majorSet = new Set();
+        allStudioList.forEach(x => {
+          if (!String(x.sur || '').toLowerCase().startsWith('bibidh')) {
+            if (x.sur) majorSet.add(x.sur.toLowerCase());
+            if (x.dev) majorSet.add(x.dev.toLowerCase());
+          }
+        });
+        const collectedMinor = [];
+        const batchLimit = 1000;
+        const maxTotal = isHelambu ? 19000 : 38000;
+        for (let waveStart = 0; waveStart < maxTotal; waveStart += batchLimit * 5) {
+          const promises = [];
+          for (let w = 0; w < 5; w++) {
+            const curOff = waveStart + w * batchLimit;
+            if (curOff >= maxTotal) break;
+            const scanQ = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&select=${selectCols}&order=ward_no.asc,full_name.asc&limit=${batchLimit}&offset=${curOff}`;
+            promises.push(
+              fetch(scanQ, { headers: { apikey: key, Authorization: 'Bearer ' + key } })
+                .then(r => r.ok ? r.json() : [])
+                .catch(() => [])
+            );
+          }
+          const wavePages = await Promise.all(promises);
+          let gotEmptyPage = false;
+          for (const pageData of wavePages) {
+            if (!Array.isArray(pageData) || pageData.length === 0) {
+              gotEmptyPage = true;
+              continue;
+            }
+            pageData.forEach(v => {
+              const c = getVoterCasteClassification(v);
+              if (c && c.cluster === bibidhCluster) {
+                const ext = (typeof extractVoterSurnameFromCleanName === 'function' ? extractVoterSurnameFromCleanName(v.full_name) : '').toLowerCase();
+                if (!majorSet.has(ext) && !majorSet.has((c.surname || '').toLowerCase())) {
+                  collectedMinor.push(v);
+                }
+              }
+            });
+            if (pageData.length < batchLimit) gotEmptyPage = true;
+          }
+          if (gotEmptyPage || collectedMinor.length >= (surItem.cnt || 100)) break;
+        }
+        if (collectedMinor.length > matchedRows.length) {
+          matchedRows = collectedMinor;
+        }
+      }
+      _surProfVotersData = matchedRows;
+    } else {
+      // Regular Surname (Supports both Roman & Devanagari in Helambu & Gokarneshwor)
+      const sKey = _currentSurnameProfileTarget.toLowerCase().replace(/[^a-z]/g, '');
+      const rDict = (typeof ROMANIZED_CASTE_DICTIONARY !== 'undefined') ? ROMANIZED_CASTE_DICTIONARY[sKey] : null;
+      const variants = MASTER_SURNAME_VARIANTS_MAP[sKey] || [{ form: _currentSurnameProfileTarget }];
+
+      const rawPatterns = Array.from(new Set([
+        _currentSurnameProfileTarget,
+        surItem.sur,
+        surItem.dev,
+        rDict && rDict.devanagari,
+        ...variants.map(v => v.form),
+        ...variants.map(v => v.dev)
+      ])).filter(Boolean);
+
+      const orParts = [];
+      rawPatterns.forEach(rawP => {
+        const p = String(rawP).replace(/[()]/g, '').trim();
+        if (!p) return;
+        orParts.push(`full_name.ilike.*${encodeURIComponent(p)}*`);
+      });
+
+      const queryUrl = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&or=(${orParts.join(',')})&select=${selectCols}&order=ward_no.asc,full_name.asc&limit=1000`;
+      const resp = await fetch(queryUrl, {
+        headers: {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`
+        }
+      });
+
+      if (resp.ok) {
+        const rawRows = await resp.json();
+        const variantLowers = new Set(rawPatterns.map(p => String(p).toLowerCase().trim()));
         _surProfVotersData = (Array.isArray(rawRows) ? rawRows : []).filter(v => {
           const extracted = (typeof extractVoterSurnameFromCleanName === 'function' ? extractVoterSurnameFromCleanName(v.full_name) : '').toLowerCase();
-          if (extracted === targetLower || variantLowers.has(extracted)) return true;
+          if (variantLowers.has(extracted)) return true;
           const words = (v.full_name || '').toLowerCase().split(/\s+/).filter(Boolean);
-          return words.some(w => variantLowers.has(w) || w === targetLower);
+          if (words.some(w => variantLowers.has(w))) return true;
+          const c = (typeof getVoterCasteClassification === 'function') ? getVoterCasteClassification(v) : null;
+          if (c && c.surname && variantLowers.has(String(c.surname).toLowerCase())) return true;
+          return false;
         });
+      } else {
+        _surProfVotersData = [];
       }
-    } else {
-      _surProfVotersData = [];
     }
   } catch(e) {
     console.warn('Error loading surname voters:', e);
     _surProfVotersData = [];
   }
 
+  _surProfVotersCache[cacheKey] = _surProfVotersData;
   window._surProfVotersData = _surProfVotersData;
   if (badge) badge.textContent = `${_surProfVotersData.length.toLocaleString()} जना`;
   renderSurnameProfileVoterList();
