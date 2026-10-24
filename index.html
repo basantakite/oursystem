@@ -45186,19 +45186,34 @@ async function removeVoterFromTole(toleName, voterId, wardNo) {
   } catch(e) {}
 }
 
+window._addToleSelectedVoterMap = new Map();
+window._currentAddToleContext = null;
+let _addToleSearchTimer = null;
+
 async function openAddHouseholdsToToleModal(toleName, wardNo, boothNo) {
   openModal(
     `➕ ${esc(toleName)} मा घरधुरी थप्नुहोस्`,
     `<div style="text-align:center; padding:30px;"><div class="spinner" style="margin:0 auto 12px;"></div>वडा ${wardNo} का टोल नतोकिएका घरहरू लोड हुँदैछ...</div>`
   );
 
+  window._addToleSelectedVoterMap = new Map();
+
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVF9LYO3';
-  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVF9LYO3';
+  const rawTId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVF9LYO3';
+  const tenantId = (rawTId === 'TNT_HELAMBU' || rawTId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTId;
   const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
   const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
 
+  window._currentAddToleContext = {
+    toleName,
+    wardNo,
+    boothNo,
+    tenantId,
+    initialVoters: []
+  };
+
   try {
-    let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&ward_no=eq.${wardNo}&or=(tole.is.null,tole.eq.,tole.eq.गाउँ / टोल)&order=serial_no.asc&limit=250`;
+    let q = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&ward_no=eq.${wardNo}&or=(tole.is.null,tole.eq.,tole.eq.गाउँ / टोल)&order=created_at.desc&limit=100`;
     if (boothNo && String(boothNo).trim() && String(boothNo).trim() !== 'All' && String(boothNo).trim() !== 'A') {
       q += `&booth_no=ilike.*${encodeURIComponent(String(boothNo).trim())}*`;
     }
@@ -45207,26 +45222,24 @@ async function openAddHouseholdsToToleModal(toleName, wardNo, boothNo) {
 
     // Fallback: if specific booth returned 0 voters (e.g. slight naming variant in DB), query ward-level unassigned voters so user is never blocked
     if ((!Array.isArray(voters) || voters.length === 0) && boothNo && String(boothNo).trim() !== 'All' && String(boothNo).trim() !== 'A') {
-      const fallbackQ = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&ward_no=eq.${wardNo}&or=(tole.is.null,tole.eq.,tole.eq.गाउँ / टोल)&order=serial_no.asc&limit=250`;
+      const fallbackQ = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&ward_no=eq.${wardNo}&or=(tole.is.null,tole.eq.,tole.eq.गाउँ / टोल)&order=created_at.desc&limit=100`;
       const fbRes = await fetch(fallbackQ, { headers: { apikey: key, Authorization: 'Bearer ' + key } });
       if (fbRes.ok) voters = await fbRes.json();
     }
 
-    if (!Array.isArray(voters) || voters.length === 0) {
-      openModal(`➕ ${esc(toleName)} मा घरधुरी थप्नुहोस्`, '<div style="padding:24px; text-align:center;">यस वडामा कुनै पनि टोल नतोकिएका मतदाता बाँकी छैनन्। सबै घरधुरी टोलमा आबद्ध भइसकेका छन्।</div>', `<button class="btn btn-secondary" onclick="closeModal()">फर्कनुहोस्</button>`);
-      return;
-    }
+    window._currentAddToleContext.initialVoters = Array.isArray(voters) ? voters : [];
 
     const modalBody = `
       <div style="margin-bottom: 10px; font-size: 13px; color: #475569;">
-        वडा नं. <b>${wardNo}</b> ${boothNo && boothNo !== 'All' && boothNo !== 'A' ? `• मतदान केन्द्र: <span style="color: #1d4ed8; font-weight: 700;">${esc(boothNo)}</span>` : ''} का टोल नतोकिएका घरधुरीहरूमध्ये यस <b>"${esc(toleName)}"</b> टोलमा पर्ने घरहरूमा टिक (☑️) लगाउनुहोस्:
+        वडा नं. <b>${wardNo}</b> ${boothNo && boothNo !== 'All' && boothNo !== 'A' ? `• मतदान केन्द्र: <span style="color: #1d4ed8; font-weight: 700;">${esc(boothNo)}</span>` : ''} का टोल नतोकिएका घरधुरीहरू खोज्नुहोस् र यस <b>"${esc(toleName)}"</b> टोलमा थप्न टिक (☑️) लगाउनुहोस्:
       </div>
 
-      <!-- Quick Search Bar -->
+      <!-- Quick Live Search Bar with Instant Server Query -->
       <div style="display: flex; gap: 8px; margin-bottom: 10px; align-items: center;">
         <div style="position: relative; flex: 1;">
           <span style="position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px;">🔍</span>
-          <input type="text" id="addToleVoterSearchInput" class="form-control" placeholder="नाम, मतदाता नं (Voter ID), वा बुवा/पति-पत्नी खोज्नुहोस्..." style="padding-left: 34px; font-size: 13px; height: 38px;" oninput="filterAddToleVotersList()">
+          <input type="text" id="addToleVoterSearchInput" class="form-control" placeholder="नाम (उदा: Kumar Thapa), मतदाता नं (16003523) वा बुवाको नाम खोज्नुहोस्..." style="padding-left: 34px; padding-right: 32px; font-size: 13px; height: 38px;" oninput="filterAddToleVotersList()">
+          <span id="addToleSearchSpinner" style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; color: #1d4ed8;">⌛</span>
         </div>
         <button type="button" class="btn btn-secondary" onclick="clearAddToleVoterSearch()" style="font-size: 12px; padding: 7px 12px; height: 38px; white-space: nowrap;">
           सफा गर्नुहोस्
@@ -45234,7 +45247,7 @@ async function openAddHouseholdsToToleModal(toleName, wardNo, boothNo) {
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; color: #64748b;">
-        <span id="addToleMatchCount">जम्मा <b>${voters.length}</b> जना उपलब्ध</span>
+        <span id="addToleMatchCount">सुरुवाती सूची: <b>${voters.length}</b> जना उपलब्ध (खोज्दा पूरै डाटाबेसमा खोजिनेछ)</span>
         <span id="addToleSelectedCount" style="font-weight: 700; color: #1d4ed8;">० जना छानिए</span>
       </div>
 
@@ -45250,18 +45263,7 @@ async function openAddHouseholdsToToleModal(toleName, wardNo, boothNo) {
             </tr>
           </thead>
           <tbody id="addToleVotersTableBody">
-            ${voters.map(v => {
-              const searchStr = `${v.full_name || ''} ${v.official_voter_id || v.voter_id || ''} ${v.father_name || ''} ${v.spouse_name || ''} ${v.booth_no || ''}`.toLowerCase();
-              return `
-              <tr class="add-tole-row" data-search="${esc(searchStr)}">
-                <td style="text-align: center;"><input type="checkbox" class="add-tole-chk" value="${v.voter_id}" onchange="updateAddToleSelectedCount()"></td>
-                <td><code>${esc(v.official_voter_id || v.voter_id)}</code></td>
-                <td style="font-weight: 800; color: #0f172a;">${esc(v.full_name)}</td>
-                <td style="color: #475569;">${esc(v.father_name || v.spouse_name || '-')}</td>
-                <td style="text-align: center;">${esc(v.booth_no || '-')}</td>
-              </tr>
-              `;
-            }).join('')}
+            ${renderAddToleTableRowsHtml(voters)}
           </tbody>
         </table>
       </div>
@@ -45276,22 +45278,100 @@ async function openAddHouseholdsToToleModal(toleName, wardNo, boothNo) {
   }
 }
 
-window.filterAddToleVotersList = function() {
-  const input = document.getElementById('addToleVoterSearchInput');
-  const q = (input ? input.value : '').trim().toLowerCase();
-  const rows = document.querySelectorAll('.add-tole-row');
-  let matchCount = 0;
-  rows.forEach(r => {
-    const text = (r.getAttribute('data-search') || '').toLowerCase();
-    if (!q || text.includes(q)) {
-      r.style.display = '';
-      matchCount++;
-    } else {
-      r.style.display = 'none';
-    }
+function renderAddToleTableRowsHtml(voters) {
+  if (!voters || voters.length === 0) {
+    return `<tr><td colspan="5" style="text-align: center; padding: 24px; color: #64748b;">कुनै मतदाता भेटिएन। कृपया नाम वा मतदाता परिचयपत्र नं खोज्नुहोस्।</td></tr>`;
+  }
+  return voters.map(v => {
+    const isChecked = window._addToleSelectedVoterMap && window._addToleSelectedVoterMap.has(String(v.voter_id));
+    return `
+      <tr class="add-tole-row">
+        <td style="text-align: center;">
+          <input type="checkbox" class="add-tole-chk" value="${esc(v.voter_id)}" ${isChecked ? 'checked' : ''} onchange="toggleAddToleVoterItem('${esc(v.voter_id)}', this.checked)">
+        </td>
+        <td><code>${esc(v.official_voter_id || v.voter_id)}</code></td>
+        <td style="font-weight: 800; color: #0f172a;">${esc(v.full_name)}</td>
+        <td style="color: #475569;">${esc(v.father_name || v.spouse_name || '-')}</td>
+        <td style="text-align: center;">${esc(v.booth_no || '-')}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.toggleAddToleVoterItem = function(voterId, isChecked) {
+  if (!window._addToleSelectedVoterMap) window._addToleSelectedVoterMap = new Map();
+  if (isChecked) {
+    window._addToleSelectedVoterMap.set(String(voterId), true);
+  } else {
+    window._addToleSelectedVoterMap.delete(String(voterId));
+  }
+  updateAddToleSelectedCount();
+};
+
+window.updateAddToleSelectedCount = function() {
+  const count = window._addToleSelectedVoterMap ? window._addToleSelectedVoterMap.size : 0;
+  const countEl = document.getElementById('addToleSelectedCount');
+  if (countEl) countEl.innerHTML = `<b>${count}</b> जना छानिए`;
+};
+
+window.toggleAllVisibleAddToleCheckboxes = function(checked) {
+  const chks = document.querySelectorAll('.add-tole-chk');
+  chks.forEach(chk => {
+    chk.checked = checked;
+    toggleAddToleVoterItem(chk.value, checked);
   });
-  const countEl = document.getElementById('addToleMatchCount');
-  if (countEl) countEl.innerHTML = `नतिजा: <b>${matchCount}</b> जना भेटिए`;
+};
+
+window.filterAddToleVotersList = function() {
+  clearTimeout(_addToleSearchTimer);
+  const input = document.getElementById('addToleVoterSearchInput');
+  const q = (input ? input.value : '').trim();
+  const spinner = document.getElementById('addToleSearchSpinner');
+  if (spinner) spinner.style.display = 'inline-block';
+
+  _addToleSearchTimer = setTimeout(async () => {
+    try {
+      const ctx = window._currentAddToleContext || {};
+      const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVF9LYO3';
+      const rawTId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVF9LYO3';
+      const tenantId = (rawTId === 'TNT_HELAMBU' || rawTId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTId;
+      const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+      const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+
+      const wardNo = ctx.wardNo || 1;
+      const boothNo = ctx.boothNo || '';
+
+      let voters = [];
+      if (!q) {
+        voters = ctx.initialVoters || [];
+      } else {
+        const encQ = encodeURIComponent(q);
+        let searchUrl = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&ward_no=eq.${wardNo}&and=(or(tole.is.null,tole.eq.,tole.eq.गाउँ / टोल),or(full_name.ilike.*${encQ}*,official_voter_id.ilike.*${encQ}*,voter_id.ilike.*${encQ}*,father_name.ilike.*${encQ}*,spouse_name.ilike.*${encQ}*))&limit=80`;
+        if (boothNo && boothNo !== 'All' && boothNo !== 'A') {
+          searchUrl += `&booth_no=ilike.*${encodeURIComponent(boothNo)}*`;
+        }
+
+        let res = await fetch(searchUrl, { headers: { apikey: key, Authorization: 'Bearer ' + key } });
+        if (res.ok) voters = await res.json();
+
+        // If 0 returned with specific booth, try whole ward search
+        if ((!Array.isArray(voters) || voters.length === 0) && boothNo && boothNo !== 'All' && boothNo !== 'A') {
+          const fallbackUrl = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&ward_no=eq.${wardNo}&and=(or(tole.is.null,tole.eq.,tole.eq.गाउँ / टोल),or(full_name.ilike.*${encQ}*,official_voter_id.ilike.*${encQ}*,voter_id.ilike.*${encQ}*,father_name.ilike.*${encQ}*,spouse_name.ilike.*${encQ}*))&limit=80`;
+          const fbRes = await fetch(fallbackUrl, { headers: { apikey: key, Authorization: 'Bearer ' + key } });
+          if (fbRes.ok) voters = await fbRes.json();
+        }
+      }
+
+      const tbody = document.getElementById('addToleVotersTableBody');
+      if (tbody) tbody.innerHTML = renderAddToleTableRowsHtml(voters || []);
+      const countEl = document.getElementById('addToleMatchCount');
+      if (countEl) countEl.innerHTML = q ? `खोज नतिजा: <b>${(voters || []).length}</b> जना भेटिए` : `सुरुवाती सूची: <b>${(voters || []).length}</b> जना उपलब्ध`;
+    } catch (err) {
+      console.error('filterAddToleVotersList error:', err);
+    } finally {
+      if (spinner) spinner.style.display = 'none';
+    }
+  }, 250);
 };
 
 window.clearAddToleVoterSearch = function() {
@@ -45303,33 +45383,19 @@ window.clearAddToleVoterSearch = function() {
   }
 };
 
-window.updateAddToleSelectedCount = function() {
-  const chks = document.querySelectorAll('.add-tole-chk:checked');
-  const countEl = document.getElementById('addToleSelectedCount');
-  if (countEl) countEl.textContent = `${chks.length} जना छानिए`;
-};
-
-window.toggleAllVisibleAddToleCheckboxes = function(checked) {
-  const rows = document.querySelectorAll('.add-tole-row');
-  rows.forEach(r => {
-    if (r.style.display !== 'none') {
-      const chk = r.querySelector('.add-tole-chk');
-      if (chk) chk.checked = checked;
-    }
-  });
-  updateAddToleSelectedCount();
-};
-
 async function executeAddVotersToTole(toleName, wardNo) {
-  const chks = document.querySelectorAll('.add-tole-chk:checked');
-  if (!chks || chks.length === 0) {
+  const selectedMap = window._addToleSelectedVoterMap || new Map();
+  document.querySelectorAll('.add-tole-chk:checked').forEach(c => selectedMap.set(c.value, true));
+  const ids = Array.from(selectedMap.keys());
+
+  if (!ids || ids.length === 0) {
     showToast('⚠️ कृपया कम्तीमा एउटा मतदातामा टिक लगाउनुहोस्!', 'error');
     return;
   }
-  const ids = Array.from(chks).map(c => c.value);
 
-  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
-  const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVF9LYO3';
+  const rawTId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVF9LYO3';
+  const tenantId = (rawTId === 'TNT_HELAMBU' || rawTId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTId;
   const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
   const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
 
@@ -45347,6 +45413,7 @@ async function executeAddVotersToTole(toleName, wardNo) {
       });
     }
 
+    window._addToleSelectedVoterMap = new Map();
     closeModal();
     showToast(`✅ ${ids.length} जना मतदाता "${toleName}" मा थपिए!`, 'success');
     renderToleFullProfileDashboard(toleName, wardNo);
