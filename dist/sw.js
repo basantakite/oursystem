@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v91)
-const CACHE_NAME = 'election-ops-v91-dynamic-warroom-live';
+// Service Worker for Offline & Installable App Experience (v92)
+const CACHE_NAME = 'election-ops-v92-premium-soft-ui';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
