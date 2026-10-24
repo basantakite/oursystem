@@ -10202,7 +10202,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261024-v104-bulk-caste-profile-modal';
+      const CURRENT_APP_BUILD = '20261024-v105-risal-family-fix';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -19885,7 +19885,9 @@ async function saveQuickCreatedTole(e) {
       'तामाङ्ग': 'तामाङ', 'tamaang': 'tamang',
       'स्रेस्ठ': 'स्रेस्ठ', 'shresth': 'shrestha',
       'केसि': 'के.सि.', 'kc': 'k.c.',
-      'छेत्रि': 'क्षेत्रि', 'paudel': 'poudel'
+      'छेत्रि': 'क्षेत्रि', 'paudel': 'poudel',
+      'risala': 'risal', 'chalisey': 'chalise',
+      'nyaupane': 'neupane', 'nyoupane': 'neupane'
     };
 
     const MIDDLE_HONORIFICS_SET = new Set([
@@ -19970,12 +19972,46 @@ async function saveQuickCreatedTole(e) {
       const sb = extractSurname(nameB);
       if (!sa || !sb || sa.length < 2 || sb.length < 2) return false;
       if (sa === sb) return true;
-      // Support married woman or compound double surname e.g. "Bhim Singh Thapa Chhetri" or "दिपा पौडेल क्षेत्री"
-      const partsA = getCoreNormalizedName(nameA).split(/\s+/).filter(Boolean).map(w => SURNAME_ALIASES_MAP[w] || w);
-      const partsB = getCoreNormalizedName(nameB).split(/\s+/).filter(Boolean).map(w => SURNAME_ALIASES_MAP[w] || w);
+      // Support married woman or compound double surname e.g. "Bhim Singh Thapa Chhetri", "दिपा पौडेल क्षेत्री", or "Shanti Nyaupane (risala)"
+      const normA = normalizePersonNameForMatch(nameA).replace(/[()]/g, ' ');
+      const normB = normalizePersonNameForMatch(nameB).replace(/[()]/g, ' ');
+      const partsA = normA.split(/\s+/).filter(Boolean).map(w => SURNAME_ALIASES_MAP[w] || w);
+      const partsB = normB.split(/\s+/).filter(Boolean).map(w => SURNAME_ALIASES_MAP[w] || w);
       if (partsA.length >= 3 && partsA.slice(1).includes(sb)) return true;
       if (partsB.length >= 3 && partsB.slice(1).includes(sa)) return true;
       return false;
+    }
+
+    function isCloseGivenNameTypo(givA, givB) {
+      if (!givA || !givB) return false;
+      const wA = givA.split(/\s+/).filter(Boolean);
+      const wB = givB.split(/\s+/).filter(Boolean);
+      if (wA.length === 0 || wA.length !== wB.length) return false;
+      let totalDiffWords = 0;
+      for (let i = 0; i < wA.length; i++) {
+        const a = wA[i];
+        const b = wB[i];
+        if (a === b) continue;
+        if (a.length < 5 || b.length < 5 || Math.abs(a.length - b.length) > 1 || a[0] !== b[0]) return false;
+        totalDiffWords++;
+        if (totalDiffWords > 1) return false;
+        // Check 1 adjacent or across-'a' consonant transposition (e.g. "bharat" <-> "bhatar") or trailing 'a' drop ("subhadr" <-> "subhadra")
+        let isTransposed = false;
+        if (a.replace(/a$/, '') === b.replace(/a$/, '')) {
+          isTransposed = true;
+        } else if (a.length === b.length) {
+          const diffs = [];
+          for (let j = 0; j < a.length; j++) {
+            if (a[j] !== b[j]) diffs.push(j);
+          }
+          if (diffs.length === 1) continue;
+          if (diffs.length === 2 && (diffs[1] === diffs[0] + 1 || (diffs[1] === diffs[0] + 2 && a[diffs[0] + 1] === b[diffs[0] + 1])) && a[diffs[0]] === b[diffs[1]] && a[diffs[1]] === b[diffs[0]]) {
+            isTransposed = true;
+          }
+        }
+        if (!isTransposed) return false;
+      }
+      return totalDiffWords === 1;
     }
 
     function doesVoterNameMatch(nameA, nameB, contextSurname = '') {
@@ -19996,16 +20032,16 @@ async function saveQuickCreatedTole(e) {
       const givA = extractGivenNameForMatch(nameA, surA);
       const givB = extractGivenNameForMatch(nameB, surB);
       const surCompat = !rawSurA || !rawSurB || rawSurA === rawSurB || doesSurnameMatch(nameA, nameB);
-      if (givA && givB && givA === givB && surCompat) return true;
+      if (givA && givB && (givA === givB || isCloseGivenNameTypo(givA, givB)) && surCompat) return true;
 
-      // Only allow honorific-stripped match if ONE of the names was recorded as a 1-word single name (e.g. "Resham" vs "Resham Bahadur")
+      // Only allow honorific-stripped match if ONE of the names was recorded as a 1-word single name (e.g. "Resham" vs "Resham Bahadur" or "Dipak Risal" vs "Dipak Kumar Risal")
       // NEVER merge two distinct 2-word names with different middle names (e.g. "Ram Bahadur" vs "Ram Prasad" or "Bhim Singh")!
       const wordsA = (givA || '').split(/\s+/).filter(Boolean);
       const wordsB = (givB || '').split(/\s+/).filter(Boolean);
       if (wordsA.length === 1 || wordsB.length === 1) {
         const shortA = stripMiddleHonorificsForMatch(givA);
         const shortB = stripMiddleHonorificsForMatch(givB);
-        if (shortA && shortB && shortA.length >= 3 && shortA === shortB && surCompat) return true;
+        if (shortA && shortB && shortA.length >= 3 && (shortA === shortB || isCloseGivenNameTypo(shortA, shortB)) && surCompat) return true;
       }
 
       return false;
@@ -20364,13 +20400,19 @@ async function saveQuickCreatedTole(e) {
         if (x.Gender && (x.Gender === 'Male' || x.Gender === 'पुरुष')) continue;
         const xAge = x._numAge || 0;
         if (voterAge > 0 && xAge > 0 && ((xAge - voterAge) < 15 || (xAge - voterAge) > 58)) continue;
-        if (!doesSurnameMatch(x.Name, voter.Name)) continue;
-        if (!doesVoterNameMatch(x.Name, voter.MotherName, vSur)) continue;
+        const mSurCtx = extractSurname(voter.MotherName) || vSur;
+        if (!doesVoterNameMatch(x.Name, voter.MotherName, mSurCtx)) continue;
         if (isValidPersonNameForMatch(voter.FatherName) && isValidPersonNameForMatch(x.SpouseName)) {
           if (!doesVoterNameMatch(x.SpouseName, voter.FatherName, vSur)) continue;
         }
         if (matchedFather && isValidPersonNameForMatch(matchedFather.SpouseName)) {
-          if (!doesVoterNameMatch(x.Name, matchedFather.SpouseName, vSur)) continue;
+          if (!doesVoterNameMatch(x.Name, matchedFather.SpouseName, extractSurname(matchedFather.SpouseName) || mSurCtx)) continue;
+        }
+        if (!doesSurnameMatch(x.Name, voter.Name)) {
+          const maidenMotherOk = extractSurname(voter.MotherName) && doesSurnameMatch(x.Name, voter.MotherName) &&
+            isValidPersonNameForMatch(x.SpouseName) && isValidPersonNameForMatch(voter.FatherName) &&
+            doesVoterNameMatch(x.SpouseName, (matchedFather && matchedFather.Name) || voter.FatherName, vSur);
+          if (!maidenMotherOk) continue;
         }
         seenCand.add(x.VoterID);
         candidates.push(x);
@@ -20418,7 +20460,6 @@ async function saveQuickCreatedTole(e) {
         if (!x || x.VoterID === voter.VoterID || seenCand.has(x.VoterID) || seenSet.has(x.VoterID) || ignoredSet.has(x.VoterID)) continue;
         // Opposite gender check
         if ((voter.Gender === 'Male' && x.Gender === 'Male') || (voter.Gender === 'Female' && x.Gender === 'Female')) continue;
-        if (!doesSurnameMatch(x.Name, voter.Name)) continue;
         const xAge = x._numAge || 0;
         if (voterAge > 0 && xAge > 0) {
           // Directional biological couple age check (husband -4..+22 yrs relative to wife)
@@ -20427,16 +20468,28 @@ async function saveQuickCreatedTole(e) {
           const hMinusW = husbandAge - wifeAge;
           if (hMinusW < -4 || hMinusW > 22) continue;
         }
-        if (isValidPersonNameForMatch(x.SpouseName) && !doesVoterNameMatch(x.SpouseName, voter.Name, vSur)) continue;
-        if (isValidPersonNameForMatch(voter.SpouseName) && !doesVoterNameMatch(x.Name, voter.SpouseName, vSur)) continue;
+        const hasVSp = isValidPersonNameForMatch(voter.SpouseName);
+        const hasXSp = isValidPersonNameForMatch(x.SpouseName);
+        if (!hasVSp && !hasXSp) continue;
+        const spSurForX = extractSurname(voter.SpouseName) || extractSurname(x.Name) || vSur;
+        const spSurForV = extractSurname(voter.Name) || extractSurname(x.SpouseName) || vSur;
+        if (hasXSp && !doesVoterNameMatch(x.SpouseName, voter.Name, spSurForV)) continue;
+        if (hasVSp && !doesVoterNameMatch(x.Name, voter.SpouseName, spSurForX)) continue;
+        // Allow maiden-surname retention (e.g. "Sarita Khadka" married to "Dipak Kumar Risal") ONLY when mutual spouse names or explicit maiden surname in SpouseName match!
+        if (!doesSurnameMatch(x.Name, voter.Name)) {
+          const mutualCrossSurnameOk = (hasVSp && hasXSp) ||
+            (hasVSp && extractSurname(voter.SpouseName) && doesSurnameMatch(x.Name, voter.SpouseName)) ||
+            (hasXSp && extractSurname(x.SpouseName) && doesSurnameMatch(voter.Name, x.SpouseName));
+          if (!mutualCrossSurnameOk) continue;
+        }
         seenCand.add(x.VoterID);
         candidates.push(x);
       }
 
       if (!candidates.length) return null;
       candidates.sort((a, b) => {
-        const mutA = isValidPersonNameForMatch(a.SpouseName) && isValidPersonNameForMatch(voter.SpouseName) && doesVoterNameMatch(a.SpouseName, voter.Name, vSur) && doesVoterNameMatch(a.Name, voter.SpouseName, vSur);
-        const mutB = isValidPersonNameForMatch(b.SpouseName) && isValidPersonNameForMatch(voter.SpouseName) && doesVoterNameMatch(b.SpouseName, voter.Name, vSur) && doesVoterNameMatch(b.Name, voter.SpouseName, vSur);
+        const mutA = isValidPersonNameForMatch(a.SpouseName) && isValidPersonNameForMatch(voter.SpouseName) && doesVoterNameMatch(a.SpouseName, voter.Name, extractSurname(voter.Name) || vSur) && doesVoterNameMatch(a.Name, voter.SpouseName, extractSurname(voter.SpouseName) || vSur);
+        const mutB = isValidPersonNameForMatch(b.SpouseName) && isValidPersonNameForMatch(voter.SpouseName) && doesVoterNameMatch(b.SpouseName, voter.Name, extractSurname(voter.Name) || vSur) && doesVoterNameMatch(b.Name, voter.SpouseName, extractSurname(voter.SpouseName) || vSur);
         return scoreFamilyCandidateProximity(voter, b, mutB) - scoreFamilyCandidateProximity(voter, a, mutA);
       });
       return candidates[0];
@@ -20516,7 +20569,7 @@ async function saveQuickCreatedTole(e) {
       const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
       const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : (voter.TenantID || voter.tenant_id || rawTenantId);
 
-      const cleanQueryTerm = (s) => (s || '').replace(/[,()"'*&:;]/g, '').trim();
+      const cleanQueryTerm = (s) => (s || '').replace(/\([^)]*\)?/g, ' ').replace(/[,()"'*&:;]/g, '').replace(/\s+/g, ' ').trim();
       const cleanStr = (s) => (s || '').trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_~`()]/g, '');
 
       const hName = voter.Name || voter.full_name || '';
@@ -20540,9 +20593,14 @@ async function saveQuickCreatedTole(e) {
       if (cleanF.length > 2) {
         orParts.push(`full_name.ilike.*${encodeURIComponent(cleanF)}*`);
         orParts.push(`father_name.ilike.*${encodeURIComponent(cleanF)}*`);
+        const fGiven = cleanQueryTerm(extractGivenNameForMatch(cleanF, hSur));
+        if (fGiven.length > 2 && fGiven.toLowerCase() !== cleanF.toLowerCase()) {
+          orParts.push(`father_name.ilike.*${encodeURIComponent(fGiven)}*`);
+        }
       }
       if (cleanM.length > 2) {
         orParts.push(`full_name.ilike.*${encodeURIComponent(cleanM)}*`);
+        orParts.push(`mother_name.ilike.*${encodeURIComponent(cleanM)}*`);
       }
       if (cleanS.length > 2) {
         orParts.push(`full_name.ilike.*${encodeURIComponent(cleanS)}*`);
@@ -20641,7 +20699,7 @@ async function saveQuickCreatedTole(e) {
           if (!doesVoterNameMatch(c.Name || c.full_name, hFather, hSur)) return false;
           const cSp = c.SpouseName || c.spouse_name || '';
           if (isValidPersonNameForMatch(hMother) && isValidPersonNameForMatch(cSp)) {
-            if (!doesVoterNameMatch(cSp, hMother, hSur)) return false;
+            if (!doesVoterNameMatch(cSp, hMother, extractSurname(hMother) || hSur)) return false;
           }
           return true;
         });
@@ -20726,16 +20784,23 @@ async function saveQuickCreatedTole(e) {
         const mCandidates = pool.filter(c => {
           const cId = String(c.VoterID || c.voter_id);
           if (seenVoterIds.has(cId) || ignoredIds.has(cId) || c.Gender === 'Male' || c.gender === 'Male' || c.gender === 'पुरुष') return false;
-          if (!doesSurnameMatch(c.Name || c.full_name, hName)) return false;
           const cAge = Number(c.Age || c.age) || 0;
           if (hAge > 0 && cAge > 0 && ((cAge - hAge) < 15 || (cAge - hAge) > 58)) return false;
-          if (!doesVoterNameMatch(c.Name || c.full_name, hMother, hSur)) return false;
+          const mSurCtx = extractSurname(hMother) || hSur;
+          if (!doesVoterNameMatch(c.Name || c.full_name, hMother, mSurCtx)) return false;
           const cSp = c.SpouseName || c.spouse_name || '';
           if (isValidPersonNameForMatch(hFather) && isValidPersonNameForMatch(cSp)) {
-            if (!doesVoterNameMatch(cSp, hFather, hSur)) return false;
+            if (!doesVoterNameMatch(cSp, (fatherFound && (fatherFound.Name || fatherFound.full_name)) || hFather, hSur)) return false;
           }
           if (fatherFound && isValidPersonNameForMatch(fatherFound.SpouseName || fatherFound.spouse_name)) {
-            if (!doesVoterNameMatch(c.Name || c.full_name, fatherFound.SpouseName || fatherFound.spouse_name, hSur)) return false;
+            const fSp = fatherFound.SpouseName || fatherFound.spouse_name;
+            if (!doesVoterNameMatch(c.Name || c.full_name, fSp, extractSurname(fSp) || mSurCtx)) return false;
+          }
+          if (!doesSurnameMatch(c.Name || c.full_name, hName)) {
+            const maidenMotherOk = extractSurname(hMother) && doesSurnameMatch(c.Name || c.full_name, hMother) &&
+              isValidPersonNameForMatch(cSp) && isValidPersonNameForMatch(hFather) &&
+              doesVoterNameMatch(cSp, (fatherFound && (fatherFound.Name || fatherFound.full_name)) || hFather, hSur);
+            if (!maidenMotherOk) return false;
           }
           return true;
         });
@@ -20881,13 +20946,12 @@ async function saveQuickCreatedTole(e) {
         }
       }
 
-      // 5. Spouse (Strict Two-Way Mutual Verification + Directional Age Gap + Proximity Ranking)
+      // 5. Spouse (Strict Two-Way Mutual Verification + Maiden-Surname Retention Support + Directional Age Gap + Proximity Ranking)
       const spouseCandidates = pool.filter(c => {
         const cId = String(c.VoterID || c.voter_id);
         if (seenVoterIds.has(cId) || ignoredIds.has(cId)) return false;
         const cGender = c.Gender || c.gender;
         if (hGender && cGender && hGender === cGender) return false;
-        if (!doesSurnameMatch(c.Name || c.full_name, hName)) return false;
         const cAge = Number(c.Age || c.age) || 0;
         if (hAge > 0 && cAge > 0) {
           const husbandAge = isHeadFemale ? cAge : hAge;
@@ -20900,17 +20964,26 @@ async function saveQuickCreatedTole(e) {
         const hasHSp = isValidPersonNameForMatch(hSpouse);
         const hasCSp = isValidPersonNameForMatch(cSp);
         if (!hasHSp && !hasCSp) return false;
+        const spSurForC = extractSurname(hSpouse) || extractSurname(cName) || hSur;
+        const spSurForH = extractSurname(hName) || extractSurname(cSp) || hSur;
         // Strict Two-Way Check: Neither side's spouse_name is allowed to contradict the other!
-        if (hasHSp && !doesVoterNameMatch(cName, hSpouse, hSur)) return false;
-        if (hasCSp && !doesVoterNameMatch(cSp, hName, hSur)) return false;
+        if (hasHSp && !doesVoterNameMatch(cName, hSpouse, spSurForC)) return false;
+        if (hasCSp && !doesVoterNameMatch(cSp, hName, spSurForH)) return false;
+        // If spouse retained maiden surname (e.g. "Sarita Khadka" married to "Dipak Kumar Risal"), require mutual spouse match or explicit maiden surname in SpouseName!
+        if (!doesSurnameMatch(cName, hName)) {
+          const mutualCrossSurnameOk = (hasHSp && hasCSp) ||
+            (hasHSp && extractSurname(hSpouse) && doesSurnameMatch(cName, hSpouse)) ||
+            (hasCSp && extractSurname(cSp) && doesSurnameMatch(hName, cSp));
+          if (!mutualCrossSurnameOk) return false;
+        }
         return true;
       });
 
       spouseCandidates.sort((a, b) => {
         const aSp = a.SpouseName || a.spouse_name || '';
         const bSp = b.SpouseName || b.spouse_name || '';
-        const mutA = isValidPersonNameForMatch(hSpouse) && isValidPersonNameForMatch(aSp) && doesVoterNameMatch(a.Name || a.full_name, hSpouse, hSur) && doesVoterNameMatch(aSp, hName, hSur);
-        const mutB = isValidPersonNameForMatch(hSpouse) && isValidPersonNameForMatch(bSp) && doesVoterNameMatch(b.Name || b.full_name, hSpouse, hSur) && doesVoterNameMatch(bSp, hName, hSur);
+        const mutA = isValidPersonNameForMatch(hSpouse) && isValidPersonNameForMatch(aSp) && doesVoterNameMatch(a.Name || a.full_name, hSpouse, extractSurname(hSpouse) || hSur) && doesVoterNameMatch(aSp, hName, extractSurname(hName) || hSur);
+        const mutB = isValidPersonNameForMatch(hSpouse) && isValidPersonNameForMatch(bSp) && doesVoterNameMatch(b.Name || b.full_name, hSpouse, extractSurname(hSpouse) || hSur) && doesVoterNameMatch(bSp, hName, extractSurname(hName) || hSur);
         return scoreFamilyCandidateProximity(voter, b, mutB) - scoreFamilyCandidateProximity(voter, a, mutA);
       });
       const spouseFound = spouseCandidates[0] || null;
@@ -21086,13 +21159,14 @@ async function saveQuickCreatedTole(e) {
 
         const cF = c.FatherName || c.father_name || '';
         const cM = c.MotherName || c.mother_name || '';
+        const partnerSur = extractSurname(partnerRefName) || hSur;
         let matchedChild = false;
 
         if (!isHeadFemale) {
           // Father -> Child: Child's father_name must match Father's full given name, AND Child's mother_name must not contradict Mother/Wife!
           if (doesVoterNameMatch(cF, hName, hSur)) {
             if (isValidPersonNameForMatch(partnerRefName) && isValidPersonNameForMatch(cM)) {
-              matchedChild = doesVoterNameMatch(cM, partnerRefName, hSur);
+              matchedChild = doesVoterNameMatch(cM, partnerRefName, partnerSur);
             } else {
               matchedChild = true;
             }
@@ -21101,7 +21175,7 @@ async function saveQuickCreatedTole(e) {
           // Mother -> Child: Child's mother_name must match Mother's full given name, AND Child's father_name must match Husband!
           if (doesVoterNameMatch(cM, hName, hSur)) {
             if (isValidPersonNameForMatch(partnerRefName) && isValidPersonNameForMatch(cF)) {
-              matchedChild = doesVoterNameMatch(cF, partnerRefName, hSur);
+              matchedChild = doesVoterNameMatch(cF, partnerRefName, partnerSur);
             } else {
               matchedChild = true;
             }
@@ -21112,12 +21186,13 @@ async function saveQuickCreatedTole(e) {
           const cGender = c.Gender || c.gender;
           const isDaughter = cGender === 'Female' || cGender === 'महिला';
           const cSp = cleanQueryTerm(c.SpouseName || c.spouse_name || '');
+          const childMatchesParentSurname = doesSurnameMatch(c.Name || c.full_name, hName) || (spouseFound && doesSurnameMatch(c.Name || c.full_name, spouseFound.Name || spouseFound.full_name));
 
           // MARRIED DAUGHTER FILTER: Married daughters belong to husband's household
-          if (isDaughter && (cSp.length > 1 || !doesSurnameMatch(c.Name || c.full_name, hName))) {
+          if (isDaughter && (cSp.length > 1 || !childMatchesParentSurname)) {
             return;
           }
-          if (!isDaughter && !doesSurnameMatch(c.Name || c.full_name, hName)) {
+          if (!isDaughter && !childMatchesParentSurname) {
             return;
           }
 
@@ -21158,13 +21233,17 @@ async function saveQuickCreatedTole(e) {
                   if (seenVoterIds.has(sfId) || ignoredIds.has(sfId)) return false;
                   const sfGender = sf.gender;
                   if (sfGender !== 'Female' && sfGender !== 'महिला') return false;
-                  if (!doesSurnameMatch(sf.full_name, sonName)) return false;
                   const sfAge = Number(sf.age) || 0;
                   // Buhari must be at least 15 yrs younger than parent-in-law (head) AND compatible with son's age (-4..+18)
                   if (hAge > 0 && sfAge > 0 && (hAge - sfAge) < 15) return false;
                   if (sonAge > 0 && sfAge > 0 && ((sonAge - sfAge) < -4 || (sonAge - sfAge) > 18)) return false;
+                  const sonSpSur = extractSurname(sonSpouse) || extractSurname(sf.full_name) || sonSur;
                   if (!isValidPersonNameForMatch(sf.spouse_name) || !doesVoterNameMatch(sf.spouse_name, sonName, sonSur)) return false;
-                  if (isValidPersonNameForMatch(sonSpouse) && !doesVoterNameMatch(sf.full_name, sonSpouse, sonSur)) return false;
+                  if (isValidPersonNameForMatch(sonSpouse) && !doesVoterNameMatch(sf.full_name, sonSpouse, sonSpSur)) return false;
+                  if (!doesSurnameMatch(sf.full_name, sonName)) {
+                    const mutualBuhariOk = isValidPersonNameForMatch(sonSpouse) && doesVoterNameMatch(sf.full_name, sonSpouse, sonSpSur);
+                    if (!mutualBuhariOk) return false;
+                  }
                   // If son's own record has NO spouse_name (blank), require either close VoterID/Serial OR a verified child of (son + sf) in sonFamily
                   if (!isValidPersonNameForMatch(sonSpouse)) {
                     const idDiff = Math.abs(getNumericVoterIdForScore(son) - getNumericVoterIdForScore(sf));
@@ -21172,7 +21251,7 @@ async function saveQuickCreatedTole(e) {
                       const chAge = Number(ch.age) || 0;
                       return (sonAge - chAge) >= 16 && (sfAge - chAge) >= 15 &&
                              doesVoterNameMatch(ch.father_name, sonName, sonSur) &&
-                             doesVoterNameMatch(ch.mother_name, sf.full_name, sonSur);
+                             doesVoterNameMatch(ch.mother_name, sf.full_name, sonSpSur);
                     });
                     if (idDiff > 40 && !hasSharedChild) return false;
                   }
@@ -21222,8 +21301,9 @@ async function saveQuickCreatedTole(e) {
                   if (!doesVoterNameMatch(sf.father_name, sonName, sonSur)) return;
 
                   // Mother Cross-Check: If son has a wife/buhari, grandchild's mother_name must match her; if son has NO wife at all, cannot match a child with another mother!
+                  const buhariSur = extractSurname(buhariRefName) || sonSur;
                   if (isValidPersonNameForMatch(buhariRefName)) {
-                    if (isValidPersonNameForMatch(sf.mother_name) && !doesVoterNameMatch(sf.mother_name, buhariRefName, sonSur)) return;
+                    if (isValidPersonNameForMatch(sf.mother_name) && !doesVoterNameMatch(sf.mother_name, buhariRefName, buhariSur)) return;
                   } else if (isValidPersonNameForMatch(sf.mother_name)) {
                     return;
                   }
