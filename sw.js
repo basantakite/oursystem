@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v96)
-const CACHE_NAME = 'election-ops-v96-perfect-caste-engine';
+// Service Worker for Offline & Installable App Experience (v97)
+const CACHE_NAME = 'election-ops-v97-universal-3tier-caste';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

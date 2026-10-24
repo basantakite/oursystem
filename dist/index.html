@@ -10160,7 +10160,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261024-v96-perfect-caste-engine';
+      const CURRENT_APP_BUILD = '20261024-v97-universal-3tier-caste';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -40967,38 +40967,16 @@ function syncAndBroadcastAllCasteRules(optTenantId) {
 }
 
 // Universal Dual-Language (Nepali + English) Caste Classifier Engine
-function getVoterCasteClassification(v) {
-  if (!v) return { surname: '', cluster: 'unclassified', clusterLabel: 'पहिचान खुल्न बाँकी', sub: 'अन्य', isCustom: false };
+// Tier 1 & Tier 3a Helper: Classify a single name string via Custom Rules, Std Dictionaries, Deep Scan & Universal Phonetic Typo Resolver
+function classifySingleNameString(rawNameStr, customRules) {
+  if (!rawNameStr || typeof rawNameStr !== 'string') return null;
+  const rawClean = rawNameStr.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  if (!rawClean || rawClean === '-') return null;
 
-  const rawCleanName = (v.full_name || v.Name || v.FullName || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
-
-  // 1. Explicit override saved directly on voter record
-  const directCluster = v.caste_cluster || v.CasteCluster;
-  const directSurname = v.caste_surname || v.CasteSurname;
-  const directSub = v.caste_sub || v.CasteSub;
-  if (directCluster && directCluster !== 'unclassified') {
-    const cLabels = {
-      'janajati': 'आदिवासी जनजाति',
-      'khas_arya': 'खस आर्य',
-      'newar': 'नेवार समुदाय',
-      'dalit': 'दलित समुदाय',
-      'other': 'मधेसी / अन्य'
-    };
-    return {
-      surname: directSurname || extractVoterSurname(rawCleanName),
-      cluster: directCluster,
-      clusterLabel: cLabels[directCluster] || 'अन्य / खुल्न बाँकी',
-      sub: directSub || directSurname || extractVoterSurname(rawCleanName),
-      isCustom: true
-    };
-  }
-
-  // 2. Extract Primary Surname
-  const primarySurname = extractVoterSurname(rawCleanName);
+  const primarySurname = extractVoterSurname(rawClean);
   const primaryLower = primarySurname.toLowerCase();
 
-  // 3. Check Custom Learned Rules first (both original and lowercase)
-  const customRules = getCustomCasteRules();
+  // A. Custom Learned Rules (exact & lowercase)
   if (primarySurname && customRules[primarySurname]) {
     return {
       surname: primarySurname,
@@ -41018,7 +40996,7 @@ function getVoterCasteClassification(v) {
     };
   }
 
-  // 4. Exact dictionary match (Devanagari standard)
+  // B. Exact Dictionary Match (Devanagari & Romanized)
   if (primarySurname && NEPAL_GOVT_CASTE_DICTIONARY[primarySurname]) {
     const dict = NEPAL_GOVT_CASTE_DICTIONARY[primarySurname];
     return {
@@ -41029,8 +41007,6 @@ function getVoterCasteClassification(v) {
       isCustom: false
     };
   }
-
-  // 5. Exact dictionary match (English/Romanized standard)
   if (primaryLower && ROMANIZED_CASTE_DICTIONARY[primaryLower]) {
     const rDict = ROMANIZED_CASTE_DICTIONARY[primaryLower];
     return {
@@ -41042,80 +41018,63 @@ function getVoterCasteClassification(v) {
     };
   }
 
-  // 6. Deep Scan: Scan full clean name words backwards against both dictionaries
-  let cleanFullName = rawCleanName.replace(/\([^)]*\)/g, ' ').trim();
+  // C. Deep Backward Word Scan across both dictionaries & custom rules
+  const cleanFullName = rawClean.replace(/\([^)]*\)/g, ' ').trim();
   const words = cleanFullName.split(/\s+/).filter(Boolean);
 
   for (let i = words.length - 1; i >= 0; i--) {
-    let w = words[i].replace(/[.,/#!$%^&*;:{}=\-_~`()]/g, '');
-    let wLower = w.toLowerCase();
+    const w = words[i].replace(/[.,/#!$%^&*;:{}=\-_~`()]/g, '');
+    const wLower = w.toLowerCase();
+    if (!w) continue;
 
-    // Check Devanagari dictionary
     if (NEPAL_GOVT_CASTE_DICTIONARY[w]) {
       const dict = NEPAL_GOVT_CASTE_DICTIONARY[w];
-      return {
-        surname: w,
-        cluster: dict.cluster,
-        clusterLabel: dict.clusterLabel,
-        sub: dict.sub,
-        isCustom: false
-      };
+      return { surname: w, cluster: dict.cluster, clusterLabel: dict.clusterLabel, sub: dict.sub, isCustom: false };
     }
-
-    // Check Romanized English dictionary
     if (ROMANIZED_CASTE_DICTIONARY[wLower]) {
       const rDict = ROMANIZED_CASTE_DICTIONARY[wLower];
-      return {
-        surname: rDict.devanagari || w,
-        cluster: rDict.cluster,
-        clusterLabel: rDict.clusterLabel,
-        sub: rDict.sub,
-        isCustom: false
-      };
+      return { surname: rDict.devanagari || w, cluster: rDict.cluster, clusterLabel: rDict.clusterLabel, sub: rDict.sub, isCustom: false };
     }
-
-    // Check Custom rules
     if (customRules[w] || customRules[wLower]) {
       const cRule = customRules[w] || customRules[wLower];
-      return {
-        surname: cRule.sub || w,
-        cluster: cRule.cluster,
-        clusterLabel: cRule.clusterLabel,
-        sub: cRule.sub,
-        isCustom: true
-      };
+      return { surname: cRule.sub || w, cluster: cRule.cluster, clusterLabel: cRule.clusterLabel, sub: cRule.sub, isCustom: true };
     }
   }
 
-  // 7. Substring regex scan for prominent community keywords (Devanagari & Romanized)
-  const quickPatterns = [
-    // Janajati
-    { p: /ह्योल्मो|ह्याल्मो|हेल्मो|शेर्पिनी|शेर्पीनी|डोल्मा|घलान|वाइवा|थिङ|धिमाल|\b(hyolmo|helmo|hyalmo|yolmo)\b/i, sur: 'ह्योल्मो', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'ह्योल्मो' },
-    { p: /तामाङ|तामाङ्ग|तमाङ|तमाङ्ग|तामाङ्नी|तामङ|\b(tamang|tamangg)\b/i, sur: 'तामाङ', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'तामाङ' },
-    { p: /लामा|लमिनी|लमीनी|लमिनि|लामिनी|\b(lama)\b/i, sur: 'लामा', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'तामाङ / ह्योल्मो' },
-    { p: /शेर्पा|\b(sherpa)\b/i, sur: 'शेर्पा', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'शेर्पा' },
-    { p: /थापा मगर|थापामगर|राना मगर|रानामगर|रोका मगर|रोकामगर|मगर|\b(magar)\b/i, sur: 'मगर', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'मगर' },
-    { p: /गुरुङ|गुरुङ्ग|\b(gurung)\b/i, sur: 'गुरुङ', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'गुरुङ' },
-    { p: /नगरकोटी|\b(nagarkoti)\b/i, sur: 'नगरकोटी', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'माझी / जनजाति' },
-    { p: /दनुवार|\b(danuwar)\b/i, sur: 'दनुवार', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'दनुवार (सीमान्तकृत)' },
-    { p: /थामी|\b(thami)\b/i, sur: 'थामी', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'थामी (सीमान्तकृत)' },
-    
-    // Newar
-    { p: /श्रेष्ठ|श्रेष्‍ठ|प्रधान|जोशी|शाक्य|मानन्धर|कपाली|नकर्मी|भोछिभोया|\b(shrestha|srestha|pradhan|joshi|shakya|manandhar|maharjan|dangol|kapali)\b/i, sur: 'श्रेष्ठ', cluster: 'newar', label: 'नेवार समुदाय', sub: 'नेवार' },
-    
-    // Khas Arya
-    { p: /खड्का|बस्नेत|वस्नेत|कार्की|थापा|भण्डारी|भण्‍डारी|राउत|रावत|बोहरा|बरुवाल|वुढाथोकी|\b(khadka|khadga|basnet|basnyat|karki|thapa|bhandari|raut|rawat|bohara)\b/i, sur: primarySurname || 'क्षेत्री', cluster: 'khas_arya', label: 'खस आर्य', sub: 'क्षेत्री' },
-    { p: /आचार्य|काफ्ले|पाण्डे|चालिसे|ढुङ्गाना|ढुङगाना|ढुङ्गेल|उप्रेती|मैनाली|फुयाल|संजेल|सन्जेल|सञ्जेल|रिमाल|पाठक|तिमल्सिना|गुरागाई|थपलिया|खरेल|कुइकेल|कुईकेल|हुमागाई|धिताल|बजगाई|प्रसाई|प्याकुरेल|देवकोटा|पोख्रेल|बस्ताकोटी|पौडेल|पण्डित|पण्डीत|पण्‍डित|घिमिरे|अधिकारी|नेपाल|दाहाल|भट्टराई|सापकोटा|लामिछाने|लामीछाने|पुडासैनी|चौलागाई|अर्याल|दंगाल|खतिवडा|सिंखडा|जोती|ज्योती|धुंगाना|ढुंगाना|गजुरेल|बराल|वराल|\b(acharya|poudel|paudel|pandit|ghimire|adhikari|nepal|dahal|bhattarai|sapkota|lamichhane|pudasaini|chaulagain|aryal|dangal|khatiwada|simkhada|dhungana|gajurel|baral)\b/i, sur: primarySurname || 'पहाडी ब्राह्मण', cluster: 'khas_arya', label: 'खस आर्य', sub: 'पहाडी ब्राह्मण' },
+  // D. Universal Phonetic Typo Fixer & Female Community Suffixes (All-Nepal)
+  const phoneticPatterns = [
+    // Janajati phonetic typos, sub-clans & female suffixes
+    { p: /ह्योल्मो|ह्याल्मो|हेल्मो|शेर्पिनी|शेर्पीनी|डोल्मा|घलान|वाइवा|थिङ|धिमाल|\b(hyolmo|helmo|hyalmo|yolmo|hayolmo|hyaelmae|hyolmu|syanggawa|syangaba|syangba|yowa)\b/i, sur: 'ह्योल्मो', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'ह्योल्मो' },
+    { p: /तामाङ|तामाङ्ग|तमाङ|तमाङ्ग|तामाङ्नी|तामाङनी|तामङ|\b(tamang|tamangg|tamangni|tamangani|tamanggani|tamaang|tama|pakhrin|moktan|yonjan|bomjan|ghising|ghisingg|waiba|waiwa|thokar|dong|gole|blon|syangtan|titung|thing|thin)\b/i, sur: 'तामाङ', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'तामाङ' },
+    { p: /लामा|लमिनी|लमीनी|लमिनि|लामिनी|लामेनी|\b(lama|lamini|lameni)\b/i, sur: 'लामा', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'तामाङ / ह्योल्मो' },
+    { p: /शेर्पा|\b(sherpa|sherpini|serpa|serpini|sharpa|sherpe|shaerpa)\b/i, sur: 'शेर्पा', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'शेर्पा' },
+    { p: /थापा मगर|थापामगर|राना मगर|रानामगर|रोका मगर|रोकामगर|मगर|मगर्नी|\b(magar|magarni|thapamagar|ranamagar|rokamagar|gharti)\b/i, sur: 'मगर', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'मगर' },
+    { p: /गुरुङ|गुरुङ्ग|गुरुङनी|घले|\b(gurung|gurungni|ghale)\b/i, sur: 'गुरुङ', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'गुरुङ' },
+    { p: /नगरकोटी|\b(nagarkoti|nagarakoti)\b/i, sur: 'नगरकोटी', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'माझी / जनजाति' },
+    { p: /दनुवार|थामी|सुनुवार|भुजेल|राई|लिम्बु|माझी|चेपाङ|कुमाल|\b(danuwar|thami|sunuwar|bhujel|rai|limbu|majhi|chepang|kumal)\b/i, sur: primarySurname || 'जनजाति', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'आदिवासी जनजाति' },
+
+    // Newar phonetic typos
+    { p: /श्रेष्ठ|श्रेष्‍ठ|प्रधान|प्रधानाङ्ग|जोशी|शाक्य|मानन्धर|कपाली|नकर्मी|भोछिभोया|खड्गी|सिलाकार|ज्यापु|\b(shrestha|srestha|shreshth|pradhan|pradhanangg|joshi|shakya|manandhar|maharjan|dangol|kapali|khadgi|silakar|jyapu|tuladhar|bajracharya|rajbhandari|amatya)\b/i, sur: 'श्रेष्ठ', cluster: 'newar', label: 'नेवार समुदाय', sub: 'नेवार' },
+
+    // Khas Arya phonetic typos
+    { p: /खड्का|बस्नेत|वस्नेत|कार्की|थापा|भण्डारी|भण्‍डारी|राउत|रावत|बोहरा|बरुवाल|वुढाथोकी|कटुवाल|खत्री|क्षेत्री|रोक्का|के[\.\s]*सी|\b(khadka|khadga|basnet|basnyat|karki|thapa|bhandari|raut|rawat|bohara|baruwal|budhathoki|katuwal|khatri|kshetri|chhetri|rokka|shiwabhakti|deuja|silwal|kunwar|ke\.si|k\.c)\b/i, sur: primarySurname || 'क्षेत्री', cluster: 'khas_arya', label: 'खस आर्य', sub: 'क्षेत्री' },
+    { p: /आचार्य|काफ्ले|पाण्डे|चालिसे|ढुङ्गाना|ढुङगाना|ढुङ्गेल|उप्रेती|मैनाली|फुयाल|संजेल|सन्जेल|सञ्जेल|रिमाल|पाठक|तिमल्सिना|गुरागाई|थपलिया|खरेल|कुइकेल|कुईकेल|हुमागाई|धिताल|बजगाई|प्रसाई|प्याकुरेल|देवकोटा|पोख्रेल|बस्ताकोटी|पौडेल|पण्डित|पण्डीत|पण्‍डित|घिमिरे|अधिकारी|नेपाल|दाहाल|भट्टराई|सापकोटा|लामिछाने|लामीछाने|पुडासैनी|चौलागाई|अर्याल|दंगाल|दङ्गाल|खतिवडा|सिंखडा|जोती|ज्योती|ज्योति|धुंगाना|ढुंगाना|गजुरेल|बराल|वराल|सुवेदी|लम्साल|रिजाल|दुलाल|ढकाल|उपाध्याय|शर्मा|सिग्देल|पराजुली|तिवारी|गौतम|न्यौपाने|कोइराला|वाग्ले|सिटौला|\b(acharya|achary|poudel|paudel|pandit|ghimire|adhikari|nepal|dahal|bhattarai|sapkota|sapakota|lamichhane|pudasaini|chaulagain|chaulagai|aryal|dangal|khatiwada|simkhada|dhungana|gajurel|baral|jyoti|joti|guragai|rimal|chapagai|lamsal|rijal|dulal|pande|timalsina|timalsena|suwedi|subedi|dhakal|upadhyay|sharma|kakshapati|sigdel|parajuli|tiwari|gautam|nyaupane|chalise|koirala|wagle|sitaula|mainali|rupakheti|phuyal|bastola)\b/i, sur: primarySurname || 'पहाडी ब्राह्मण', cluster: 'khas_arya', label: 'खस आर्य', sub: 'पहाडी ब्राह्मण' },
     { p: /गिरी|पुरी|भारती|वन|बन|\b(giri|puri|bharati|ban|van)\b/i, sur: primarySurname || 'गिरी', cluster: 'khas_arya', label: 'खस आर्य', sub: 'सन्यासी / दशनामी' },
-    { p: /\b(shahi|shah|chand|singh|sen)\b/i, sur: primarySurname || 'ठकुरी', cluster: 'khas_arya', label: 'खस आर्य', sub: 'ठकुरी' },
-    
-    // Dalit
-    { p: /वि[\.\s]*क|विश्वकर्मा|बराइली|गजमेर|सुनार|सोनार|घताने|घतानी|टमटा|वड|गदाल|कामी|\b(b\.k\.|bk|bishwakarma|baraili|sunar|sonar|kami)\b/i, sur: 'वि.क.', cluster: 'dalit', label: 'दलित समुदाय', sub: 'विश्वकर्मा' },
-    { p: /परियार|दमाई|दर्जी|नेपाली|सुन्दास|\b(pariyar|damai|darji|nepali|sundas)\b/i, sur: 'परियार', cluster: 'dalit', label: 'दलित समुदाय', sub: 'परियार' },
-    { p: /मिजार|सार्की|तोलाङ्गी|\b(mijar|sarki|tolangi)\b/i, sur: 'मिजार', cluster: 'dalit', label: 'दलित समुदाय', sub: 'मिजार' }
+    { p: /ठकुरी|हमाल|साउद|\b(shahi|shah|chand|singh|sen|thakuri|hamal|saud)\b/i, sur: primarySurname || 'ठकुरी', cluster: 'khas_arya', label: 'खस आर्य', sub: 'ठकुरी / क्षेत्री' },
+
+    // Dalit phonetic typos & female suffixes
+    { p: /वि[\.\s]*क|विश्वकर्मा|बराइली|गजमेर|सुनार|सोनार|घताने|घतानी|टमटा|वड|गदाल|कामी|कामिनी|दर्नाल|तोलाङ्गे|गोतामे|\b(b\.k\.|bk|wi\.k|bishwakarma|bishwokarma|wishwakarma|baraili|waraili|sunar|sonar|kami|kamini|darnal|tolangge|tolangi|gotame|ghatani|tiruwa)\b/i, sur: 'वि.क.', cluster: 'dalit', label: 'दलित समुदाय', sub: 'विश्वकर्मा' },
+    { p: /परियार|दमाई|दमिनी|दर्जी|नेपाली|सुन्दास|\b(pariyar|damai|damini|darji|nepali|sundas)\b/i, sur: 'परियार', cluster: 'dalit', label: 'दलित समुदाय', sub: 'परियार' },
+    { p: /मिजार|सार्की|सार्किनी|तोलाङ्गी|कालीराज|कमार|\b(mijar|sarki|sarkini|kaliraj|kamar)\b/i, sur: 'मिजार', cluster: 'dalit', label: 'दलित समुदाय', sub: 'मिजार' },
+
+    // Madhesi / Tharu phonetic typos & female suffixes
+    { p: /यादव|थारु|थरुनी|चौधरी|महतो|मण्डल|झा|साह|गुप्ता|ठाकुर|\b(yadav|yadab|tharu|tharuni|chaudhary|chaudhari|chaudharii|mahato|mandal|jha|sah|sahu|gupta|kushwaha|kurmi|thakur|kalwar|rauniyar|agrawal)\b/i, sur: primarySurname || 'मधेशी / थारु', cluster: 'madhesi', label: 'मधेशी / थारु', sub: 'मधेशी / थारु' },
+
+    // Muslim phonetic typos & suffixes
+    { p: /शेख|अन्सारी|खान|खातुन|मियाँ|पठान|मन्सुरी|\b(sheikh|ansari|khan|khatun|miyan|miya|sayyid|pathan|qureshi|mansuri|siddiqui|farooqui|usmani)\b/i, sur: primarySurname || 'मुस्लिम', cluster: 'muslim', label: 'मुस्लिम समुदाय', sub: 'मुस्लिम समुदाय' }
   ];
 
-  for (let q of quickPatterns) {
+  for (let q of phoneticPatterns) {
     if (q.p.test(cleanFullName)) {
       return {
         surname: q.sur || primarySurname,
@@ -41127,7 +41086,100 @@ function getVoterCasteClassification(v) {
     }
   }
 
-  // 8. If still not matched, mark as unclassified for 1-click review
+  return null;
+}
+
+// Universal 3-Tier Caste Classifier Engine (All-Nepal 753 Palika Ready)
+// Tier 1: Direct Surname & Dictionary Match
+// Tier 2: Family Lineage Auto-Match (Spouse / Father / Mother Surname Inference)
+// Tier 3: Smart Phonetic Typo & Cultural Name Resolver
+function getVoterCasteClassification(v) {
+  if (!v) return { surname: '', cluster: 'unclassified', clusterLabel: 'पहिचान खुल्न बाँकी', sub: 'अन्य', isCustom: false };
+
+  const rawCleanName = (v.full_name || v.Name || v.FullName || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+
+  // 0. Explicit override saved directly on voter record
+  const directCluster = v.caste_cluster || v.CasteCluster;
+  const directSurname = v.caste_surname || v.CasteSurname;
+  const directSub = v.caste_sub || v.CasteSub;
+  if (directCluster && directCluster !== 'unclassified') {
+    const cLabels = {
+      'janajati': 'आदिवासी जनजाति',
+      'khas_arya': 'खस आर्य',
+      'newar': 'नेवार समुदाय',
+      'dalit': 'दलित समुदाय',
+      'madhesi': 'मधेशी / थारु',
+      'muslim': 'मुस्लिम समुदाय',
+      'other': 'मधेसी / अन्य'
+    };
+    return {
+      surname: directSurname || extractVoterSurname(rawCleanName),
+      cluster: directCluster,
+      clusterLabel: cLabels[directCluster] || 'अन्य / खुल्न बाँकी',
+      sub: directSub || directSurname || extractVoterSurname(rawCleanName),
+      isCustom: true
+    };
+  }
+
+  const customRules = getCustomCasteRules();
+
+  // TIER 1: Direct Voter Name Classification (Dictionary + Custom Rules + Phonetic Typos)
+  const tier1Result = classifySingleNameString(rawCleanName, customRules);
+  if (tier1Result) return tier1Result;
+
+  // TIER 2: Family Lineage Auto-Match (Spouse -> Father -> Mother Surname Inference)
+  const familyCandidates = [
+    v.spouse_name || v.SpouseName || '',
+    v.father_name || v.FatherName || '',
+    v.mother_name || v.MotherName || ''
+  ];
+  for (let i = 0; i < familyCandidates.length; i++) {
+    const relName = familyCandidates[i];
+    if (relName && relName !== '-') {
+      const famMatch = classifySingleNameString(relName, customRules);
+      if (famMatch && famMatch.cluster && famMatch.cluster !== 'unclassified') {
+        return {
+          ...famMatch,
+          inferredFromFamily: true
+        };
+      }
+    }
+  }
+
+  // TIER 3: Smart Cultural Name Resolver (Unambiguous Cultural Markers across Voter + Parents)
+  const primarySurname = extractVoterSurname(rawCleanName);
+  const combinedLineageText = [
+    rawCleanName,
+    v.father_name || v.FatherName || '',
+    v.mother_name || v.MotherName || '',
+    v.spouse_name || v.SpouseName || ''
+  ].join(' ').replace(/[\u200B-\u200D\uFEFF]/g, '');
+
+  // 3A. Unambiguous Buddhist / Tibeto-Burman Cultural Given Names (All-Nepal Janajati Marker)
+  if (/\b(pema|pemba|chhiring|tashi|pasang|nima|lhakpa|urgen|tenjing|tenjen|dorje|gyalzen|namgyal|namagyal|chhoden|dolma|doma|lhamo|phurpa|mingma|mingmar|karmu|rinjin|palden|kunchok|chhomphel|wangchu|wangachu|dendup|kalsang|sonam|dawa|karma|gyurmi|chhowang|lakchung)\b|पेमा|पेम्बा|छिरिङ|टासी|पासाङ|निमा|लाक्पा|तेन्जिङ|दोर्जे|डोल्मा|फुर्पा|मिङमा|सोनाम|दावा|कर्मा/i.test(combinedLineageText)) {
+    return {
+      surname: primarySurname || 'जनजाति (सांस्कृतिक नाम)',
+      cluster: 'janajati',
+      clusterLabel: 'आदिवासी जनजाति',
+      sub: 'बौद्ध जनजाति (सांस्कृतिक नाम)',
+      isCustom: false,
+      inferredFromCulturalName: true
+    };
+  }
+
+  // 3B. Unambiguous Islamic Cultural Given Names (All-Nepal Muslim Marker)
+  if (/\b(mohammad|mohammed|muhammad|abdul|fatima|ayesha|khatun|begum|hussain|husain|ahmed|ahmad|akhtar|alam|mustafa|ibrahim)\b|मोहम्मद|अब्दुल|फातिमा|खातुन|बेगम|हुसेन|अहमद/i.test(combinedLineageText)) {
+    return {
+      surname: primarySurname || 'मुस्लिम',
+      cluster: 'muslim',
+      clusterLabel: 'मुस्लिम समुदाय',
+      sub: 'मुस्लिम समुदाय (सांस्कृतिक नाम)',
+      isCustom: false,
+      inferredFromCulturalName: true
+    };
+  }
+
+  // Safe Neutral Fallback: Mark as unclassified for 1-click Studio review
   return {
     surname: primarySurname || 'अज्ञात',
     cluster: 'unclassified',
@@ -43424,10 +43476,18 @@ function aggregateTenantSurnamesFromMemory(tenantId) {
   // Require at least 500 voters so the 15-voter sample seed never overrides real 18,907/37,759 rolls
   if (tenantVoters.length < 500) return null;
 
+  const customRules = getCustomCasteRules();
   const surnameCounts = {};
   for (let i = 0; i < tenantVoters.length; i++) {
     const v = tenantVoters[i];
-    const s = extractVoterSurnameFromCleanName(v.Name || v.full_name || '');
+    const vName = v.Name || v.full_name || '';
+    let s = extractVoterSurnameFromCleanName(vName);
+    if (!classifySingleNameString(vName, customRules)) {
+      const fullClass = getVoterCasteClassification(v);
+      if (fullClass && fullClass.cluster && fullClass.cluster !== 'unclassified' && fullClass.surname) {
+        s = fullClass.surname;
+      }
+    }
     if (s) surnameCounts[s] = (surnameCounts[s] || 0) + 1;
   }
 
@@ -43454,10 +43514,11 @@ async function fetchLiveTenantSurnamesFromCloud(tenantId, forceNetwork = false) 
       'Authorization': `Bearer ${key}`
     };
 
+    const customRules = getCustomCasteRules();
     const surnameCounts = {};
     let totalProcessed = 0;
 
-    // 2. Fast Parallel Wave Scanning (5 concurrent pages per wave instead of slow 1-by-1 loop)
+    // 2. Fast Parallel Wave Scanning (5 concurrent pages per wave with full 3-tier family & cultural context)
     const pageSize = 1000;
     const waveSize = 5;
     let reachedEnd = false;
@@ -43467,7 +43528,7 @@ async function fetchLiveTenantSurnamesFromCloud(tenantId, forceNetwork = false) 
       for (let w = 0; w < waveSize; w++) {
         const offset = waveStart + w * pageSize;
         wavePromises.push(
-          fetch(`${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&select=full_name&offset=${offset}&limit=${pageSize}`, { headers })
+          fetch(`${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&select=full_name,father_name,mother_name,spouse_name&offset=${offset}&limit=${pageSize}`, { headers })
             .then(r => r.ok ? r.json() : [])
             .catch(() => [])
         );
@@ -43481,7 +43542,14 @@ async function fetchLiveTenantSurnamesFromCloud(tenantId, forceNetwork = false) 
         }
         totalProcessed += rows.length;
         for (let i = 0; i < rows.length; i++) {
-          const s = extractVoterSurnameFromCleanName(rows[i].full_name);
+          const row = rows[i];
+          let s = extractVoterSurnameFromCleanName(row.full_name);
+          if (!classifySingleNameString(row.full_name, customRules)) {
+            const fullClass = getVoterCasteClassification(row);
+            if (fullClass && fullClass.cluster && fullClass.cluster !== 'unclassified' && fullClass.surname) {
+              s = fullClass.surname;
+            }
+          }
           if (s) surnameCounts[s] = (surnameCounts[s] || 0) + 1;
         }
         if (rows.length < pageSize) {
@@ -44512,8 +44580,8 @@ async function loadSurnameProfileVoters() {
     }
 
     const queryUrl = orParts.length > 0
-      ? `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&or=(${orParts.join(',')})&select=voter_id,official_voter_id,full_name,gender,age,ward_no,booth_no,tole,voted_status,is_influencer,phone&order=ward_no.asc,full_name.asc&limit=1000`
-      : `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&select=voter_id,official_voter_id,full_name,gender,age,ward_no,booth_no,tole,voted_status,is_influencer,phone&order=ward_no.asc,full_name.asc&limit=1000`;
+      ? `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&or=(${orParts.join(',')})&select=voter_id,official_voter_id,full_name,father_name,mother_name,spouse_name,gender,age,ward_no,booth_no,tole,voted_status,is_influencer,phone&order=ward_no.asc,full_name.asc&limit=1000`
+      : `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&select=voter_id,official_voter_id,full_name,father_name,mother_name,spouse_name,gender,age,ward_no,booth_no,tole,voted_status,is_influencer,phone&order=ward_no.asc,full_name.asc&limit=1000`;
     
     const resp = await fetch(queryUrl, {
       headers: {
