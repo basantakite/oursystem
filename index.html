@@ -36891,6 +36891,10 @@ function renderElectionDayStrikeSheet() {
         state.voters = [...newVoters, ...state.voters];
       }
       _voterIndexDirty = true;
+      if (typeof _tenantStudioSurnameCache === 'object' && _tenantStudioSurnameCache) {
+        delete _tenantStudioSurnameCache[targetTenantId];
+      }
+      try { localStorage.removeItem('vrm_tenant_studio_surnames_v72_' + targetTenantId); } catch(e) {}
       sanitizeCorruptedHouseholdsAndLinks(true);
 
       // Save Batch Record in Super Admin Batches
