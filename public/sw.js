@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v82)
-const CACHE_NAME = 'election-ops-v82-multigen-symmetric-family-engine';
+// Service Worker for Offline & Installable App Experience (v83)
+const CACHE_NAME = 'election-ops-v83-executive-responsive-ui-engine';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

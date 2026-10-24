@@ -647,8 +647,22 @@
       z-index: 1;
     }
     @media (max-width: 600px) {
+      .voter-slip-card {
+        padding: 14px 12px !important;
+        outline-offset: -4px !important;
+      }
+      .slip-top-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+      }
       .slip-grid {
         grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      .slip-security-footer {
+        flex-direction: column !important;
+        gap: 10px !important;
       }
     }
     .slip-cell {
@@ -2179,10 +2193,10 @@
        ========================================================================== */
     .voter-dossier-card {
       background: #ffffff;
-      border-radius: 20px;
-      border: 1.5px solid #e2e8f0;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-      margin-bottom: 18px;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+      margin-bottom: 16px;
       position: relative;
       overflow: visible;
       padding: 18px 16px 16px;
@@ -2193,9 +2207,9 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 5px;
-      border-radius: 20px 20px 0 0;
-      background: linear-gradient(90deg, #2563eb, #8b5cf6, #ec4899, #f59e0b);
+      height: 4px;
+      border-radius: 16px 16px 0 0;
+      background: linear-gradient(90deg, #1e3a8a 0%, #2563eb 50%, #0284c7 100%);
     }
     .voter-dossier-profile-row {
       display: flex;
@@ -2203,28 +2217,28 @@
       justify-content: space-between;
       gap: 12px;
       margin-top: 4px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
     .voter-dossier-avatar-wrap {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
       min-width: 0;
       flex: 1;
     }
     .voter-dossier-avatar {
-      width: 58px;
-      height: 58px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
       color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 26px;
+      font-size: 22px;
       font-weight: 900;
-      border: 3px solid #ffffff;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
+      border: 2px solid #ffffff;
+      box-shadow: 0 4px 12px rgba(30, 58, 138, 0.22);
       flex-shrink: 0;
     }
     .voter-dossier-identity {
@@ -2233,11 +2247,11 @@
     }
     .voter-dossier-name {
       margin: 0;
-      font-size: 21px;
-      font-weight: 900;
+      font-size: 19px;
+      font-weight: 800;
       color: #0f172a;
       letter-spacing: -0.01em;
-      line-height: 1.2;
+      line-height: 1.25;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -2246,31 +2260,32 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #f1f5f9;
-      color: #475569;
+      background: #f8fafc;
+      color: #334155;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 800;
       font-family: monospace;
       padding: 3px 10px;
       border-radius: 8px;
-      margin-top: 5px;
+      margin-top: 4px;
       cursor: pointer;
       border: 1px solid #e2e8f0;
-      transition: background 0.15s ease;
+      transition: all 0.15s ease;
       user-select: none;
     }
     .voter-dossier-id-pill:hover {
-      background: #e2e8f0;
-      color: #1e293b;
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #cbd5e1;
     }
     .voter-dossier-more-btn {
-      width: 38px;
-      height: 38px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background: #f8fafc;
-      border: 1.5px solid #e2e8f0;
+      border: 1px solid #e2e8f0;
       color: #475569;
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 900;
       display: flex;
       align-items: center;
@@ -2281,12 +2296,13 @@
       line-height: 1;
     }
     .voter-dossier-more-btn:hover {
-      background: #e2e8f0;
+      background: #f1f5f9;
       color: #0f172a;
+      border-color: #cbd5e1;
     }
     .voter-header-more-menu {
       position: absolute;
-      top: 44px;
+      top: 42px;
       right: 0;
       background: #ffffff;
       border: 1px solid #cbd5e1;
@@ -2294,7 +2310,7 @@
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
       padding: 6px;
       z-index: 100;
-      min-width: 200px;
+      min-width: 210px;
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -2319,7 +2335,7 @@
       color: #0f172a;
     }
 
-    /* 4 Micro-Metric Cards Grid */
+    /* 4 Micro-Metric Cards Grid (Desktop 4 cols, Mobile 2x2 cols) */
     .voter-metrics-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -2328,15 +2344,15 @@
     }
     .voter-metric-card {
       background: #f8fafc;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 8px 6px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 9px 10px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       box-sizing: border-box;
       min-width: 0;
-      transition: border-color 0.15s ease, background 0.15s ease;
+      transition: all 0.15s ease;
     }
     .voter-metric-card.is-clickable {
       cursor: pointer;
@@ -2346,103 +2362,93 @@
       background: #f1f5f9;
     }
     .voter-metric-icon {
-      font-size: 18px;
-      line-height: 1;
-      flex-shrink: 0;
-    }
-    .voter-metric-hash {
-      width: 20px;
-      height: 20px;
-      border-radius: 6px;
-      background: #e0e7ff;
-      color: #4338ca;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 900;
+      font-size: 17px;
       line-height: 1;
       flex-shrink: 0;
     }
     .voter-metric-content {
       min-width: 0;
-      line-height: 1.2;
+      flex: 1;
+      line-height: 1.25;
     }
     .voter-metric-label {
-      font-size: 10px;
+      font-size: 10.5px;
       font-weight: 700;
       color: #64748b;
       white-space: nowrap;
     }
     .voter-metric-val {
       font-size: 13.5px;
-      font-weight: 900;
+      font-weight: 800;
       color: #0f172a;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     /* 2 Status Switchers Grid */
     .voter-status-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 14px;
+      gap: 8px;
+      margin-bottom: 12px;
     }
     .voter-status-pill {
-      border-radius: 12px;
+      border-radius: 10px;
       padding: 9px 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       cursor: pointer;
       box-sizing: border-box;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 800;
       transition: all 0.15s ease;
       user-select: none;
+      min-width: 0;
     }
     .voter-status-pill:hover {
       filter: brightness(0.97);
     }
     .voter-status-pill-party {
       background: #fffbeb;
-      border: 1.5px solid #fed7aa;
-      color: #9a3412;
+      border: 1px solid #fde68a;
+      color: #92400e;
     }
     .voter-status-pill-verify {
       background: #f0fdf4;
-      border: 1.5px solid #bbf7d0;
+      border: 1px solid #bbf7d0;
       color: #166534;
     }
 
-    /* Action Tiles Grids */
+    /* Action Tiles Grids - Executive 2-Tier Modern Architecture */
     .voter-actions-grid {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
     .voter-actions-row-3 {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+      gap: 8px;
     }
-    .voter-actions-row-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+    .voter-actions-social-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 2px;
     }
     .voter-action-tile {
-      height: 44px;
-      min-height: 44px;
-      border-radius: 12px;
+      height: 40px;
+      min-height: 40px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 800;
       text-decoration: none !important;
       border: none;
@@ -2458,49 +2464,132 @@
     .tile-phone {
       background: #059669;
       color: #ffffff !important;
-      box-shadow: 0 3px 10px rgba(5, 150, 105, 0.25);
+      box-shadow: 0 2px 6px rgba(5, 150, 105, 0.22);
     }
     .tile-whatsapp {
       background: #10b981;
       color: #ffffff !important;
-      box-shadow: 0 3px 10px rgba(16, 185, 129, 0.25);
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.22);
     }
     .tile-sms {
       background: #eef2ff;
       color: #4338ca !important;
-      border: 1.5px solid #c7d2fe;
-    }
-    .tile-facebook {
-      background: #1877f2;
-      color: #ffffff !important;
-      box-shadow: 0 3px 10px rgba(24, 119, 242, 0.25);
-    }
-    .tile-tiktok {
-      background: #000000;
-      color: #ffffff !important;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+      border: 1px solid #c7d2fe;
     }
     .tile-visit {
-      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-      color: #ffffff !important;
-      box-shadow: 0 3px 10px rgba(16, 185, 129, 0.25);
-    }
-    .tile-slip {
       background: #1e3a8a;
       color: #ffffff !important;
-      box-shadow: 0 3px 10px rgba(30, 58, 138, 0.25);
+      box-shadow: 0 2px 6px rgba(30, 58, 138, 0.22);
+    }
+    .tile-slip {
+      background: #0284c7;
+      color: #ffffff !important;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.22);
     }
     .tile-edit {
       background: #ffffff;
       color: #1e293b !important;
-      border: 1.5px solid #cbd5e1;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    .tile-social-pill {
+      height: 32px;
+      padding: 0 10px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-decoration: none !important;
+      transition: all 0.12s ease;
+    }
+    .tile-social-facebook {
+      background: #eff6ff;
+      color: #1d4ed8 !important;
+      border: 1px solid #bfdbfe;
+    }
+    .tile-social-tiktok {
+      background: #f8fafc;
+      color: #0f172a !important;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Executive Segmented Tab Navigation for Modal */
+    .voter-modal-tabs {
+      display: flex;
+      gap: 5px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: 4px;
+      background: #f1f5f9;
+      border-radius: 12px;
+      margin-bottom: 14px;
+    }
+    .voter-modal-tabs::-webkit-scrollbar {
+      display: none;
+    }
+    .voter-modal-tab-btn {
+      padding: 7px 13px;
+      font-size: 12.5px;
+      font-weight: 700;
+      border-radius: 8px;
+      white-space: nowrap;
+      border: none;
+      cursor: pointer;
+      background: transparent;
+      color: #64748b;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .voter-modal-tab-btn.is-active {
+      background: #ffffff;
+      color: #1e3a8a;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      font-weight: 800;
+    }
+    .voter-modal-tab-btn:hover:not(.is-active) {
+      color: #0f172a;
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Responsive Controls for Overview & Household Modals */
+    .overview-roll-desktop { display: block; }
+    .overview-roll-mobile { display: none; }
+    .household-family-desktop { display: block; }
+    .household-family-mobile { display: none; }
+
+    @media (max-width: 640px) {
+      .voter-metrics-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+      }
+      .overview-roll-desktop { display: none !important; }
+      .overview-roll-mobile { display: block !important; }
+      .household-family-desktop { display: none !important; }
+      .household-family-mobile { display: flex !important; flex-direction: column; gap: 8px; }
+      .voter-dossier-card {
+        padding: 14px 12px 14px;
+        border-radius: 14px;
+      }
+      .voter-dossier-avatar {
+        width: 46px;
+        height: 46px;
+        font-size: 20px;
+      }
+      .voter-dossier-name {
+        font-size: 17px;
+      }
     }
 
     @media (max-width: 480px) {
       .voter-metric-card {
-        padding: 6px 4px;
-        gap: 4px;
+        padding: 7px 8px;
+        gap: 6px;
       }
       .voter-metric-icon {
         font-size: 15px;
@@ -2509,18 +2598,17 @@
         font-size: 9.5px;
       }
       .voter-metric-val {
-        font-size: 12px;
+        font-size: 12.5px;
       }
       .voter-action-tile {
         font-size: 12px;
         gap: 4px;
         padding: 0 4px;
+        height: 38px;
+        min-height: 38px;
       }
     }
     @media (max-width: 360px) {
-      .voter-metrics-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
       .voter-action-tile {
         font-size: 11px;
       }
@@ -11299,11 +11387,11 @@
         if (contactWrap) {
           contactWrap.innerHTML = isContacted ? `
             <button type="button" onclick="toggleVoterContactStatus('${vId}')" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; border-radius: 8px; padding: 6.5px 4px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; width: 100%; white-space: nowrap; box-sizing: border-box;" title="सम्पर्क अवस्था">
-              <span>✓ Contacted</span> <span style="font-size: 9px;">🔄</span>
+              <span>✓ भेटियो</span> <span style="font-size: 9px;">🔄</span>
             </button>
           ` : `
             <button type="button" onclick="toggleVoterContactStatus('${vId}')" style="background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; border-radius: 8px; padding: 6.5px 4px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; width: 100%; white-space: nowrap; box-sizing: border-box;" title="सम्पर्क अवस्था">
-              <span>👤 Uncontacted</span> <span style="font-size: 9px;">🔄</span>
+              <span>👤 बाँकी</span> <span style="font-size: 9px;">🔄</span>
             </button>
           `;
         }
@@ -18906,23 +18994,23 @@ async function saveQuickCreatedTole(e) {
             <div id="voterCardContactWrap_${v.VoterID}" style="min-width: 0;">
               ${v.ContactStatus === 'Contacted' ? `
                 <button type="button" onclick="toggleVoterContactStatus('${v.VoterID}')" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; border-radius: 8px; padding: 6.5px 4px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; width: 100%; white-space: nowrap; box-sizing: border-box;" title="सम्पर्क अवस्था">
-                  <span>✓ Contacted</span> <span style="font-size: 9px;">🔄</span>
+                  <span>✓ भेटियो</span> <span style="font-size: 9px;">🔄</span>
                 </button>
               ` : `
                 <button type="button" onclick="toggleVoterContactStatus('${v.VoterID}')" style="background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; border-radius: 8px; padding: 6.5px 4px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; width: 100%; white-space: nowrap; box-sizing: border-box;" title="सम्पर्क अवस्था">
-                  <span>👤 Uncontacted</span> <span style="font-size: 9px;">🔄</span>
+                  <span>👤 बाँकी</span> <span style="font-size: 9px;">🔄</span>
                 </button>
               `}
             </div>
 
             <!-- Middle: View Profile -->
             <button type="button" onclick="viewVoterProfile('${v.VoterID}')" style="background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; border-radius: 8px; padding: 6.5px 5px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; width: 100%; white-space: nowrap; box-sizing: border-box;" title="विवरण">
-              <span>👁️</span> <span>View</span>
+              <span>👁️</span> <span>प्रोफाइल</span>
             </button>
 
             <!-- Right: Record Visit -->
             <button type="button" onclick="openRecordVisitModal('${v.VoterID}')" style="background: #2563eb; border: none; color: #ffffff; border-radius: 8px; padding: 6.5px 5px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; width: 100%; white-space: nowrap; box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25); box-sizing: border-box;" title="भेटघाट">
-              <span>➔]</span> <span>Visit</span>
+              <span>🚶</span> <span>भेटघाट</span>
             </button>
           </div>
         </div>
@@ -20794,26 +20882,25 @@ async function saveQuickCreatedTole(e) {
           <div class="voter-status-grid">
             <!-- Party / Support Switcher -->
             <div class="voter-status-pill voter-status-pill-party" onclick="quickCycleParty('${v.VoterID}', '${activeTab}');" title="क्लिक गरी पार्टी झुकाव परिवर्तन गर्नुहोस्">
-              <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-                <span style="font-size: 16px;">${getPartyIcon(v.PartyLeaning)}</span>
-                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${getPartyLabel(v.PartyLeaning)}</span>
+              <div style="display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden;">
+                ${getPartyLabel(v.PartyLeaning)}
               </div>
-              <span style="font-size: 14px; opacity: 0.8; margin-left: 6px; flex-shrink: 0;">🔄</span>
+              <span style="font-size: 13px; opacity: 0.7; margin-left: 6px; flex-shrink: 0;">🔄</span>
             </div>
 
             <!-- Verification Switcher -->
             <div class="voter-status-pill voter-status-pill-verify" onclick="toggleVoterVerification('${v.VoterID}'); viewVoterProfile('${v.VoterID}', '${activeTab}');" title="क्लिक गरी प्रमाणीकरण बदल्नुहोस्">
-              <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-                <span style="font-size: 15px; font-weight: 900;">${v.VerificationStatus === 'Verified' ? '✓' : '⏳'}</span>
-                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.VerificationStatus === 'Verified' ? 'प्रमाणित (Verified)' : 'बाँकी (Pending)'}</span>
+              <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+                <span style="font-size: 14px; font-weight: 900;">${v.VerificationStatus === 'Verified' ? '✓' : '⏳'}</span>
+                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.VerificationStatus === 'Verified' ? 'प्रमाणित' : 'पुष्टि बाँकी'}</span>
               </div>
-              <span style="font-size: 14px; opacity: 0.8; margin-left: 6px; flex-shrink: 0;">🔄</span>
+              <span style="font-size: 13px; opacity: 0.7; margin-left: 6px; flex-shrink: 0;">🔄</span>
             </div>
           </div>
 
-          <!-- Structured Action Tiles Grid (Rows 3, 4, 5) -->
+          <!-- Structured Action Tiles Grid (Tier 1: Outreach, Tier 2: Field & Slip) -->
           <div class="voter-actions-grid">
-            <!-- Row 3: Direct Communications (3 Columns) -->
+            <!-- Row 1: Direct Communications (3 Equal Columns) -->
             <div class="voter-actions-row-3">
               ${v.Phone ? `
                 <a href="tel:${cleanPhone(v.Phone)}" class="voter-action-tile tile-phone" title="सिधा फोन गर्नुहोस्">
@@ -20831,37 +20918,15 @@ async function saveQuickCreatedTole(e) {
                 </button>
               `}
               <button type="button" class="voter-action-tile tile-sms" onclick="openCustomMessageModal('${v.VoterID}')" title="कस्टम सन्देश (SMS)">
-                <span>💬</span> <span>सन्देश</span>
+                <span>✉️</span> <span>सन्देश</span>
               </button>
             </div>
 
-            <!-- Row 4: Social & Field Ops (3 Columns) -->
+            <!-- Row 2: Field Operations & Records (3 Equal Columns) -->
             <div class="voter-actions-row-3">
-              ${v.FacebookUrl ? `
-                <a href="${formatSocialUrl(v.FacebookUrl, 'facebook')}" target="_blank" rel="noopener noreferrer" class="voter-action-tile tile-facebook" title="Facebook प्रोफाइल सिधा खोल्नुहोस्">
-                  <span style="font-weight: 900; font-family: sans-serif; font-size: 15px;">f</span> <span>Facebook</span>
-                </a>
-              ` : `
-                <button type="button" class="voter-action-tile tile-facebook" onclick="openEditVoterModal('${v.VoterID}')" title="Facebook लिङ्क थप्नुहोस्">
-                  <span style="font-weight: 900; font-family: sans-serif; font-size: 15px;">f</span> <span>Facebook</span>
-                </button>
-              `}
-              ${v.TiktokUrl ? `
-                <a href="${formatSocialUrl(v.TiktokUrl, 'tiktok')}" target="_blank" rel="noopener noreferrer" class="voter-action-tile tile-tiktok" title="TikTok प्रोफाइल सिधा खोल्नुहोस्">
-                  <span>♪</span> <span>TikTok</span>
-                </a>
-              ` : `
-                <button type="button" class="voter-action-tile tile-tiktok" onclick="openEditVoterModal('${v.VoterID}')" title="TikTok लिङ्क थप्नुहोस्">
-                  <span>♪</span> <span>TikTok</span>
-                </button>
-              `}
               <button type="button" class="voter-action-tile tile-visit" onclick="openRecordVisitModal('${v.VoterID}')" title="घरदैलो भेटघाट दर्ता गर्नुहोस्">
-                <span>🚶</span> <span>घरदैलो भेट <small>(+ Visit)</small></span>
+                <span>🚶</span> <span>घरदैलो भेट</span>
               </button>
-            </div>
-
-            <!-- Row 5: Documentation & Edit (2 Columns - 50% / 50%) -->
-            <div class="voter-actions-row-2">
               <button type="button" class="voter-action-tile tile-slip" onclick="printVoterSlip('${v.VoterID}')" title="मतदाता परिचय पर्चा हेर्नुहोस् र प्रिन्ट गर्नुहोस्">
                 <span>🖨️</span> <span>पर्चा (Slip)</span>
               </button>
@@ -20869,28 +20934,45 @@ async function saveQuickCreatedTole(e) {
                 <span>✏️</span> <span>सम्पादन</span>
               </button>
             </div>
+
+            <!-- Row 3: Optional Social Media Links -->
+            ${(v.FacebookUrl || v.TiktokUrl) ? `
+              <div class="voter-actions-social-row">
+                <span style="font-size: 11px; font-weight: 700; color: #64748b;">डिजिटल प्रोफाइल:</span>
+                ${v.FacebookUrl ? `
+                  <a href="${formatSocialUrl(v.FacebookUrl, 'facebook')}" target="_blank" rel="noopener noreferrer" class="tile-social-pill tile-social-facebook" title="Facebook प्रोफाइल खोल्नुहोस्">
+                    <span style="font-weight: 900; font-family: sans-serif;">f</span> <span>Facebook</span>
+                  </a>
+                ` : ''}
+                ${v.TiktokUrl ? `
+                  <a href="${formatSocialUrl(v.TiktokUrl, 'tiktok')}" target="_blank" rel="noopener noreferrer" class="tile-social-pill tile-social-tiktok" title="TikTok प्रोफाइल खोल्नुहोस्">
+                    <span>♪</span> <span>TikTok</span>
+                  </a>
+                ` : ''}
+              </div>
+            ` : ''}
           </div>
         </div>
 
-        <!-- 5-TAB NAVIGATION STRIP -->
-        <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--slate-200); margin-bottom: 16px; overflow-x: auto; padding-bottom: 6px;">
-          <button class="btn btn-sm ${activeTab === 'overview' ? 'btn-primary' : 'btn-secondary'}" onclick="viewVoterProfile('${v.VoterID}', 'overview')" style="font-weight: 700; white-space: nowrap;">
-            📋 व्यक्तिगत विवरण (Bio)
+        <!-- SEGMENTED TAB NAVIGATION STRIP -->
+        <div class="voter-modal-tabs">
+          <button type="button" class="voter-modal-tab-btn ${activeTab === 'overview' ? 'is-active' : ''}" onclick="viewVoterProfile('${v.VoterID}', 'overview')">
+            📋 व्यक्तिगत विवरण
           </button>
-          <button class="btn btn-sm ${activeTab === 'family' ? 'btn-primary' : 'btn-secondary'}" onclick="viewVoterProfile('${v.VoterID}', 'family')" style="font-weight: 700; white-space: nowrap;">
+          <button type="button" class="voter-modal-tab-btn ${activeTab === 'family' ? 'is-active' : ''}" onclick="viewVoterProfile('${v.VoterID}', 'family')">
             🌳 पारिवारिक संरचना (${familyMembers.length})
           </button>
-          <button class="btn btn-sm ${activeTab === 'timeline' ? 'btn-primary' : 'btn-secondary'}" onclick="viewVoterProfile('${v.VoterID}', 'timeline')" style="font-weight: 700; white-space: nowrap;">
-            🕒 टाइमलाइन र टिप्पणी (${visits.length + followups.length + (v.AdminNotes ? v.AdminNotes.length : 0)})
+          <button type="button" class="voter-modal-tab-btn ${activeTab === 'timeline' ? 'is-active' : ''}" onclick="viewVoterProfile('${v.VoterID}', 'timeline')">
+            🕒 टाइमलाइन (${visits.length + followups.length + (v.AdminNotes ? v.AdminNotes.length : 0)})
           </button>
-          <button class="btn btn-sm ${activeTab === 'profession' ? 'btn-primary' : 'btn-secondary'}" onclick="viewVoterProfile('${v.VoterID}', 'profession')" style="font-weight: 700; white-space: nowrap;">
-            💼 पेशा र सञ्जाल (${esc(getVoterNormalizedProfession(v))})
+          <button type="button" class="voter-modal-tab-btn ${activeTab === 'profession' ? 'is-active' : ''}" onclick="viewVoterProfile('${v.VoterID}', 'profession')">
+            💼 पेशा र सञ्जाल
           </button>
-          <button class="btn btn-sm ${activeTab === 'influencer' ? 'btn-primary' : 'btn-secondary'}" onclick="viewVoterProfile('${v.VoterID}', 'influencer')" style="font-weight: 700; white-space: nowrap;">
+          <button type="button" class="voter-modal-tab-btn ${activeTab === 'influencer' ? 'is-active' : ''}" onclick="viewVoterProfile('${v.VoterID}', 'influencer')">
             🌟 प्रभावकारी व्यक्ति ${v.IsInfluencer ? '⭐' : ''}
           </button>
-          <button class="btn btn-sm ${activeTab === 'comm' ? 'btn-primary' : 'btn-secondary'}" onclick="viewVoterProfile('${v.VoterID}', 'comm')" style="font-weight: 700; white-space: nowrap;">
-            💬 सञ्चार र पर्चा (Outreach)
+          <button type="button" class="voter-modal-tab-btn ${activeTab === 'comm' ? 'is-active' : ''}" onclick="viewVoterProfile('${v.VoterID}', 'comm')">
+            💬 सञ्चार र पर्चा
           </button>
         </div>
 
@@ -21148,10 +21230,12 @@ async function saveQuickCreatedTole(e) {
           <!-- CARD 1: OFFICIAL VOTER ROLL RECORD (Matches Election Commission Format) -->
           <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
             <div style="background: #1e3a6e; color: #ffffff; padding: 10px 16px; font-size: 13px; font-weight: 800; display: flex; justify-content: space-between; align-items: center;">
-              <span>🏛️ आधिकारिक मतदाता नामावली विवरण (Official Electoral Roll Record)</span>
+              <span>🏛️ आधिकारिक मतदाता नामावली विवरण (Official Roll Record)</span>
               <span style="font-family: monospace; background: rgba(255,255,255,0.18); padding: 2px 8px; border-radius: 6px;">वडा ${v.Ward} • बुथ ${esc(v.BoothNo || 'A')}</span>
             </div>
-            <div class="table-responsive" style="margin: 0; border-radius: 0;">
+
+            <!-- Desktop View (> 640px) -->
+            <div class="overview-roll-desktop table-responsive" style="margin: 0; border-radius: 0;">
               <table class="official-roll-table" style="border: none; border-radius: 0;">
                 <thead>
                   <tr class="official-navy-header">
@@ -21178,6 +21262,40 @@ async function saveQuickCreatedTole(e) {
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            <!-- Mobile View (<= 640px) -->
+            <div class="overview-roll-mobile" style="padding: 12px;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
+                  <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">क्र.सं. (S.N.)</div>
+                  <div style="font-size: 14px; font-weight: 900; color: #1e3a6e; font-family: monospace; margin-top: 1px;">${esc(v.VoterSerial || '-')}</div>
+                </div>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
+                  <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">मतदाता ID</div>
+                  <div style="font-size: 13px; font-weight: 800; color: #0f172a; font-family: monospace; margin-top: 1px;">${esc(v.OfficialVoterID || v.VoterID)}</div>
+                </div>
+                <div style="grid-column: 1 / -1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
+                  <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">पूरा नाम (Full Name)</div>
+                  <div style="font-size: 15px; font-weight: 900; color: #0f172a; margin-top: 1px;">${esc(v.Name)}</div>
+                </div>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
+                  <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">उमेर र लिङ्ग</div>
+                  <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 1px;">${esc(getVoterAgeDisplay(v))} वर्ष • ${formatGenderDisplay(v.Gender)}</div>
+                </div>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
+                  <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">पति / पत्नी</div>
+                  <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 1px;">${esc(v.SpouseName || '-')}</div>
+                </div>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
+                  <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">बुबाको नाम</div>
+                  <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 1px;">${esc(v.FatherName || v.ParentName || '-')}</div>
+                </div>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px;">
+                  <div style="font-size: 10.5px; color: #64748b; font-weight: 700;">आमाको नाम</div>
+                  <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 1px;">${esc(v.MotherName || '-')}</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -24976,7 +25094,8 @@ async function loadLiveHouseholdsPage() {
               वडा नं. <b>${hWard}</b> | मुख्य घरमुली: <b>${esc(primaryHead.full_name || primaryHead.Name)}</b> (${primaryHead.age || primaryHead.Age || '-'} वर्ष) | जम्मा परिवार सदस्य: <b>${members.length} जना मतदाता</b>
             </div>
           </div>
-          <div class="table-responsive">
+          <!-- Desktop View (> 640px) -->
+          <div class="household-family-desktop table-responsive">
             <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
               <thead>
                 <tr style="background: #f8fafc; text-align: left; border-bottom: 2px solid #e2e8f0;">
@@ -25020,6 +25139,40 @@ async function loadLiveHouseholdsPage() {
                 }).join('')}
               </tbody>
             </table>
+          </div>
+
+          <!-- Mobile View (<= 640px) -->
+          <div class="household-family-mobile">
+            ${members.map((m, i) => {
+              const isHead = m === primaryHead;
+              const isViewer = String(m.voter_id || m.VoterID) === sId;
+              const mName = m.full_name || m.Name;
+              let relLabel = m._rel;
+              if (isHead) relLabel += ' (घरमुली)';
+
+              return `
+                <div style="background: ${isViewer ? '#eff6ff' : (isHead ? '#f0fdf4' : '#ffffff')}; border: 1px solid ${isViewer ? '#bfdbfe' : (isHead ? '#bbf7d0' : '#e2e8f0')}; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+                      <span style="font-size: 11px; font-weight: 800; background: #f1f5f9; color: #475569; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">${i+1}</span>
+                      <a href="javascript:void(0)" onclick="closeModal(); viewVoterProfile('${m.voter_id || m.VoterID}', 'family');" style="color: #0f172a; font-weight: 800; font-size: 14px; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${esc(mName)}
+                      </a>
+                      ${isHead ? '<span class="badge" style="background:#dcfce7;color:#166534;font-size:9.5px;flex-shrink:0;">घरमुली</span>' : ''}
+                      ${isViewer ? '<span class="badge" style="background:#dbeafe;color:#1e40af;font-size:9.5px;flex-shrink:0;">यो प्रोफाइल</span>' : ''}
+                    </div>
+                    <span class="badge" style="background:#e0e7ff; color:#1e3a6e; font-weight:700; font-size:11px; flex-shrink: 0;">${relLabel}</span>
+                  </div>
+                  <div style="font-size: 11.5px; color: #475569; display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 5px;">
+                    <span>उमेर/लिङ्ग: <b>${m.age || m.Age || '-'} वर्ष (${esc(m.gender || m.Gender || '-')})</b></span>
+                    <code style="font-size: 11px; color: #1e3a6e;">${esc(m.official_voter_id || m.OfficialVoterID || m.voter_id || m.VoterID)}</code>
+                  </div>
+                  <div style="font-size: 11px; color: #64748b;">
+                    बुबा: <b>${esc(m.father_name || m.FatherName || '-')}</b> ${m.spouse_name || m.SpouseName ? '• पति/पत्नी: <b>' + esc(m.spouse_name || m.SpouseName) + '</b>' : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
           </div>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
             <span style="font-size:12px; color:#166534; font-weight:700;">✓ ५-नियम त्रुटिरहित पारिवारिक इन्जिनबाट १००% प्रमाणित</span>
@@ -31086,7 +31239,7 @@ function renderElectionDayStrikeSheet() {
       Maoist: { name: 'माओवादी केन्द्र', short: 'माओवादी', color: '#b91c1c', icon: '🔴' },
       RPP: { name: 'राप्रपा', short: 'राप्रपा', color: '#d97706', icon: '🟡' },
       Independent: { name: 'स्वतन्त्र / अन्य', short: 'अन्य', color: '#64748b', icon: '⚪' },
-      Undecided: { name: 'दोधार / अनिर्णित', short: 'दोधार', color: '#f59e0b', icon: '❓' }
+      Undecided: { name: 'दोधार / अनिर्णित', short: 'दोधार', color: '#d97706', icon: '⚖️' }
     };
 
     
@@ -31168,9 +31321,9 @@ function renderElectionDayStrikeSheet() {
     }
 
     function getPartyIcon(code) {
-      if (!code) return '❓';
+      if (!code) return '⚖️';
       const p = PARTY_META[code];
-      return p ? p.icon : '❓';
+      return p ? p.icon : '⚖️';
     }
 
     // 18.1 PALIKA OVERALL PROJECTION ENGINE (100% REAL MULTI-PARTY DATA)
