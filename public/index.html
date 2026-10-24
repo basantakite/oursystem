@@ -9891,7 +9891,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261020-v49-genz-seniors-real';
+      const CURRENT_APP_BUILD = '20261024-v91-dynamic-warroom-live';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -38047,15 +38047,24 @@ function renderElectionDayStrikeSheet() {
     let _warRoomActiveSubTab = 'palika';
     let _warRoomTurnoutPct = 68;
     let _warRoomBadarPct = 4.2;
-    let _warRoomPartyShares = {
-      NC: 48,
-      UML: 24,
-      MAOIST: 10,
-      RSP: 8,
-      RPP: 4,
-      SSP: 3,
-      INDEPENDENT: 3
-    };
+    let _warRoomPartyShares = (function() {
+      try {
+        const saved = localStorage.getItem('vrm_sim_party_shares');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) return parsed;
+        }
+      } catch (e) {}
+      return {
+        NC: 48,
+        UML: 24,
+        MAOIST: 10,
+        RSP: 8,
+        RPP: 4,
+        SSP: 3,
+        INDEPENDENT: 3
+      };
+    })();
     let _warRoomWardPartyShares = {}; // e.g. { 1: { NC: 48, UML: 28, ... }, 2: { ... } }
     let _warRoomWardTurnout = {};     // e.g. { 1: 68, 2: 70, ... }
     let _warRoomWardBadar = {};       // e.g. { 1: 4.2, 2: 3.5, ... }
@@ -38136,20 +38145,43 @@ function renderElectionDayStrikeSheet() {
         _warRoomWardPartyShares[wardNo] = { ..._warRoomPartyShares };
       }
 
-      // Calculate sum of all OTHER parties in this ward
+      let cleanVal = Math.min(100, Math.max(0, Math.round(p * 10) / 10));
       const otherKeys = keys.filter(k => k !== partyCode);
-      const otherSum = otherKeys.reduce((acc, k) => acc + (_warRoomWardPartyShares[wardNo][k] !== undefined ? _warRoomWardPartyShares[wardNo][k] : 0), 0);
-      const maxAllowed = Math.max(0, Math.round((100 - otherSum) * 10) / 10);
+      let otherSum = otherKeys.reduce((acc, k) => acc + (_warRoomWardPartyShares[wardNo][k] !== undefined ? _warRoomWardPartyShares[wardNo][k] : 0), 0);
+      let excess = Math.round((cleanVal + otherSum - 100) * 10) / 10;
 
-      let cleanVal = Math.min(maxAllowed, Math.max(0, Math.round(p * 10) / 10));
+      // Auto-rebalance excess from other parties so slider drags freely without jamming
+      if (excess > 0) {
+        while (excess > 0.01) {
+          const positiveOthers = otherKeys.filter(k => (_warRoomWardPartyShares[wardNo][k] || 0) > 0);
+          if (!positiveOthers.length) {
+            cleanVal = Math.max(0, Math.round((cleanVal - excess) * 10) / 10);
+            break;
+          }
+          const sumPositive = positiveOthers.reduce((acc, k) => acc + _warRoomWardPartyShares[wardNo][k], 0);
+          let deductedThisPass = 0;
+          for (const ok of positiveOthers) {
+            const share = _warRoomWardPartyShares[wardNo][ok];
+            const toDeduct = Math.min(share, Math.round((excess * (share / sumPositive)) * 10) / 10 || (excess > 0 ? 0.1 : 0));
+            _warRoomWardPartyShares[wardNo][ok] = Math.max(0, Math.round((share - toDeduct) * 10) / 10);
+            deductedThisPass += toDeduct;
+            excess = Math.round((excess - toDeduct) * 10) / 10;
+            if (excess <= 0) break;
+          }
+          if (deductedThisPass === 0) break;
+        }
+      }
+
       _warRoomWardPartyShares[wardNo][partyCode] = cleanVal;
 
-      // Update slider and number input if value was capped
-      const sliderEl = document.getElementById('wrWardSlider_' + wardNo + '_' + partyCode);
-      if (sliderEl && parseFloat(sliderEl.value) !== cleanVal) sliderEl.value = cleanVal;
-
-      const numInput = document.getElementById('wrWardInput_' + wardNo + '_' + partyCode);
-      if (numInput && parseFloat(numInput.value) !== cleanVal) numInput.value = cleanVal;
+      // Sync DOM inputs and sliders
+      keys.forEach(k => {
+        const v = _warRoomWardPartyShares[wardNo][k] !== undefined ? _warRoomWardPartyShares[wardNo][k] : 0;
+        const sliderEl = document.getElementById('wrWardSlider_' + wardNo + '_' + k);
+        if (sliderEl && parseFloat(sliderEl.value) !== v) sliderEl.value = v;
+        const numInput = document.getElementById('wrWardInput_' + wardNo + '_' + k);
+        if (numInput && parseFloat(numInput.value) !== v) numInput.value = v;
+      });
 
       fastSyncWarRoomValues(wardNo, partyCode, false);
     }
@@ -38187,6 +38219,7 @@ function renderElectionDayStrikeSheet() {
     }
 
     function resetWarRoomSliders() {
+      try { localStorage.removeItem('vrm_sim_party_shares'); } catch(e) {}
       _warRoomTurnoutPct = 68;
       _warRoomBadarPct = 4.2;
       _warRoomPartyShares = {
@@ -38233,29 +38266,59 @@ function renderElectionDayStrikeSheet() {
       fastSyncWarRoomValues(null, null, true);
     }
 
-    // 100% INDEPENDENT MANUAL SLIDER FOR PALIKA LEVEL
+    // 100% INDEPENDENT MANUAL SLIDER FOR PALIKA LEVEL (WITH SMOOTH AUTO-REBALANCE)
     function onWarRoomPartyShareSliderChanged(partyCode, val) {
       const p = parseFloat(val);
       if (isNaN(p)) return;
 
+      let cleanVal = Math.min(100, Math.max(0, Math.round(p * 10) / 10));
       const allPalettes = getAllPartyPalettes();
       const keys = Object.keys(allPalettes);
 
       const otherKeys = keys.filter(k => k !== partyCode);
-      const otherSum = otherKeys.reduce((acc, k) => acc + (_warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 0), 0);
-      const maxAllowed = Math.max(0, Math.round((100 - otherSum) * 10) / 10);
+      let otherSum = otherKeys.reduce((acc, k) => acc + (_warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 0), 0);
+      let excess = Math.round((cleanVal + otherSum - 100) * 10) / 10;
 
-      const cleanVal = Math.min(maxAllowed, Math.max(0, Math.round(p * 10) / 10));
+      // Auto-rebalance excess smoothly across other parties to prevent freezing
+      if (excess > 0) {
+        while (excess > 0.01) {
+          const positiveOthers = otherKeys.filter(k => (_warRoomPartyShares[k] || 0) > 0);
+          if (!positiveOthers.length) {
+            cleanVal = Math.max(0, Math.round((cleanVal - excess) * 10) / 10);
+            break;
+          }
+          const sumPositive = positiveOthers.reduce((acc, k) => acc + _warRoomPartyShares[k], 0);
+          let deductedThisPass = 0;
+          for (const ok of positiveOthers) {
+            const share = _warRoomPartyShares[ok];
+            const toDeduct = Math.min(share, Math.round((excess * (share / sumPositive)) * 10) / 10 || (excess > 0 ? 0.1 : 0));
+            _warRoomPartyShares[ok] = Math.max(0, Math.round((share - toDeduct) * 10) / 10);
+            deductedThisPass += toDeduct;
+            excess = Math.round((excess - toDeduct) * 10) / 10;
+            if (excess <= 0) break;
+          }
+          if (deductedThisPass === 0) break;
+        }
+      }
+
       _warRoomPartyShares[partyCode] = cleanVal;
 
-      const numInput = document.getElementById('wrPartyInput_' + partyCode);
-      if (numInput && parseFloat(numInput.value) !== cleanVal) {
-        numInput.value = cleanVal;
-      }
-      const sliderEl = document.getElementById('wrPartySlider_' + partyCode);
-      if (sliderEl && parseFloat(sliderEl.value) !== cleanVal) {
-        sliderEl.value = cleanVal;
-      }
+      // Update inputs & sliders for all keys
+      keys.forEach(k => {
+        const v = _warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 0;
+        const numInput = document.getElementById('wrPartyInput_' + k);
+        if (numInput && parseFloat(numInput.value) !== v) {
+          numInput.value = v;
+        }
+        const sliderEl = document.getElementById('wrPartySlider_' + k);
+        if (sliderEl && parseFloat(sliderEl.value) !== v) {
+          sliderEl.value = v;
+        }
+      });
+
+      try {
+        localStorage.setItem('vrm_sim_party_shares', JSON.stringify(_warRoomPartyShares));
+      } catch (e) {}
 
       fastSyncWarRoomValues(null, partyCode, true);
     }
@@ -38280,7 +38343,13 @@ function renderElectionDayStrikeSheet() {
         card.style.background = isLocked ? '#fefce8' : '#ffffff';
         if (isLocked) card.style.border = '2px solid #eab308';
       }
-      showToast(isLocked ? `वडा नं. ${wardNo} को सिमुलेसन लक गरियो।` : `वडा नं. ${wardNo} अनलक गरियो।`, 'info');
+      if (!isLocked) {
+        _warRoomWardPartyShares[wardNo] = { ..._warRoomPartyShares };
+        _warRoomWardTurnout[wardNo] = _warRoomTurnoutPct;
+        _warRoomWardBadar[wardNo] = _warRoomBadarPct;
+        fastSyncWarRoomValues(wardNo, null, false);
+      }
+      showToast(isLocked ? `वडा नं. ${wardNo} को सिमुलेसन लक गरियो।` : `वडा नं. ${wardNo} अनलक गरियो (पालिका औसतसँग सिङ्क भयो)।`, 'info');
     }
 
     function resetWardsToPalikaBaseline() {
@@ -38350,6 +38419,16 @@ function renderElectionDayStrikeSheet() {
       let deficitWardsCount = 0;
 
       wards.forEach(w => {
+        const isLocked = !!_warRoomWardLocks[w.ward];
+        if (isPalika && !isLocked) {
+          if (!_warRoomWardPartyShares[w.ward]) _warRoomWardPartyShares[w.ward] = {};
+          partyKeys.forEach(k => {
+            _warRoomWardPartyShares[w.ward][k] = _warRoomPartyShares[k] !== undefined ? _warRoomPartyShares[k] : 0;
+          });
+          _warRoomWardTurnout[w.ward] = _warRoomTurnoutPct;
+          _warRoomWardBadar[w.ward] = _warRoomBadarPct;
+        }
+
         const wCount = w.count || Math.round(totalVoters / wards.length);
         const wTurnPct = _warRoomWardTurnout[w.ward] !== undefined ? _warRoomWardTurnout[w.ward] : _warRoomTurnoutPct;
         const wBadarPct = _warRoomWardBadar[w.ward] !== undefined ? _warRoomWardBadar[w.ward] : _warRoomBadarPct;
@@ -38390,7 +38469,6 @@ function renderElectionDayStrikeSheet() {
         const wardMargin = ourVotes - wardTopRivalVotes;
         const isWin = ourVotes > wardTopRivalVotes;
         const isTie = ourVotes === wardTopRivalVotes;
-        const isLocked = !!_warRoomWardLocks[w.ward];
 
         if (isWin) ourWinsCount++;
         else if (isTie) ourTiesCount++;
@@ -38404,6 +38482,19 @@ function renderElectionDayStrikeSheet() {
         const metaEl = document.getElementById('wrWardMeta_' + w.ward);
         if (metaEl) {
           metaEl.textContent = `सदर मत: ${wValid.toLocaleString()} (${wTurn.toLocaleString()} खसेको, ${wBadar.toLocaleString()} बदर)`;
+        }
+
+        // Sync Turnout and Badar UI in ward card when synced from Palika
+        if (isPalika && !isLocked) {
+          const wTurnValEl = document.getElementById('wrWardTurnoutVal_' + w.ward);
+          if (wTurnValEl) wTurnValEl.textContent = wTurnPct + '%';
+          const wTurnSliderEl = document.getElementById('wrWardTurnoutSlider_' + w.ward);
+          if (wTurnSliderEl && parseFloat(wTurnSliderEl.value) !== wTurnPct) wTurnSliderEl.value = wTurnPct;
+
+          const wBadarValEl = document.getElementById('wrWardBadarVal_' + w.ward);
+          if (wBadarValEl) wBadarValEl.textContent = wBadarPct + '%';
+          const wBadarSliderEl = document.getElementById('wrWardBadarSlider_' + w.ward);
+          if (wBadarSliderEl && parseFloat(wBadarSliderEl.value) !== wBadarPct) wBadarSliderEl.value = wBadarPct;
         }
 
         // Update each party's slider, input, and vote count in this ward
@@ -38557,17 +38648,33 @@ function renderElectionDayStrikeSheet() {
             ${candPalette.symbol} ${candPalette.id} ${ourOverallPct}%
           </div>
         `;
+        let totalAllocatedPct = ourOverallPct;
         rivalKeys.forEach(k => {
           const pInfo = allPalettes[k] || { symbol: '🚩', id: k, primary: '#64748b' };
           const rPct = palikaValidVotes > 0 ? Math.round((palikaRivalPartyVotes[k] / palikaValidVotes) * 1000) / 10 : 0;
           if (rPct <= 0) return;
+          totalAllocatedPct += rPct;
           stackedHtml += `
             <div style="width: ${rPct}%; background: ${pInfo.primary || '#64748b'}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; overflow: hidden; white-space: nowrap; padding: 0 4px; border-right: 1.5px solid #ffffff; transition: width 0.1s ease;" title="${pInfo.name}: ${palikaRivalPartyVotes[k].toLocaleString()} मत (${rPct}%)">
               ${pInfo.symbol} ${pInfo.id} ${rPct}%
             </div>
           `;
         });
+        totalAllocatedPct = Math.min(100, Math.round(totalAllocatedPct * 10) / 10);
+        const remainingPalikaPct = Math.max(0, Math.round((100 - totalAllocatedPct) * 10) / 10);
+        if (remainingPalikaPct > 0) {
+          stackedHtml += `
+            <div style="width: ${remainingPalikaPct}%; background: #94a3b8; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 800; overflow: hidden; white-space: nowrap; padding: 0 4px; transition: width 0.1s ease;" title="बाँकी / अनिर्णित मत: ${remainingPalikaPct}%">
+              बाँकी ${remainingPalikaPct}%
+            </div>
+          `;
+        }
         stackedBarEl.innerHTML = stackedHtml;
+
+        const totalPctEl = document.getElementById('wrStackedBarTotalPct');
+        if (totalPctEl) {
+          totalPctEl.textContent = remainingPalikaPct <= 0 ? '१००% सदर मत बाँडफाँड' : `${totalAllocatedPct}% बाँडफाँड (${remainingPalikaPct}% बाँकी)`;
+        }
       }
 
       // Update Palika Top Rival Banner
@@ -38700,7 +38807,7 @@ function renderElectionDayStrikeSheet() {
       // Check if Ward Grid is already built in DOM; if so and not forced rebuild, just sync values!
       const firstWardCard = document.getElementById('wrWardCard_' + wards[0]?.ward);
       if (firstWardCard && !forceFullRebuild) {
-        performFastSyncWarRoom(null, null, false);
+        performFastSyncWarRoom(null, null, _warRoomActiveSubTab === 'palika');
         return;
       }
 
@@ -38887,7 +38994,7 @@ function renderElectionDayStrikeSheet() {
       }
 
       // NOW PERFORM FAST VALUE SYNC TO POPULATE ALL DATA
-      performFastSyncWarRoom(null, null, false);
+      performFastSyncWarRoom(null, null, _warRoomActiveSubTab === 'palika');
     }
 
 
