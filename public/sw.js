@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v103)
-const CACHE_NAME = 'election-ops-v103-caste-roster-fix';
+// Service Worker for Offline & Installable App Experience (v104)
+const CACHE_NAME = 'election-ops-v104-bulk-caste-profile-modal';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

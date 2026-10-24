@@ -6776,31 +6776,73 @@
                 <!-- PANE B: EMBEDDED VOTER ROSTER (TAB 2) -->
                 <div id="surProfPane_voters" style="display: none;">
                   <!-- Filter bar within profile -->
-                  <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                      <input type="text" id="surProfVoterSearchInput" class="form-control" placeholder="🔍 नाम, मतदाता नं, टोलबाट खोज्नुहोस्..." oninput="onSurProfVoterSearchChanged()" style="font-size: 12.5px; border-radius: 6px; width: 220px; padding: 5px 10px;">
+                      <input type="text" id="surProfVoterSearchInput" class="form-control" placeholder="🔍 नाम, बुवा, थर, मतदाता नं, टोलबाट खोज्नुहोस्..." oninput="onSurProfVoterSearchChanged()" style="font-size: 12.5px; border-radius: 6px; width: 245px; padding: 5px 10px;">
                       <select id="surProfWardFilterSelect" class="form-control" onchange="onSurProfWardFilterChanged()" style="font-size: 12.5px; border-radius: 6px; width: auto; padding: 5px 10px;">
                         <option value="all">सबै वडा</option>
                       </select>
+                      <select id="surProfTypeFilterSelect" class="form-control" onchange="onSurProfTypeFilterChanged()" style="font-size: 12.5px; border-radius: 6px; width: auto; padding: 5px 10px;">
+                        <option value="all">सबै प्रविष्टि (All)</option>
+                        <option value="with-surname">🔤 थर/टाइपिङ भएका</option>
+                        <option value="single-name">👤 एकल नाम मात्र</option>
+                        <option value="smart-suggest">✨ स्मार्ट सुझाव भएका</option>
+                      </select>
                     </div>
-                    <div style="font-size: 12.5px; color: #64748b; font-weight: 700;">
-                      देखाउँदै: <strong id="surProfShowingCount" style="color: #1e3a8a;">०</strong> जना
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                      <button type="button" class="btn btn-sm btn-secondary" onclick="toggleSurProfSelectAllShown(true)" style="font-size: 11.5px; padding: 4px 10px; font-weight: 800; border-radius: 6px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">
+                        ☑️ देखाइएका सबै छान्नुहोस्
+                      </button>
+                      <div style="font-size: 12.5px; color: #64748b; font-weight: 700;">
+                        देखाउँदै: <strong id="surProfShowingCount" style="color: #1e3a8a;">०</strong> जना
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Sticky Bulk Move Action Bar -->
+                  <div id="surProfBulkActionBar" style="display: none; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 10px; border-radius: 10px; background: linear-gradient(90deg, #eff6ff 0%, #f0fdf4 100%); border: 1.5px solid #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12);">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span class="badge" style="background: #2563eb; color: #fff; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 6px;">
+                        ☑️ <span id="surProfSelectedCountBadge">0</span> जना छानियो
+                      </span>
+                      <span style="font-size: 12px; font-weight: 700; color: #1e3a8a;">एकैपटक सार्ने क्याटेगोरी:</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <select id="surProfBulkClusterSelect" class="form-control" style="font-size: 12.5px; font-weight: 800; border-radius: 6px; width: auto; padding: 5px 10px; border: 1.5px solid #2563eb; background: #fff; color: #0f172a;">
+                        <option value="khas_arya">🔵 खस आर्य (Khas Arya)</option>
+                        <option value="janajati">🟢 आदिवासी जनजाति (Janajati)</option>
+                        <option value="newar">🟠 नेवार समुदाय (Newar)</option>
+                        <option value="dalit">🟣 दलित समुदाय (Dalit)</option>
+                        <option value="madhesi">🟤 मधेशी / थारु (Madhesi)</option>
+                        <option value="muslim">🟡 मुस्लिम समुदाय (Muslim)</option>
+                        <option value="other">⚪ अन्य (Other)</option>
+                      </select>
+                      <input type="text" id="surProfBulkSubInput" class="form-control" placeholder="मानक थर/उप-जाति (ऐच्छिक, जस्तै: Bhandari)" style="font-size: 12px; border-radius: 6px; width: 220px; padding: 5px 10px; background: #fff;">
+                      <button type="button" class="btn btn-sm btn-primary" onclick="applySurProfBulkClusterMove()" style="font-size: 12px; padding: 6px 14px; font-weight: 800; border-radius: 6px; background: #16a34a; border-color: #15803d; color: #fff;">
+                        🚀 छानिएकालाई सार्नुहोस् (Move Selected)
+                      </button>
+                      <button type="button" class="btn btn-sm btn-secondary" onclick="clearSurProfSelection()" style="font-size: 11.5px; padding: 5px 10px; font-weight: 700; border-radius: 6px;">
+                        ✕ छनोट हटाउनुहोस्
+                      </button>
                     </div>
                   </div>
 
                   <!-- Table of Voters -->
                   <div style="border: 1.5px solid #e2e8f0; border-radius: 10px; overflow: hidden; background: #fff;">
-                    <div style="overflow-x: auto; max-height: 480px;">
+                    <div style="overflow-x: auto; max-height: 460px;">
                       <table class="table" style="width: 100%; margin: 0; font-size: 12.5px;">
                         <thead style="background: #f8fafc; border-bottom: 2px solid #cbd5e1; position: sticky; top: 0; z-index: 2;">
                           <tr>
-                            <th style="padding: 10px 12px; width: 50px; text-align: center;">क्र.सं.</th>
-                            <th style="padding: 10px 12px; text-align: left;">मतदाताको नाम (Voter Name)</th>
-                            <th style="padding: 10px 12px; width: 90px; text-align: center;">उमेर/लिङ्ग</th>
-                            <th style="padding: 10px 12px; text-align: left;">ठेगाना (वडा र टोल)</th>
-                            <th style="padding: 10px 12px; width: 110px; text-align: center;">मतदाता नं</th>
-                            <th style="padding: 10px 12px; text-align: center; width: 100px;">भोट स्थिति</th>
-                            <th style="padding: 10px 12px; text-align: center; width: 90px;">कार्य</th>
+                            <th style="padding: 10px 8px; width: 38px; text-align: center;">
+                              <input type="checkbox" id="surProfMasterCheckbox" onchange="toggleSurProfSelectAllShown(this.checked)" style="width: 15px; height: 15px; cursor: pointer;" title="देखाइएका सबै छान्नुहोस् / हटाउनुहोस्">
+                            </th>
+                            <th style="padding: 10px 8px; width: 45px; text-align: center;">क्र.सं.</th>
+                            <th style="padding: 10px 12px; text-align: left;">मतदाताको नाम र पारिवारिक विवरण (Voter & Lineage)</th>
+                            <th style="padding: 10px 10px; width: 88px; text-align: center;">उमेर/लिङ्ग</th>
+                            <th style="padding: 10px 10px; text-align: left;">ठेगाना (वडा र टोल)</th>
+                            <th style="padding: 10px 10px; width: 105px; text-align: center;">मतदाता नं</th>
+                            <th style="padding: 10px 10px; text-align: center; width: 90px;">भोट स्थिति</th>
+                            <th style="padding: 10px 10px; text-align: center; width: 155px;">कार्य (Action)</th>
                           </tr>
                         </thead>
                         <tbody id="surProfVotersTableBody">
@@ -10160,7 +10202,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261024-v103-caste-roster-fix';
+      const CURRENT_APP_BUILD = '20261024-v104-bulk-caste-profile-modal';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -41364,6 +41406,32 @@ function classifySingleNameString(rawNameStr, customRules) {
   return null;
 }
 
+let _customVoterCasteOverridesMemo = null;
+function getCustomVoterCasteOverrides() {
+  if (_customVoterCasteOverridesMemo) return _customVoterCasteOverridesMemo;
+  try {
+    const raw = localStorage.getItem('vrm_voter_caste_overrides_v1');
+    _customVoterCasteOverridesMemo = raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    _customVoterCasteOverridesMemo = {};
+  }
+  return _customVoterCasteOverridesMemo;
+}
+
+function saveCustomVoterCasteOverride(voterId, cluster, sub, surname) {
+  if (!voterId || !cluster) return;
+  const map = getCustomVoterCasteOverrides();
+  map[String(voterId)] = {
+    cluster,
+    sub: sub || surname || '',
+    surname: surname || sub || '',
+    updatedAt: Date.now()
+  };
+  try {
+    localStorage.setItem('vrm_voter_caste_overrides_v1', JSON.stringify(map));
+  } catch (e) {}
+}
+
 // Universal 3-Tier Caste Classifier Engine (All-Nepal 753 Palika Ready)
 // Tier 1: Direct Surname & Dictionary Match
 // Tier 2: Family Lineage Auto-Match (Spouse / Father / Mother Surname Inference)
@@ -41372,11 +41440,13 @@ function getVoterCasteClassification(v) {
   if (!v) return { surname: '', cluster: 'unclassified', clusterLabel: 'पहिचान खुल्न बाँकी', sub: 'अन्य', isCustom: false };
 
   const rawCleanName = (v.full_name || v.Name || v.FullName || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  const vIdStr = String(v.voter_id || v.VoterID || v.official_voter_id || v.OfficialVoterID || '');
+  const voterOverride = vIdStr ? getCustomVoterCasteOverrides()[vIdStr] : null;
 
-  // 0. Explicit override saved directly on voter record
-  const directCluster = v.caste_cluster || v.CasteCluster;
-  const directSurname = v.caste_surname || v.CasteSurname;
-  const directSub = v.caste_sub || v.CasteSub;
+  // 0. Explicit override saved directly on voter record or voter-level override store
+  const directCluster = v.caste_cluster || v.CasteCluster || (voterOverride && voterOverride.cluster);
+  const directSurname = v.caste_surname || v.CasteSurname || (voterOverride && voterOverride.surname);
+  const directSub = v.caste_sub || v.CasteSub || (voterOverride && voterOverride.sub);
   if (directCluster && directCluster !== 'unclassified') {
     const cLabels = {
       'janajati': 'आदिवासी जनजाति',
@@ -44717,9 +44787,15 @@ function openSurnameProfileModal(targetSurname) {
   const modal = document.getElementById('surnameProfileModal');
   if (!modal) return;
   _currentSurnameProfileTarget = targetSurname;
-  _surProfFilterState = { search: '', ward: 'all' };
+  _surProfFilterState = { search: '', ward: 'all', type: 'all' };
+  if (typeof _surProfSelectedVoterIds !== 'undefined' && _surProfSelectedVoterIds) {
+    _surProfSelectedVoterIds.clear();
+  }
   const sInp = document.getElementById('surProfVoterSearchInput');
   if (sInp) sInp.value = '';
+  const tSel = document.getElementById('surProfTypeFilterSelect');
+  if (tSel) tSel.value = 'all';
+  if (typeof updateSurProfBulkActionBar === 'function') updateSurProfBulkActionBar();
 
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
   const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
@@ -45084,10 +45160,48 @@ function unlinkSurnameVariant(variantForm) {
 
 let _surProfVotersData = [];
 let _surProfVotersCache = {};
+let _surProfSelectedVoterIds = new Set();
 let _surProfFilterState = {
   search: '',
-  ward: 'all'
+  ward: 'all',
+  type: 'all'
 };
+
+function getSmartUnclassifiedSuggestion(v) {
+  if (!v) return null;
+  const fullName = String(v.full_name || v.Name || '').trim();
+  const parts = fullName.split(/\s+/).filter(Boolean);
+  const lastWord = parts.length > 1 ? parts[parts.length - 1].replace(/[().]/g, '').trim() : '';
+  const lowLast = lastWord.toLowerCase();
+  const combined = `${fullName} ${v.father_name || ''} ${v.mother_name || ''} ${v.spouse_name || ''}`.toLowerCase();
+
+  const typoMap = [
+    { rx: /^(panadit|pandi|pandita|panadita)$/i, cluster: 'khas_arya', label: '🔵 खस आर्य', std: 'Pandit' },
+    { rx: /^(bhadari|bhanari|bhandaree|bhadri|bhandri)$/i, cluster: 'khas_arya', label: '🔵 खस आर्य', std: 'Bhandari' },
+    { rx: /^(gurud|gurug|gurunga|gurungni)$/i, cluster: 'janajati', label: '🟢 जनजाति', std: 'Gurung' },
+    { rx: /^(goit|gohiwar|goitwar|mandal|mahato|yadaw|sahu|rauniyar|kanu|kalwar)$/i, cluster: 'madhesi', label: '🟤 मधेशी', std: lastWord || 'Goit' },
+    { rx: /^(tamag|tamanag|tamanga|tamangni|tamanggani|syangtan|moktan|ghising|pakhrin|waiba|blon|thokar|bomjan|yonjan|rumba|dong|gole)$/i, cluster: 'janajati', label: '🟢 जनजाति', std: 'Tamang' },
+    { rx: /^(shresth|shreshtha|shresthaa|shreshta|maharjana|dangola|khadagi)$/i, cluster: 'newar', label: '🟠 नेवार', std: 'Shrestha' },
+    { rx: /^(khadaka|khadk|khadkaa)$/i, cluster: 'khas_arya', label: '🔵 खस आर्य', std: 'Khadka' },
+    { rx: /^(chaulagai|chapagai|chaulagain|chapagain)$/i, cluster: 'khas_arya', label: '🔵 खस आर्य', std: 'Chaulagain' },
+    { rx: /^(nyaupane|neupane|nyopane)$/i, cluster: 'khas_arya', label: '🔵 खस आर्य', std: 'Neupane' },
+    { rx: /^(pudasainee|pudasini|pudasaini)$/i, cluster: 'khas_arya', label: '🔵 खस आर्य', std: 'Pudasaini' },
+    { rx: /^(adhikaree|adhikary|adhikari)$/i, cluster: 'khas_arya', label: '🔵 खस आर्य', std: 'Adhikari' },
+    { rx: /^(ghimirey|ghimiri|ghimire)$/i, cluster: 'khas_arya', label: '🔵 खस आर्य', std: 'Ghimire' },
+    { rx: /^(kuikel|kuinkel|kuyinkel)$/i, cluster: 'khas_arya', label: '🔵 खस आर्य', std: 'Kuinkel' },
+    { rx: /^(wishwakarma|bishwokarma|pariyar|mijar|sarki|damai|nepali|sunar|kami|baraili)$/i, cluster: 'dalit', label: '🟣 दलित', std: lastWord || 'Dalit' }
+  ];
+
+  for (const rule of typoMap) {
+    if (lowLast && rule.rx.test(lowLast)) {
+      return { cluster: rule.cluster, label: rule.label, std: rule.std, rawToken: lastWord };
+    }
+  }
+  if (/\b(bahadur|prasad|kumari|devi|sharma|upadhyay|chhetri)\b/i.test(combined)) {
+    return { cluster: 'khas_arya', label: '🔵 खस आर्य', std: lastWord || 'Khas Arya', rawToken: lastWord };
+  }
+  return null;
+}
 
 function switchSurnameProfileSubTab(tabName) {
   const pOverview = document.getElementById('surProfPane_overview');
@@ -45360,40 +45474,118 @@ async function loadSurnameProfileVoters() {
   renderSurnameProfileVoterList();
 }
 
+function getFilteredSurnameProfileVoters() {
+  const q = (_surProfFilterState.search || '').toLowerCase().trim();
+  const w = _surProfFilterState.ward || 'all';
+  const t = _surProfFilterState.type || 'all';
+
+  return (_surProfVotersData || []).filter(v => {
+    if (w !== 'all' && String(v.ward_no || '') !== w) return false;
+
+    const fullName = String(v.full_name || '').trim();
+    const parts = fullName.split(/\s+/).filter(Boolean);
+    const hasSurname = parts.length > 1;
+
+    if (t === 'single-name' && hasSurname) return false;
+    if (t === 'with-surname' && !hasSurname) return false;
+    if (t === 'smart-suggest' && !getSmartUnclassifiedSuggestion(v)) return false;
+
+    if (q) {
+      if (q === 'single-name') {
+        if (hasSurname) return false;
+      } else if (q.includes('parenthes') || q.includes('typo')) {
+        if (!/[()/]/.test(fullName)) return false;
+      } else if (q.includes('rare') || q.includes('unmapped')) {
+        // all unmapped / rare
+      } else {
+        const hay = `${fullName} ${v.father_name || ''} ${v.mother_name || ''} ${v.spouse_name || ''} ${v.official_voter_id || v.voter_id || ''} ${v.tole || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+    }
+    return true;
+  });
+}
+
+function updateSurProfBulkActionBar() {
+  const bar = document.getElementById('surProfBulkActionBar');
+  const cntBadge = document.getElementById('surProfSelectedCountBadge');
+  const masterCb = document.getElementById('surProfMasterCheckbox');
+  const count = _surProfSelectedVoterIds.size;
+
+  if (bar) bar.style.display = count > 0 ? 'flex' : 'none';
+  if (cntBadge) cntBadge.textContent = count.toLocaleString();
+
+  if (masterCb) {
+    const filtered = getFilteredSurnameProfileVoters();
+    masterCb.checked = filtered.length > 0 && filtered.every(v => _surProfSelectedVoterIds.has(String(v.voter_id)));
+  }
+}
+
+function toggleSurProfRowSelect(voterId, checked) {
+  const idStr = String(voterId);
+  if (checked) {
+    _surProfSelectedVoterIds.add(idStr);
+  } else {
+    _surProfSelectedVoterIds.delete(idStr);
+  }
+  updateSurProfBulkActionBar();
+  const rowEl = document.getElementById('surProfVoterRow_' + idStr);
+  if (rowEl) {
+    rowEl.style.background = checked ? '#eff6ff' : '';
+  }
+}
+
+function toggleSurProfSelectAllShown(checked) {
+  const filtered = getFilteredSurnameProfileVoters();
+  if (checked) {
+    filtered.forEach(v => _surProfSelectedVoterIds.add(String(v.voter_id)));
+  } else {
+    filtered.forEach(v => _surProfSelectedVoterIds.delete(String(v.voter_id)));
+  }
+  updateSurProfBulkActionBar();
+  renderSurnameProfileVoterList();
+}
+
+function clearSurProfSelection() {
+  _surProfSelectedVoterIds.clear();
+  updateSurProfBulkActionBar();
+  renderSurnameProfileVoterList();
+}
+
+function filterAndSelectSameTokenInSurProf(token) {
+  if (!token) return;
+  const inp = document.getElementById('surProfVoterSearchInput');
+  if (inp) inp.value = token;
+  _surProfFilterState.search = token;
+  const matching = getFilteredSurnameProfileVoters();
+  matching.forEach(v => _surProfSelectedVoterIds.add(String(v.voter_id)));
+  const subInp = document.getElementById('surProfBulkSubInput');
+  if (subInp && !subInp.value) subInp.value = token;
+  if (matching.length > 0) {
+    const sug = getSmartUnclassifiedSuggestion(matching[0]);
+    const cluSel = document.getElementById('surProfBulkClusterSelect');
+    if (sug && cluSel) cluSel.value = sug.cluster;
+    if (sug && subInp && sug.std) subInp.value = sug.std;
+  }
+  updateSurProfBulkActionBar();
+  renderSurnameProfileVoterList();
+  showToast(`☑️ '${token}' भएका ${matching.length} जना मतदाता छानिए! अब माथिको बारबाट क्याटेगोरीमा सार्नुहोस्।`, 'info');
+}
+
 function renderSurnameProfileVoterList() {
   const tbody = document.getElementById('surProfVotersTableBody');
   const showingEl = document.getElementById('surProfShowingCount');
   if (!tbody) return;
 
-  const q = (_surProfFilterState.search || '').toLowerCase().trim();
-  const w = _surProfFilterState.ward || 'all';
-
-  const filtered = _surProfVotersData.filter(v => {
-    if (w !== 'all' && String(v.ward_no || '') !== w) return false;
-    if (q) {
-      if (q === 'single-name') {
-        const parts = (v.full_name || '').trim().split(/\s+/);
-        if (parts.length > 1) return false;
-      } else if (q.includes('parenthes') || q.includes('typo')) {
-        if (!/[()/]/.test(v.full_name || '')) return false;
-      } else if (q.includes('rare') || q.includes('unmapped')) {
-        // all unmapped / rare
-      } else {
-        const matchName = (v.full_name || '').toLowerCase().includes(q);
-        const matchId = (v.official_voter_id || v.voter_id || '').toLowerCase().includes(q);
-        const matchTole = (v.tole || '').toLowerCase().includes(q);
-        if (!matchName && !matchId && !matchTole) return false;
-      }
-    }
-    return true;
-  });
+  const filtered = getFilteredSurnameProfileVoters();
 
   if (showingEl) showingEl.textContent = filtered.length.toLocaleString();
+  updateSurProfBulkActionBar();
 
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" style="padding: 26px; text-align: center; color: #64748b;">
+        <td colspan="8" style="padding: 26px; text-align: center; color: #64748b;">
           <div>कुनै पनि मतदाता फेला परेन।</div>
         </td>
       </tr>
@@ -45402,20 +45594,48 @@ function renderSurnameProfileVoterList() {
   }
 
   tbody.innerHTML = filtered.map((v, i) => {
-    const toleStr = (v.tole && v.tole.trim()) ? v.tole : '-';
+    const vIdStr = String(v.voter_id);
+    const isChecked = _surProfSelectedVoterIds.has(vIdStr);
+    const toleStr = (v.tole && v.tole.trim()) ? v.tole : (v.booth_no ? v.booth_no.replace('Former VDC Building,', '').trim() : '-');
     const isVoted = (v.voted_status === true || v.voted_status === 'true');
     const genderLabel = (v.gender === 'Male' || v.gender === 'पुरुष') ? 'पुरुष' : ((v.gender === 'Female' || v.gender === 'महिला') ? 'महिला' : (v.gender || '-'));
 
+    const fullName = String(v.full_name || '-').trim();
+    const nameParts = fullName.split(/\s+/).filter(Boolean);
+    const extractedSur = extractVoterSurnameFromCleanName(fullName) || (nameParts.length > 1 ? nameParts[nameParts.length - 1] : '');
+    const sug = getSmartUnclassifiedSuggestion(v);
+
+    const lineageParts = [];
+    if (v.father_name && v.father_name !== '-') lineageParts.push(`👨 बुवा: <b>${esc(v.father_name)}</b>`);
+    if (v.mother_name && v.mother_name !== '-' && v.mother_name !== '.') lineageParts.push(`👩 आमा: <b>${esc(v.mother_name)}</b>`);
+    if (v.spouse_name && v.spouse_name !== '-') lineageParts.push(`💍 पति/पत्नी: <b>${esc(v.spouse_name)}</b>`);
+    if (v.phone) lineageParts.push(`📞 <b>${esc(v.phone)}</b>`);
+
     return `
-      <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.1s ease;">
-        <td style="padding: 8px 10px; text-align: center; color: #64748b; font-family: monospace;">${i + 1}</td>
-        <td style="padding: 8px 10px;">
-          <div style="font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 4px;">
-            <span>${esc(v.full_name || '-')}</span>
+      <tr id="surProfVoterRow_${esc(vIdStr)}" style="border-bottom: 1px solid #f1f5f9; transition: background 0.12s ease; background: ${isChecked ? '#eff6ff' : ''};">
+        <td style="padding: 8px 8px; text-align: center;">
+          <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleSurProfRowSelect('${esc(vIdStr)}', this.checked)" style="width: 15px; height: 15px; cursor: pointer;">
+        </td>
+        <td style="padding: 8px 8px; text-align: center; color: #64748b; font-family: monospace;">${i + 1}</td>
+        <td style="padding: 8px 12px;">
+          <div style="font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <span>${esc(fullName)}</span>
+            ${extractedSur ? `
+              <span onclick="filterAndSelectSameTokenInSurProf('${esc(extractedSur)}')" class="badge" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; font-size: 10px; padding: 1px 6px; cursor: pointer;" title="यो थर/शब्द भएका सबै मतदाता छान्नुहोस्">
+                🏷️ ${esc(extractedSur)}
+              </span>
+            ` : `
+              <span class="badge" style="background: #fef2f2; color: #991b1b; font-size: 10px; padding: 1px 5px;">एकल नाम</span>
+            `}
+            ${sug ? `
+              <span onclick="applySurProfSmartSuggestion('${esc(vIdStr)}', '${esc(sug.cluster)}', '${esc(sug.std || '')}')" class="badge" style="background: #dcfce7; color: #166534; border: 1px solid #86efac; font-size: 10px; padding: 1.5px 6px; cursor: pointer; font-weight: 800;" title="१-क्लिकमा यो सुझाव लागू गर्नुहोस्">
+                ✨ ${esc(sug.label)} (${esc(sug.std)}) ✓
+              </span>
+            ` : ''}
             ${v.is_influencer ? '<span class="badge" style="background: #fef08a; color: #854d0e; font-size: 10px; padding: 1px 4px;">⭐ अगुवा</span>' : ''}
           </div>
-          <div style="font-size: 11px; color: #64748b; margin-top: 1px;">
-            सम्पर्क: <strong>${esc(v.phone || '-')}</strong>
+          <div style="font-size: 11px; color: #475569; margin-top: 3px; line-height: 1.35;">
+            ${lineageParts.length > 0 ? lineageParts.join(' • ') : '<span style="color:#94a3b8;">पारिवारिक विवरण उपलब्ध छैन</span>'}
           </div>
         </td>
         <td style="padding: 8px 10px; text-align: center; font-size: 12px; color: #334155;">
@@ -45436,12 +45656,12 @@ function renderSurnameProfileVoterList() {
           `}
         </td>
         <td style="padding: 8px 10px; text-align: center;">
-          <div style="display: flex; gap: 4px; justify-content: center; align-items: center; flex-wrap: wrap;">
-            <button type="button" class="btn btn-sm btn-primary" onclick="viewVoterProfile('${v.voter_id}', 'family')" style="font-size: 10.5px; padding: 2px 6px; font-weight: 700;" title="पारिवारिक भोट ब्लक हेर्नुहोस्">
+          <div style="display: flex; gap: 5px; justify-content: center; align-items: center; flex-wrap: nowrap;">
+            <button type="button" class="btn btn-sm btn-primary" onclick="viewVoterProfile('${v.voter_id}', 'family')" style="font-size: 10.5px; padding: 3px 7px; font-weight: 700;" title="पारिवारिक भोट ब्लक हेर्नुहोस्">
               🌳 परिवार
             </button>
-            <select onchange="reassignSingleVoterCasteCluster('${v.voter_id}', '${esc(v.full_name)}', this.value)" style="font-size: 10px; padding: 2px 4px; border-radius: 4px; border: 1px solid #cbd5e1; font-weight: 700; background: #f8fafc;" title="यो मतदाताको जात/क्लस्टर परिवर्तन गर्नुहोस्">
-              <option value="" disabled selected>🔄 जात</option>
+            <select onchange="reassignSingleVoterCasteCluster('${v.voter_id}', '${esc(v.full_name)}', this.value)" style="font-size: 10.5px; padding: 3px 5px; border-radius: 5px; border: 1px solid #94a3b8; font-weight: 800; background: #f8fafc; cursor: pointer;" title="यो मतदातालाई सम्बन्धित क्याटेगोरीमा सार्नुहोस्">
+              <option value="" disabled selected>🔄 जात सार्नुहोस्</option>
               <option value="khas_arya">🔵 खस आर्य</option>
               <option value="janajati">🟢 जनजाति</option>
               <option value="newar">🟠 नेवार</option>
@@ -45457,10 +45677,8 @@ function renderSurnameProfileVoterList() {
   }).join('');
 }
 
-function reassignSingleVoterCasteCluster(voterId, fullName, newCluster) {
-  if (!newCluster) return;
-  const extracted = extractVoterSurnameFromCleanName(fullName);
-  if (!extracted) return;
+function executeSurnameProfileClusterMove(votersList, newCluster, customSubInput = '') {
+  if (!Array.isArray(votersList) || votersList.length === 0 || !newCluster) return;
 
   const clusterLabels = {
     'khas_arya': '🔵 खस आर्य',
@@ -45471,10 +45689,154 @@ function reassignSingleVoterCasteCluster(voterId, fullName, newCluster) {
     'muslim': '🟡 मुस्लिम समुदाय',
     'other': '⚪ अन्य'
   };
+  const plainLabels = {
+    'khas_arya': 'खस आर्य',
+    'janajati': 'आदिवासी जनजाति',
+    'dalit': 'दलित समुदाय',
+    'newar': 'नेवार समुदाय',
+    'madhesi': 'मधेशी / थारु',
+    'muslim': 'मुस्लिम समुदाय',
+    'other': 'मधेसी / अन्य'
+  };
 
-  saveCustomCasteRule(extracted, newCluster, newCluster, extracted);
-  showToast(`✓ '${fullName}' (थर: ${extracted}) लाई '${clusterLabels[newCluster] || newCluster}' मा सफलतापूर्वक स्थानान्तरण गरियो!`, 'success');
+  const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
+  const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
+  const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU');
+
+  const movedVoterIds = new Set();
+  const mappedSurnames = new Set();
+
+  votersList.forEach(v => {
+    const vId = String(v.voter_id || v.VoterID || '');
+    if (!vId) return;
+    movedVoterIds.add(vId);
+
+    const fullName = String(v.full_name || v.Name || '').trim();
+    const nameParts = fullName.split(/\s+/).filter(Boolean);
+    const extracted = extractVoterSurnameFromCleanName(fullName) || (nameParts.length > 1 ? nameParts[nameParts.length - 1].replace(/[().]/g, '').trim() : '');
+    const subVal = customSubInput.trim() || extracted || plainLabels[newCluster] || newCluster;
+
+    // 1. Save Voter-Level Override (works for both Single Names and Rare Surnames)
+    saveCustomVoterCasteOverride(vId, newCluster, subVal, extracted || subVal);
+    v.caste_cluster = newCluster;
+    v.caste_sub = subVal;
+    v.caste_surname = extracted || subVal;
+
+    // 2. If voter has a multi-word surname token, also save custom surname rule so same-surname voters auto-map
+    if (extracted && nameParts.length > 1 && extracted.length >= 2) {
+      mappedSurnames.add(extracted.toLowerCase());
+      saveCustomCasteRule(extracted, newCluster, plainLabels[newCluster] || newCluster, subVal, tenantId);
+    }
+
+    // 3. Async patch voter notes in Supabase
+    try {
+      const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
+      const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
+      if (url && key) {
+        const notesPayload = { caste_cluster: newCluster, caste_sub: subVal, caste_surname: extracted || subVal };
+        fetch(`${url}/rest/v1/voters?voter_id=eq.${encodeURIComponent(vId)}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': key,
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ notes: JSON.stringify(notesPayload) })
+        }).catch(() => {});
+      }
+    } catch (e) {}
+  });
+
+  // 4. If currently viewing Unclassified / Bibidh Other, remove moved voters (and any same-surname voters now classified) from the list!
+  const isUnclassifiedModal = _currentSurnameProfileTarget && _currentSurnameProfileTarget.toLowerCase().startsWith('bibidh') && !_currentSurnameProfileTarget.includes('Khas Arya') && !_currentSurnameProfileTarget.includes('Janajati') && !_currentSurnameProfileTarget.includes('Newar') && !_currentSurnameProfileTarget.includes('Dalit') && !_currentSurnameProfileTarget.includes('Madhesi') && !_currentSurnameProfileTarget.includes('Muslim');
+
+  let removedCount = 0;
+  if (isUnclassifiedModal && newCluster !== 'other') {
+    const beforeLen = _surProfVotersData.length;
+    _surProfVotersData = _surProfVotersData.filter(v => {
+      const vId = String(v.voter_id || '');
+      if (movedVoterIds.has(vId)) return false;
+      const c = getVoterCasteClassification(v);
+      if (c && c.cluster && c.cluster !== 'unclassified' && c.cluster !== 'other') return false;
+      return true;
+    });
+    removedCount = Math.max(movedVoterIds.size, beforeLen - _surProfVotersData.length);
+
+    const cacheKey = `${tenantId}|${_currentSurnameProfileTarget.toLowerCase()}`;
+    _surProfVotersCache[cacheKey] = _surProfVotersData;
+    if (typeof _tenantUnclassifiedVotersCache !== 'undefined') {
+      _tenantUnclassifiedVotersCache[tenantId] = _surProfVotersData;
+    }
+
+    // Shift count in raw studio database from Bibidh (Other / Single Name) to target cluster
+    const rawDb = isHelambu ? (typeof HELAMBU_SURNAME_RAW_DATABASE !== 'undefined' ? HELAMBU_SURNAME_RAW_DATABASE : []) : (typeof GOKARNA_SURNAME_RAW_DATABASE !== 'undefined' ? GOKARNA_SURNAME_RAW_DATABASE : []);
+    const otherBibidh = rawDb.find(x => String(x.sur || '').toLowerCase().startsWith('bibidh') && (x.cluster === 'other' || x.cluster === 'unclassified'));
+    const targetBibidh = rawDb.find(x => String(x.sur || '').toLowerCase().startsWith('bibidh') && x.cluster === newCluster) || rawDb.find(x => x.cluster === newCluster);
+    if (otherBibidh && otherBibidh.cnt > 0) {
+      const shift = Math.min(otherBibidh.cnt, removedCount);
+      otherBibidh.cnt = Math.max(0, otherBibidh.cnt - shift);
+      if (targetBibidh) targetBibidh.cnt = (targetBibidh.cnt || 0) + shift;
+    }
+
+    // Update modal header & tab badges immediately
+    const badge = document.getElementById('surProfVotersCountTabBadge');
+    if (badge) badge.textContent = `${_surProfVotersData.length.toLocaleString()} जना`;
+    const elTot = document.getElementById('surProfKpiTotalVoters');
+    if (elTot) elTot.textContent = `${_surProfVotersData.length.toLocaleString()} जना`;
+    const elSub = document.getElementById('surProfHeaderSubtitle');
+    if (elSub) {
+      elSub.textContent = `पालिका: ${isHelambu ? 'हेलम्बु गाउँपालिका' : 'गोकर्णेश्वर नगरपालिका'} • कुल: ${_surProfVotersData.length.toLocaleString()} जना (एकल नाम, टाइपिङ त्रुटि तथा पहिचान खुल्न बाँकी)`;
+    }
+  } else {
+    removedCount = movedVoterIds.size;
+  }
+
+  // Clear moved IDs from selection & clear live roster cache
+  movedVoterIds.forEach(id => _surProfSelectedVoterIds.delete(id));
+  if (typeof _casteLiveRosterCache === 'object' && _casteLiveRosterCache) {
+    Object.keys(_casteLiveRosterCache).forEach(k => delete _casteLiveRosterCache[k]);
+  }
+
+  updateSurProfBulkActionBar();
+  renderSurnameProfileVoterList();
   renderCasteStudioTable();
+  renderCasteDemographics(true);
+
+  showToast(`✓ ${removedCount.toLocaleString()} जना मतदाता सफलतापूर्वक '${clusterLabels[newCluster] || newCluster}' मा सारियो!`, 'success');
+}
+
+function reassignSingleVoterCasteCluster(voterId, fullName, newCluster) {
+  if (!newCluster) return;
+  const voterObj = (_surProfVotersData || []).find(v => String(v.voter_id) === String(voterId)) || { voter_id: voterId, full_name: fullName };
+  const sug = getSmartUnclassifiedSuggestion(voterObj);
+  const subHint = (sug && sug.cluster === newCluster && sug.std) ? sug.std : '';
+  executeSurnameProfileClusterMove([voterObj], newCluster, subHint);
+}
+
+function applySurProfSmartSuggestion(voterId, cluster, stdSurname) {
+  const voterObj = (_surProfVotersData || []).find(v => String(v.voter_id) === String(voterId));
+  if (!voterObj) return;
+  executeSurnameProfileClusterMove([voterObj], cluster, stdSurname || '');
+}
+
+function applySurProfBulkClusterMove() {
+  if (_surProfSelectedVoterIds.size === 0) {
+    return showToast('कृपया कम्तिमा एक जना मतदाता टिक (☑️) लगाउनुहोस्।', 'warning');
+  }
+  const cluSel = document.getElementById('surProfBulkClusterSelect');
+  const subInp = document.getElementById('surProfBulkSubInput');
+  const newCluster = cluSel ? cluSel.value : 'khas_arya';
+  const customSub = subInp ? subInp.value.trim() : '';
+
+  const selectedVoters = (_surProfVotersData || []).filter(v => _surProfSelectedVoterIds.has(String(v.voter_id)));
+  if (selectedVoters.length === 0) {
+    return showToast('छानिएका मतदाता फेला परेनन्।', 'warning');
+  }
+
+  executeSurnameProfileClusterMove(selectedVoters, newCluster, customSub);
+  if (subInp) subInp.value = '';
 }
 
 function onSurProfVoterSearchChanged() {
@@ -45486,6 +45848,12 @@ function onSurProfVoterSearchChanged() {
 function onSurProfWardFilterChanged() {
   const sel = document.getElementById('surProfWardFilterSelect');
   _surProfFilterState.ward = sel ? sel.value : 'all';
+  renderSurnameProfileVoterList();
+}
+
+function onSurProfTypeFilterChanged() {
+  const sel = document.getElementById('surProfTypeFilterSelect');
+  _surProfFilterState.type = sel ? sel.value : 'all';
   renderSurnameProfileVoterList();
 }
 
