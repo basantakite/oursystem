@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v98)
-const CACHE_NAME = 'election-ops-v98-calibrated-3tier-stats';
+// Service Worker for Offline & Installable App Experience (v99)
+const CACHE_NAME = 'election-ops-v99-gokarna-3tier-calibrated';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
