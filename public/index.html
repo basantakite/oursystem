@@ -19636,7 +19636,7 @@ async function saveQuickCreatedTole(e) {
     }
 
     // =========================================================================
-    // 🌐 LIVE ASYNC FAMILY FETCHER (Pure Live Cloud-Aware 5-Rule Matcher)
+    // 🌐 LIVE ASYNC FAMILY FETCHER (Pure Live Cloud-Aware Multi-Gen Zero-Error Engine)
     // =========================================================================
     window._voterFamilyCache = window._voterFamilyCache || new Map();
 
@@ -19690,7 +19690,7 @@ async function saveQuickCreatedTole(e) {
       if (cleanFirst.length > 2 && hAge >= 18) {
         orParts.push(`spouse_name.ilike.*${encodeURIComponent(cleanFirst)}*`);
       }
-      if (cleanFirst.length > 2 && hAge >= 34) {
+      if (cleanFirst.length > 2 && hAge >= 33) {
         if (hGender === 'Male' || hGender === 'पुरुष') {
           orParts.push(`father_name.ilike.*${encodeURIComponent(cleanFirst)}*`);
         } else if (hGender === 'Female' || hGender === 'महिला') {
@@ -19764,7 +19764,7 @@ async function saveQuickCreatedTole(e) {
         }
       });
 
-      // 3. Father (Must share Surname if available + Name matches + Age difference >= 15)
+      // 3. Father (Verified Living in DB)
       let fatherFound = null;
       if (cleanF.length > 2 && !ignoredIds.has('TEXT_FATHER')) {
         fatherFound = pool.find(c => {
@@ -19773,7 +19773,7 @@ async function saveQuickCreatedTole(e) {
           const cSur = extractSurname(c.Name || c.full_name);
           if (hSur && cSur && cSur !== hSur) return false;
           const cAge = Number(c.Age || c.age) || 0;
-          if (hAge > 0 && cAge > 0 && ((cAge - hAge) < 15 || (cAge - hAge) > 68)) return false;
+          if (hAge > 0 && cAge > 0 && ((cAge - hAge) < 14 || (cAge - hAge) > 68)) return false;
           return cleanStr(c.Name || c.full_name).includes(cleanStr(cleanF));
         });
         if (fatherFound) {
@@ -19786,46 +19786,49 @@ async function saveQuickCreatedTole(e) {
           });
           seenVoterIds.add(String(fatherFound.VoterID || fatherFound.voter_id));
 
-          // 2-Hop Cloud Query: Fetch Grandparents via Father!
-          const grandFName = cleanQueryTerm(fatherFound.FatherName || fatherFound.father_name || '');
-          const grandMName = cleanQueryTerm(fatherFound.MotherName || fatherFound.mother_name || '');
-          let grandOrParts = [];
-          if (grandFName.length > 2) grandOrParts.push(`full_name.ilike.*${encodeURIComponent(grandFName)}*`);
-          if (grandMName.length > 2) grandOrParts.push(`full_name.ilike.*${encodeURIComponent(grandMName)}*`);
+          // 2-Hop Cloud Query: Fetch Grandparents via Father ONLY if voter age <= 48!
+          if (hAge <= 48) {
+            const grandFName = cleanQueryTerm(fatherFound.FatherName || fatherFound.father_name || '');
+            const grandMName = cleanQueryTerm(fatherFound.MotherName || fatherFound.mother_name || '');
+            let grandOrParts = [];
+            if (grandFName.length > 2) grandOrParts.push(`full_name.ilike.*${encodeURIComponent(grandFName)}*`);
+            if (grandMName.length > 2) grandOrParts.push(`full_name.ilike.*${encodeURIComponent(grandMName)}*`);
 
-          if (grandOrParts.length > 0) {
-            try {
-              const gq = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&ward_no=eq.${hWard}&or=(${grandOrParts.join(',')})&limit=10`;
-              const gres = await fetch(gq, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
-              if (gres.ok) {
-                const gRows = await gres.json();
-                if (Array.isArray(gRows)) {
-                  gRows.forEach(gr => {
-                    const mapped = (typeof mapCloudVoterToLocal === 'function' ? mapCloudVoterToLocal(gr) : {
-                      VoterID: gr.voter_id,
-                      OfficialVoterID: gr.official_voter_id,
-                      Name: gr.full_name,
-                      Age: gr.age,
-                      Gender: gr.gender,
-                      Ward: gr.ward_no,
-                      FatherName: gr.father_name,
-                      MotherName: gr.mother_name,
-                      SpouseName: gr.spouse_name,
-                      VoterSerial: gr.serial_no,
-                      PartyLeaning: gr.party_leaning,
-                      SupportTier: gr.sentiment || 'swing'
+            if (grandOrParts.length > 0) {
+              try {
+                const gq = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&ward_no=eq.${hWard}&or=(${grandOrParts.join(',')})&limit=10`;
+                const gres = await fetch(gq, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+                if (gres.ok) {
+                  const gRows = await gres.json();
+                  if (Array.isArray(gRows)) {
+                    gRows.forEach(gr => {
+                      const mapped = (typeof mapCloudVoterToLocal === 'function' ? mapCloudVoterToLocal(gr) : {
+                        VoterID: gr.voter_id,
+                        OfficialVoterID: gr.official_voter_id,
+                        Name: gr.full_name,
+                        Age: gr.age,
+                        Gender: gr.gender,
+                        Ward: gr.ward_no,
+                        FatherName: gr.father_name,
+                        MotherName: gr.mother_name,
+                        SpouseName: gr.spouse_name,
+                        VoterSerial: gr.serial_no,
+                        PartyLeaning: gr.party_leaning,
+                        SupportTier: gr.sentiment || 'swing'
+                      });
+                      if (!pool.some(p => String(p.VoterID || p.voter_id) === String(mapped.VoterID || mapped.voter_id))) {
+                        pool.push(mapped);
+                      }
                     });
-                    if (!pool.some(p => String(p.VoterID || p.voter_id) === String(mapped.VoterID || mapped.voter_id))) {
-                      pool.push(mapped);
-                    }
-                  });
+                  }
                 }
+              } catch(ge) {
+                console.warn('Grandparent fetch error:', ge);
               }
-            } catch(ge) {
-              console.warn('Grandparent fetch error:', ge);
             }
           }
-        } else if (isValidPersonNameForMatch(hFather)) {
+        } else if (hAge < 45 && isValidPersonNameForMatch(hFather)) {
+          // ONLY for young voters whose father may be temporarily missing registration
           list.push({
             VoterID: 'TEXT_FATHER',
             Name: hFather,
@@ -19841,7 +19844,7 @@ async function saveQuickCreatedTole(e) {
         }
       }
 
-      // 4. Mother (Cross-check father spouse, name matches, age difference >= 14)
+      // 4. Mother (Verified Living in DB)
       if (cleanM.length > 2 && !ignoredIds.has('TEXT_MOTHER')) {
         const mCandidates = pool.filter(c => {
           const cId = String(c.VoterID || c.voter_id);
@@ -19869,7 +19872,7 @@ async function saveQuickCreatedTole(e) {
             relation: 'आमा (Mother)'
           });
           seenVoterIds.add(String(motherFound.VoterID || motherFound.voter_id));
-        } else if (isValidPersonNameForMatch(hMother)) {
+        } else if (hAge < 45 && isValidPersonNameForMatch(hMother)) {
           list.push({
             VoterID: 'TEXT_MOTHER',
             Name: hMother,
@@ -19885,14 +19888,15 @@ async function saveQuickCreatedTole(e) {
         }
       }
 
-      // 4B. Grandparents (हजुरबुबा / हजुरआमा via Father)
-      if (fatherFound) {
+      // 4B. Grandparents (हजुरबुबा / हजुरआमा) — ONLY for voter age <= 48 and ONLY if verified living in DB!
+      let gfCandidate = null;
+      if (fatherFound && hAge <= 48) {
         const grandFName = cleanQueryTerm(fatherFound.FatherName || fatherFound.father_name || '');
         const grandMName = cleanQueryTerm(fatherFound.MotherName || fatherFound.mother_name || '');
         const fAge = Number(fatherFound.Age || fatherFound.age) || 0;
 
         if (grandFName.length > 2 && !ignoredIds.has('TEXT_GRANDFATHER')) {
-          const gfCandidate = pool.find(c => {
+          gfCandidate = pool.find(c => {
             const cId = String(c.VoterID || c.voter_id);
             if (seenVoterIds.has(cId) || ignoredIds.has(cId) || c.Gender === 'Female' || c.gender === 'Female' || c.gender === 'महिला') return false;
             const cSur = extractSurname(c.Name || c.full_name);
@@ -19910,19 +19914,57 @@ async function saveQuickCreatedTole(e) {
               relation: 'हजुरबुबा (Grandfather)'
             });
             seenVoterIds.add(String(gfCandidate.VoterID || gfCandidate.voter_id));
-          } else if (isValidPersonNameForMatch(grandFName)) {
-            list.push({
-              VoterID: 'TEXT_GRANDFATHER',
-              Name: grandFName,
-              Gender: 'Male',
-              Age: '',
-              PartyLeaning: voter.PartyLeaning || 'Undecided',
-              relation: 'हजुरबुबा (Grandfather)',
-              isCurrent: false,
-              isRegisteredVoter: false,
-              matchType: 'unlinked_text',
-              roleKey: 'GrandFatherName'
-            });
+
+            // 4th Generation Upward: Check for living Great-Grandparents (जिजुबुबा/जिजुआमा) ONLY if voter <= 25!
+            if (hAge <= 25) {
+              const greatFName = cleanQueryTerm(gfCandidate.FatherName || gfCandidate.father_name || '');
+              const greatMName = cleanQueryTerm(gfCandidate.MotherName || gfCandidate.mother_name || '');
+              const gfAge = Number(gfCandidate.Age || gfCandidate.age) || 0;
+
+              if (greatFName.length > 2) {
+                const ggf = pool.find(c => {
+                  const cId = String(c.VoterID || c.voter_id);
+                  if (seenVoterIds.has(cId) || ignoredIds.has(cId) || c.Gender === 'Female' || c.gender === 'Female' || c.gender === 'महिला') return false;
+                  const cSur = extractSurname(c.Name || c.full_name);
+                  if (hSur && cSur && cSur !== hSur) return false;
+                  const cAge = Number(c.Age || c.age) || 0;
+                  if (gfAge > 0 && cAge > 0 && ((cAge - gfAge) < 14 || (cAge - gfAge) > 65)) return false;
+                  return cleanStr(c.Name || c.full_name).includes(cleanStr(greatFName));
+                });
+                if (ggf) {
+                  list.push({
+                    ...ggf,
+                    isCurrent: false,
+                    isRegisteredVoter: true,
+                    matchType: 'auto',
+                    relation: 'जिजुबुबा (Great-Grandfather)'
+                  });
+                  seenVoterIds.add(String(ggf.VoterID || ggf.voter_id));
+                }
+              }
+
+              if (greatMName.length > 2) {
+                const ggm = pool.find(c => {
+                  const cId = String(c.VoterID || c.voter_id);
+                  if (seenVoterIds.has(cId) || ignoredIds.has(cId) || c.Gender === 'Male' || c.gender === 'Male' || c.gender === 'पुरुष') return false;
+                  const cSur = extractSurname(c.Name || c.full_name);
+                  if (hSur && cSur && cSur !== hSur) return false;
+                  const cAge = Number(c.Age || c.age) || 0;
+                  if (gfAge > 0 && cAge > 0 && ((cAge - gfAge) < 14 || (cAge - gfAge) > 65)) return false;
+                  return cleanStr(c.Name || c.full_name).includes(cleanStr(greatMName));
+                });
+                if (ggm) {
+                  list.push({
+                    ...ggm,
+                    isCurrent: false,
+                    isRegisteredVoter: true,
+                    matchType: 'auto',
+                    relation: 'जिजुआमा (Great-Grandmother)'
+                  });
+                  seenVoterIds.add(String(ggm.VoterID || ggm.voter_id));
+                }
+              }
+            }
           }
         }
 
@@ -19945,19 +19987,6 @@ async function saveQuickCreatedTole(e) {
               relation: 'हजुरआमा (Grandmother)'
             });
             seenVoterIds.add(String(gmCandidate.VoterID || gmCandidate.voter_id));
-          } else if (isValidPersonNameForMatch(grandMName)) {
-            list.push({
-              VoterID: 'TEXT_GRANDMOTHER',
-              Name: grandMName,
-              Gender: 'Female',
-              Age: '',
-              PartyLeaning: voter.PartyLeaning || 'Undecided',
-              relation: 'हजुरआमा (Grandmother)',
-              isCurrent: false,
-              isRegisteredVoter: false,
-              matchType: 'unlinked_text',
-              roleKey: 'GrandMotherName'
-            });
           }
         }
       }
@@ -20074,7 +20103,7 @@ async function saveQuickCreatedTole(e) {
             }
           }
         }
-      } else if (isValidPersonNameForMatch(hSpouse) && !ignoredIds.has('TEXT_SPOUSE')) {
+      } else if (hAge < 50 && isValidPersonNameForMatch(hSpouse) && !ignoredIds.has('TEXT_SPOUSE')) {
         list.push({
           VoterID: 'TEXT_SPOUSE',
           Name: hSpouse,
@@ -20166,6 +20195,7 @@ async function saveQuickCreatedTole(e) {
       });
 
       // 8. If Head has Married Sons: Fetch Daughter-in-Law (बुहारी) & Grandchildren (नाति / नातिनी)
+      // AND 4th Generation Downward: Great-Grandchildren (पनाति / पनातिनी) if Head is Elder (age >= 70)!
       for (const son of matchedSons) {
         const sonName = son.Name || son.full_name || '';
         const sonFirst = cleanQueryTerm(sonName.split(' ')[0]);
@@ -20177,6 +20207,7 @@ async function saveQuickCreatedTole(e) {
             if (sres.ok) {
               const sonFamily = await sres.json();
               if (Array.isArray(sonFamily)) {
+                const matchedGrandsons = [];
                 // Buharis (Daughter-in-Law)
                 sonFamily.forEach(sf => {
                   const sfId = String(sf.voter_id);
@@ -20218,6 +20249,9 @@ async function saveQuickCreatedTole(e) {
                   if (sf.father_name && cleanStr(sf.father_name).includes(cleanStr(sonFirst))) {
                     const sfGender = sf.gender;
                     const isGf = sfGender === 'Female' || sfGender === 'महिला';
+                    const sfSp = cleanQueryTerm(sf.spouse_name || '');
+                    if (isGf && (sfSp.length > 1 || sfSur !== hSur)) return; // married granddaughter in husband family
+
                     const mapped = (typeof mapCloudVoterToLocal === 'function' ? mapCloudVoterToLocal(sf) : {
                       VoterID: sf.voter_id,
                       OfficialVoterID: sf.official_voter_id,
@@ -20240,8 +20274,61 @@ async function saveQuickCreatedTole(e) {
                       relation: isGf ? 'नातिनी (Granddaughter)' : 'नाति (Grandson)'
                     });
                     seenVoterIds.add(sfId);
+                    if (!isGf) matchedGrandsons.push(mapped);
                   }
                 });
+
+                // 4th Generation Downward: If head is >= 70 and has adult grandsons >= 33, fetch Great-Grandchildren (पनाति/पनातिनी)!
+                if (hAge >= 70) {
+                  for (const gs of matchedGrandsons) {
+                    const gsFirst = cleanQueryTerm((gs.Name || gs.full_name || '').split(' ')[0]);
+                    const gsAge = Number(gs.Age || gs.age) || 0;
+                    if (gsFirst.length > 2 && gsAge >= 33) {
+                      try {
+                        const gsq = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&ward_no=eq.${hWard}&father_name=ilike.*${encodeURIComponent(gsFirst)}*&limit=10`;
+                        const gsres = await fetch(gsq, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+                        if (gsres.ok) {
+                          const gsKids = await gsres.json();
+                          if (Array.isArray(gsKids)) {
+                            gsKids.forEach(gk => {
+                              const gkId = String(gk.voter_id);
+                              if (seenVoterIds.has(gkId) || ignoredIds.has(gkId)) return;
+                              const gkSur = extractSurname(gk.full_name);
+                              if (gkSur !== sonSur) return;
+                              const isGkFem = gk.gender === 'Female' || gk.gender === 'महिला';
+                              const gkSp = cleanQueryTerm(gk.spouse_name || '');
+                              if (isGkFem && gkSp.length > 1) return;
+                              const mapped = (typeof mapCloudVoterToLocal === 'function' ? mapCloudVoterToLocal(gk) : {
+                                VoterID: gk.voter_id,
+                                OfficialVoterID: gk.official_voter_id,
+                                Name: gk.full_name,
+                                Age: gk.age,
+                                Gender: gk.gender,
+                                Ward: gk.ward_no,
+                                FatherName: gk.father_name,
+                                MotherName: gk.mother_name,
+                                SpouseName: gk.spouse_name,
+                                VoterSerial: gk.serial_no,
+                                PartyLeaning: gk.party_leaning,
+                                SupportTier: gk.sentiment || 'swing'
+                              });
+                              list.push({
+                                ...mapped,
+                                isCurrent: false,
+                                isRegisteredVoter: true,
+                                matchType: 'auto',
+                                relation: isGkFem ? 'पनातिनी (Great-Granddaughter)' : 'पनाति (Great-Grandson)'
+                              });
+                              seenVoterIds.add(gkId);
+                            });
+                          }
+                        }
+                      } catch(gke) {
+                        console.warn('Great-grandchild fetch error:', gke);
+                      }
+                    }
+                  }
+                }
               }
             }
           } catch(se) {
