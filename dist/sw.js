@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v88)
-const CACHE_NAME = 'election-ops-v88-tole-booth-search-engine';
+// Service Worker for Offline & Installable App Experience (v89)
+const CACHE_NAME = 'election-ops-v89-custom-confirm-modal-ui';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

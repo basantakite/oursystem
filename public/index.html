@@ -8508,17 +8508,30 @@
     </div>
   </div>
 
-  <!-- IN-PAGE CONFIRMATION MODAL OVERLAY (Canvas Sandbox Safe) -->
-  <div id="confirmDialogOverlay" class="modal-overlay" style="z-index: 3200;" onclick="if(event.target===this) closeConfirmModal()">
-    <div class="modal-card" style="max-width: 440px;">
-      <div class="modal-header">
-        <h3 id="confirmDialogTitle">पुष्टि गर्नुहोस् (Confirm Action)</h3>
-        <button class="modal-close" onclick="closeConfirmModal()" aria-label="Close">×</button>
+  <!-- IN-PAGE CONFIRMATION MODAL OVERLAY (Canvas Sandbox Safe & Modern UI) -->
+  <div id="confirmDialogOverlay" class="modal-overlay" style="z-index: 9999; backdrop-filter: blur(8px); background: rgba(15, 23, 42, 0.65);" onclick="if(event.target===this) closeConfirmModal(false)">
+    <div class="modal-card" style="max-width: 450px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); border: 1.5px solid rgba(226, 232, 240, 0.9); overflow: hidden; background: #ffffff;">
+      <div style="padding: 24px 22px 18px; display: flex; align-items: flex-start; gap: 16px;">
+        <div id="confirmDialogIconBadge" style="width: 48px; height: 48px; border-radius: 14px; background: #fee2e2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.18);">
+          🗑️
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <h3 id="confirmDialogTitle" style="margin: 0 0 6px; font-size: 17px; font-weight: 800; color: #0f172a; line-height: 1.3;">
+              पुष्टि गर्नुहोस्
+            </h3>
+            <button type="button" onclick="closeConfirmModal(false)" style="background: none; border: none; font-size: 22px; line-height: 1; color: #94a3b8; cursor: pointer; padding: 0 4px; margin-top: -2px;" aria-label="Close">×</button>
+          </div>
+          <div id="confirmDialogMessage" style="font-size: 13.5px; color: #475569; line-height: 1.55; white-space: pre-line; word-break: break-word; margin-top: 4px;"></div>
+        </div>
       </div>
-      <div class="modal-body" id="confirmDialogMessage" style="font-size: 14px; color: #334155; line-height: 1.6; white-space: pre-line;"></div>
-      <div class="modal-footer" style="justify-content: flex-end; gap: 8px;">
-        <button type="button" class="btn btn-secondary" onclick="closeConfirmModal()">रद्द गर्नुहोस् (Cancel)</button>
-        <button type="button" id="confirmDialogActionBtn" class="btn btn-danger" style="font-weight: 800;">✓ निश्चित गर्नुहोस् (Confirm)</button>
+      <div class="modal-footer" style="padding: 12px 20px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" id="confirmDialogCancelBtn" class="btn btn-secondary" onclick="closeConfirmModal(false)" style="font-weight: 600; padding: 9px 18px; border-radius: 10px; font-size: 13px;">
+          रद्द गर्नुहोस्
+        </button>
+        <button type="button" id="confirmDialogActionBtn" class="btn btn-danger" style="font-weight: 800; padding: 9px 20px; border-radius: 10px; font-size: 13px; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);">
+          ✓ निश्चित गर्नुहोस्
+        </button>
       </div>
     </div>
   </div>
@@ -13059,7 +13072,13 @@
         showToast('लोकल स्टोरेजमा कुनै पनि मतदाता फेला परेन।', 'info');
         return;
       }
-      const confirmed = confirm(`तपाईंसँग हाल स्थानीय रूपमा ${state.voters.length} मतदाता छन्। के यी सबैलाई Supabase क्लाउडमा अपलोड गर्न चाहनुहुन्छ?`);
+      const confirmed = await showConfirmModal({
+        title: '☁️ Supabase क्लाउड सिंक',
+        message: `तपाईंसँग हाल स्थानीय रूपमा ${state.voters.length} मतदाता छन्। के यी सबैलाई Supabase क्लाउडमा अपलोड गर्न चाहनुहुन्छ?`,
+        confirmLabel: '☁️ अपलोड सुरु गर्नुहोस्',
+        btnClass: 'btn-primary',
+        icon: '☁️'
+      });
       if (!confirmed) return;
       await pushVotersBatchToSupabase(state.voters, true);
     }
@@ -26314,11 +26333,17 @@ async function loadLiveHouseholdsPage() {
     }
 
     function deleteFollowup(id) {
-      state.followups = state.followups.filter(x => x.FollowUpID !== id);
-      saveState();
-      renderFollowupsList();
-      refreshDashboardMetrics();
-      showToast('Follow-up deleted', 'info');
+      openConfirmModal(
+        '🗑️ फलो-अप हटाउने',
+        'के तपाईं यो फलो-अप कार्य रेकर्ड मेटाउन चाहनुहुन्छ?',
+        () => {
+          state.followups = state.followups.filter(x => x.FollowUpID !== id);
+          saveState();
+          renderFollowupsList();
+          refreshDashboardMetrics();
+          showToast('फलो-अप हटाइयो', 'info');
+        }
+      );
     }
 
     function filterFollowups(status) {
@@ -27525,9 +27550,16 @@ async function loadLiveHouseholdsPage() {
     }
 
     function deleteToleRow(id) {
-      state.toles = state.toles.filter(x => x.ToleID !== id);
-      saveState();
-      renderAreasMaster();
+      openConfirmModal(
+        '🗑️ टोल हटाउने',
+        'के तपाईं यो टोल रेकर्ड मेटाउन चाहनुहुन्छ?',
+        () => {
+          state.toles = state.toles.filter(x => x.ToleID !== id);
+          saveState();
+          renderAreasMaster();
+          showToast('टोल हटाइयो', 'info');
+        }
+      );
     }
 
     function openAddLocationModal() {
@@ -27539,9 +27571,16 @@ async function loadLiveHouseholdsPage() {
     }
 
     function deleteLocationRow(id) {
-      state.locations = state.locations.filter(x => x.PollingLocationID !== id);
-      saveState();
-      renderAreasMaster();
+      openConfirmModal(
+        '🗑️ स्थान हटाउने',
+        'के तपाईं यो मतदान/पिकअप स्थान मेटाउन चाहनुहुन्छ?',
+        () => {
+          state.locations = state.locations.filter(x => x.PollingLocationID !== id);
+          saveState();
+          renderAreasMaster();
+          showToast('स्थान हटाइयो', 'info');
+        }
+      );
     }
 
     function openAddBoothModal() {
@@ -27594,9 +27633,16 @@ async function loadLiveHouseholdsPage() {
     }
 
     function deleteBoothRow(id) {
-      state.booths = state.booths.filter(x => x.BoothID !== id);
-      saveState();
-      renderAreasMaster();
+      openConfirmModal(
+        '🗑️ बुथ हटाउने',
+        'के तपाईं यो मतदान केन्द्र/बुथ रेकर्ड मेटाउन चाहनुहुन्छ?',
+        () => {
+          state.booths = state.booths.filter(x => x.BoothID !== id);
+          saveState();
+          renderAreasMaster();
+          showToast('बुथ हटाइयो', 'info');
+        }
+      );
     }
 
     // ==========================================
@@ -37726,35 +37772,107 @@ function renderElectionDayStrikeSheet() {
     // ==========================================
     // 25. MODAL SURFACE MANAGER & LIFECYCLE
     let _pendingConfirmCallback = null;
-    function openConfirmModal(title, message, onConfirm, confirmLabel = '✓ निश्चित गर्नुहोस्', btnClass = 'btn-danger') {
+    let _pendingConfirmResolve = null;
+
+    function openConfirmModal(title, message, onConfirm, confirmLabel = '✓ निश्चित गर्नुहोस्', btnClass = 'btn-danger', icon = '🗑️') {
       const overlay = document.getElementById('confirmDialogOverlay');
       const titleEl = document.getElementById('confirmDialogTitle');
       const msgEl = document.getElementById('confirmDialogMessage');
       const btnEl = document.getElementById('confirmDialogActionBtn');
+      const iconEl = document.getElementById('confirmDialogIconBadge');
+      const cancelBtn = document.getElementById('confirmDialogCancelBtn');
+
       if (!overlay) {
         if (typeof onConfirm === 'function') onConfirm();
-        return;
+        return Promise.resolve(true);
       }
+
       if (titleEl) titleEl.textContent = title || 'पुष्टि गर्नुहोस्';
       if (msgEl) msgEl.textContent = message || '';
-      _pendingConfirmCallback = onConfirm;
-      if (btnEl) {
-        btnEl.textContent = confirmLabel;
-        btnEl.className = 'btn ' + (btnClass || 'btn-danger');
-        btnEl.onclick = () => {
-          const cb = _pendingConfirmCallback;
-          closeConfirmModal();
-          if (typeof cb === 'function') cb();
-        };
+
+      if (iconEl) {
+        iconEl.textContent = icon || '⚠️';
+        if (btnClass && btnClass.includes('primary')) {
+          iconEl.style.background = '#dbeafe';
+          iconEl.style.color = '#2563eb';
+          iconEl.style.boxShadow = '0 4px 10px rgba(37, 99, 235, 0.18)';
+        } else if (btnClass && btnClass.includes('warning')) {
+          iconEl.style.background = '#fef3c7';
+          iconEl.style.color = '#d97706';
+          iconEl.style.boxShadow = '0 4px 10px rgba(217, 119, 6, 0.18)';
+        } else {
+          iconEl.style.background = '#fee2e2';
+          iconEl.style.color = '#ef4444';
+          iconEl.style.boxShadow = '0 4px 10px rgba(239, 68, 68, 0.18)';
+        }
       }
-      overlay.classList.add('active');
+
+      _pendingConfirmCallback = onConfirm;
+
+      return new Promise((resolve) => {
+        _pendingConfirmResolve = resolve;
+
+        if (btnEl) {
+          btnEl.textContent = confirmLabel || '✓ निश्चित गर्नुहोस्';
+          btnEl.className = 'btn ' + (btnClass || 'btn-danger');
+          btnEl.onclick = () => {
+            const cb = _pendingConfirmCallback;
+            const res = _pendingConfirmResolve;
+            closeConfirmModal(true);
+            if (typeof cb === 'function') cb();
+            if (typeof res === 'function') res(true);
+          };
+        }
+
+        if (cancelBtn) {
+          cancelBtn.onclick = () => {
+            closeConfirmModal(false);
+          };
+        }
+
+        overlay.classList.add('active');
+      });
     }
 
-    function closeConfirmModal() {
+    function showConfirmModal(opts) {
+      if (typeof opts === 'string') {
+        opts = { title: 'पुष्टि गर्नुहोस्', message: opts };
+      }
+      return openConfirmModal(
+        opts.title || 'पुष्टि गर्नुहोस्',
+        opts.message || '',
+        opts.onConfirm || null,
+        opts.confirmLabel || opts.confirmText || '✓ निश्चित गर्नुहोस्',
+        opts.btnClass || (opts.type === 'primary' ? 'btn-primary' : 'btn-danger'),
+        opts.icon || (opts.type === 'primary' ? '☁️' : (opts.icon || '🗑️'))
+      );
+    }
+
+    function closeConfirmModal(confirmed = false) {
       const overlay = document.getElementById('confirmDialogOverlay');
       if (overlay) overlay.classList.remove('active');
+      const res = _pendingConfirmResolve;
       _pendingConfirmCallback = null;
+      _pendingConfirmResolve = null;
+      if (!confirmed && typeof res === 'function') {
+        res(false);
+      }
     }
+
+    window.openConfirmModal = openConfirmModal;
+    window.showConfirmModal = showConfirmModal;
+    window.closeConfirmModal = closeConfirmModal;
+
+    // Handle Escape key globally for confirmation modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const confirmOverlay = document.getElementById('confirmDialogOverlay');
+        if (confirmOverlay && confirmOverlay.classList.contains('active')) {
+          closeConfirmModal(false);
+          e.stopPropagation();
+        }
+      }
+    });
 
     async function cloudFetch(endpointUrl, options = {}) {
       const fn = window['fe' + 'tch'];
@@ -44788,6 +44906,15 @@ async function saveToleTimelineNote(toleName) {
 }
 
 async function deleteToleTimelineNote(toleName, noteId) {
+  const confirmed = await showConfirmModal({
+    title: '🗑️ टोल टिप्पणी हटाउने',
+    message: 'के तपाईं यो समयरेखाको टिप्पणी मेटाउन चाहनुहुन्छ?',
+    confirmLabel: 'मेटाउनुहोस्',
+    btnClass: 'btn-danger',
+    icon: '🗑️'
+  });
+  if (!confirmed) return;
+
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
   const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
 
@@ -44912,6 +45039,15 @@ async function updateToleDemandStatus(toleName, demandId, newStatus) {
 }
 
 async function deleteToleDemand(toleName, demandId) {
+  const confirmed = await showConfirmModal({
+    title: '🗑️ समस्या / माग मेटाउने',
+    message: 'के तपाईं यो दर्ता गरिएको समस्या वा माग हटाउन चाहनुहुन्छ?',
+    confirmLabel: 'मेटाउनुहोस्',
+    btnClass: 'btn-danger',
+    icon: '🗑️'
+  });
+  if (!confirmed) return;
+
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
   const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
 
@@ -44988,7 +45124,15 @@ async function saveEditToleModal(e, toleName) {
 }
 
 async function deleteTole(toleName) {
-  if (!confirm(`के तपाईं साँच्चिकै "${toleName}" टोल मेटाउन चाहनुहुन्छ? यस टोलमा आबद्ध मतदाताहरू अनअसाइन हुनेछन्।`)) return;
+  if (!toleName) return;
+  const confirmed = await showConfirmModal({
+    title: '🗑️ टोल मेटाउने पुष्टि',
+    message: `के तपाईं साँच्चिकै "${toleName}" टोल मेटाउन चाहनुहुन्छ?\n\nयस टोलमा आबद्ध सबै मतदाताहरू अनअसाइन (Unassigned) हुनेछन्।`,
+    confirmLabel: '🗑️ टोल मेटाउनुहोस्',
+    btnClass: 'btn-danger',
+    icon: '🗑️'
+  });
+  if (!confirmed) return;
 
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
   const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
@@ -45017,7 +45161,15 @@ async function deleteTole(toleName) {
 }
 
 async function removeVoterFromTole(toleName, voterId, wardNo) {
-  if (!confirm('के तपाईं यस मतदातालाई यस टोलबाट हटाउन चाहनुहुन्छ?')) return;
+  if (!voterId) return;
+  const confirmed = await showConfirmModal({
+    title: '👤 मतदाता हटाउने पुष्टि',
+    message: `के तपाईं यस मतदातालाई "${toleName}" टोलबाट हटाउन चाहनुहुन्छ?`,
+    confirmLabel: 'हटाउनुहोस्',
+    btnClass: 'btn-danger',
+    icon: '👤'
+  });
+  if (!confirmed) return;
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
   const tenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
   const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
