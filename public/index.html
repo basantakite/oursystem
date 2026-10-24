@@ -9298,13 +9298,13 @@
           middle_age_count: 7345,
           young_adults_count: 4500,
           caste_clusters: {
-            janajati: 13350,
-            khas_arya: 4150,
-            dalit: 690,
-            newar: 200,
+            janajati: 13566,
+            khas_arya: 4238,
+            dalit: 783,
+            newar: 233,
             madhesi: 68,
             muslim: 0,
-            other: 449
+            other: 123
           },
           solid: 0,
           swing: 18907,
@@ -9338,13 +9338,13 @@
           middle_age_count: 7345,
           young_adults_count: 4500,
           caste_clusters: {
-            janajati: 13350,
-            khas_arya: 4150,
-            dalit: 690,
-            newar: 200,
+            janajati: 13566,
+            khas_arya: 4238,
+            dalit: 783,
+            newar: 233,
             madhesi: 68,
             muslim: 0,
-            other: 449
+            other: 123
           },
           solid: 0,
           swing: 18907,
@@ -10160,7 +10160,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261024-v97-universal-3tier-caste';
+      const CURRENT_APP_BUILD = '20261024-v98-calibrated-3tier-stats';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -10177,7 +10177,12 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(st));
           }
           Object.keys(localStorage).forEach(k => {
-            if (k.startsWith('EMS_TENANT_TOTAL_') || k.startsWith('EMS_SUPABASE_FULL_SYNC_DONE')) {
+            if (
+              k.startsWith('EMS_TENANT_TOTAL_') ||
+              k.startsWith('EMS_SUPABASE_FULL_SYNC_DONE') ||
+              k.startsWith('tenant_summary_') ||
+              k.startsWith('vrm_tenant_studio_surnames_v72_')
+            ) {
               localStorage.removeItem(k);
             }
           });
@@ -41045,9 +41050,9 @@ function classifySingleNameString(rawNameStr, customRules) {
   const phoneticPatterns = [
     // Janajati phonetic typos, sub-clans & female suffixes
     { p: /ह्योल्मो|ह्याल्मो|हेल्मो|शेर्पिनी|शेर्पीनी|डोल्मा|घलान|वाइवा|थिङ|धिमाल|\b(hyolmo|helmo|hyalmo|yolmo|hayolmo|hyaelmae|hyolmu|syanggawa|syangaba|syangba|yowa)\b/i, sur: 'ह्योल्मो', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'ह्योल्मो' },
-    { p: /तामाङ|तामाङ्ग|तमाङ|तमाङ्ग|तामाङ्नी|तामाङनी|तामङ|\b(tamang|tamangg|tamangni|tamangani|tamanggani|tamaang|tama|pakhrin|moktan|yonjan|bomjan|ghising|ghisingg|waiba|waiwa|thokar|dong|gole|blon|syangtan|titung|thing|thin)\b/i, sur: 'तामाङ', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'तामाङ' },
-    { p: /लामा|लमिनी|लमीनी|लमिनि|लामिनी|लामेनी|\b(lama|lamini|lameni)\b/i, sur: 'लामा', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'तामाङ / ह्योल्मो' },
-    { p: /शेर्पा|\b(sherpa|sherpini|serpa|serpini|sharpa|sherpe|shaerpa)\b/i, sur: 'शेर्पा', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'शेर्पा' },
+    { p: /तामाङ|तामाङ्ग|तमाङ|तमाङ्ग|तामाङ्नी|तामाङनी|तामङ|\b(tamang|tamangg|tamangni|tamangani|tamanggani|tamaang|tama|pakhrin|moktan|yonjan|bomjan|ghising|ghisingg|waiba|waiwa|thokar|dong|dongwa|dimdung|dimdungg|gole|blon|syangtan|titung|thing|thin)\b/i, sur: 'तामाङ', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'तामाङ' },
+    { p: /लामा|लमिनी|लमीनी|लमिनि|लामिनी|लामेनी|\b(lama|lamini|lameni|laman)\b/i, sur: 'लामा', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'तामाङ / ह्योल्मो' },
+    { p: /शेर्पा|\b(sherpa|sherpini|sherpani|sherpan|serpa|serpini|sharpa|sherpe|shaerpa)\b/i, sur: 'शेर्पा', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'शेर्पा' },
     { p: /थापा मगर|थापामगर|राना मगर|रानामगर|रोका मगर|रोकामगर|मगर|मगर्नी|\b(magar|magarni|thapamagar|ranamagar|rokamagar|gharti)\b/i, sur: 'मगर', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'मगर' },
     { p: /गुरुङ|गुरुङ्ग|गुरुङनी|घले|\b(gurung|gurungni|ghale)\b/i, sur: 'गुरुङ', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'गुरुङ' },
     { p: /नगरकोटी|\b(nagarkoti|nagarakoti)\b/i, sur: 'नगरकोटी', cluster: 'janajati', label: 'आदिवासी जनजाति', sub: 'माझी / जनजाति' },
@@ -41057,13 +41062,13 @@ function classifySingleNameString(rawNameStr, customRules) {
     { p: /श्रेष्ठ|श्रेष्‍ठ|प्रधान|प्रधानाङ्ग|जोशी|शाक्य|मानन्धर|कपाली|नकर्मी|भोछिभोया|खड्गी|सिलाकार|ज्यापु|\b(shrestha|srestha|shreshth|pradhan|pradhanangg|joshi|shakya|manandhar|maharjan|dangol|kapali|khadgi|silakar|jyapu|tuladhar|bajracharya|rajbhandari|amatya)\b/i, sur: 'श्रेष्ठ', cluster: 'newar', label: 'नेवार समुदाय', sub: 'नेवार' },
 
     // Khas Arya phonetic typos
-    { p: /खड्का|बस्नेत|वस्नेत|कार्की|थापा|भण्डारी|भण्‍डारी|राउत|रावत|बोहरा|बरुवाल|वुढाथोकी|कटुवाल|खत्री|क्षेत्री|रोक्का|के[\.\s]*सी|\b(khadka|khadga|basnet|basnyat|karki|thapa|bhandari|raut|rawat|bohara|baruwal|budhathoki|katuwal|khatri|kshetri|chhetri|rokka|shiwabhakti|deuja|silwal|kunwar|ke\.si|k\.c)\b/i, sur: primarySurname || 'क्षेत्री', cluster: 'khas_arya', label: 'खस आर्य', sub: 'क्षेत्री' },
-    { p: /आचार्य|काफ्ले|पाण्डे|चालिसे|ढुङ्गाना|ढुङगाना|ढुङ्गेल|उप्रेती|मैनाली|फुयाल|संजेल|सन्जेल|सञ्जेल|रिमाल|पाठक|तिमल्सिना|गुरागाई|थपलिया|खरेल|कुइकेल|कुईकेल|हुमागाई|धिताल|बजगाई|प्रसाई|प्याकुरेल|देवकोटा|पोख्रेल|बस्ताकोटी|पौडेल|पण्डित|पण्डीत|पण्‍डित|घिमिरे|अधिकारी|नेपाल|दाहाल|भट्टराई|सापकोटा|लामिछाने|लामीछाने|पुडासैनी|चौलागाई|अर्याल|दंगाल|दङ्गाल|खतिवडा|सिंखडा|जोती|ज्योती|ज्योति|धुंगाना|ढुंगाना|गजुरेल|बराल|वराल|सुवेदी|लम्साल|रिजाल|दुलाल|ढकाल|उपाध्याय|शर्मा|सिग्देल|पराजुली|तिवारी|गौतम|न्यौपाने|कोइराला|वाग्ले|सिटौला|\b(acharya|achary|poudel|paudel|pandit|ghimire|adhikari|nepal|dahal|bhattarai|sapkota|sapakota|lamichhane|pudasaini|chaulagain|chaulagai|aryal|dangal|khatiwada|simkhada|dhungana|gajurel|baral|jyoti|joti|guragai|rimal|chapagai|lamsal|rijal|dulal|pande|timalsina|timalsena|suwedi|subedi|dhakal|upadhyay|sharma|kakshapati|sigdel|parajuli|tiwari|gautam|nyaupane|chalise|koirala|wagle|sitaula|mainali|rupakheti|phuyal|bastola)\b/i, sur: primarySurname || 'पहाडी ब्राह्मण', cluster: 'khas_arya', label: 'खस आर्य', sub: 'पहाडी ब्राह्मण' },
+    { p: /खड्का|बस्नेत|वस्नेत|कार्की|थापा|भण्डारी|भण्‍डारी|राउत|रावत|बोहरा|बरुवाल|वुढाथोकी|कटुवाल|खत्री|क्षेत्री|रोक्का|के[\.\s]*सी|\b(khadka|khadga|basnet|basnyat|karki|thapa|bhandari|raut|rawat|bohara|baruwal|budhathoki|katuwal|khatri|kshetri|chhetri|rokka|shiwabhakti|deuja|silwal|silbal|kunwar|ke\.si|k\.c)\b/i, sur: primarySurname || 'क्षेत्री', cluster: 'khas_arya', label: 'खस आर्य', sub: 'क्षेत्री' },
+    { p: /आचार्य|काफ्ले|पाण्डे|चालिसे|ढुङ्गाना|ढुङगाना|ढुङ्गेल|उप्रेती|मैनाली|फुयाल|संजेल|सन्जेल|सञ्जेल|रिमाल|पाठक|तिमल्सिना|गुरागाई|थपलिया|खरेल|कुइकेल|कुईकेल|हुमागाई|धिताल|बजगाई|प्रसाई|प्याकुरेल|देवकोटा|पोख्रेल|बस्ताकोटी|पौडेल|पण्डित|पण्डीत|पण्‍डित|घिमिरे|अधिकारी|नेपाल|दाहाल|भट्टराई|सापकोटा|लामिछाने|लामीछाने|पुडासैनी|चौलागाई|अर्याल|दंगाल|दङ्गाल|खतिवडा|सिंखडा|जोती|ज्योती|ज्योति|धुंगाना|ढुंगाना|गजुरेल|बराल|वराल|सुवेदी|लम्साल|रिजाल|दुलाल|ढकाल|उपाध्याय|शर्मा|सिग्देल|पराजुली|तिवारी|गौतम|न्यौपाने|कोइराला|वाग्ले|सिटौला|\b(acharya|achary|poudel|paudel|pandit|ghimire|adhikari|nepal|dahal|bhattarai|sapkota|sapakota|lamichhane|pudasaini|chaulagain|chaulagai|aryal|dangal|khatiwada|simkhada|dhungana|gajurel|baral|jyoti|joti|jaeti|jyati|guragai|rimal|chapagai|lamsal|rijal|dulal|pande|timalsina|timalsena|suwedi|subedi|dhakal|upadhyay|sharma|kakshapati|sigdel|parajuli|tiwari|gautam|nyaupane|chalise|koirala|wagle|sitaula|mainali|rupakheti|phuyal|bastola)\b/i, sur: primarySurname || 'पहाडी ब्राह्मण', cluster: 'khas_arya', label: 'खस आर्य', sub: 'पहाडी ब्राह्मण' },
     { p: /गिरी|पुरी|भारती|वन|बन|\b(giri|puri|bharati|ban|van)\b/i, sur: primarySurname || 'गिरी', cluster: 'khas_arya', label: 'खस आर्य', sub: 'सन्यासी / दशनामी' },
     { p: /ठकुरी|हमाल|साउद|\b(shahi|shah|chand|singh|sen|thakuri|hamal|saud)\b/i, sur: primarySurname || 'ठकुरी', cluster: 'khas_arya', label: 'खस आर्य', sub: 'ठकुरी / क्षेत्री' },
 
     // Dalit phonetic typos & female suffixes
-    { p: /वि[\.\s]*क|विश्वकर्मा|बराइली|गजमेर|सुनार|सोनार|घताने|घतानी|टमटा|वड|गदाल|कामी|कामिनी|दर्नाल|तोलाङ्गे|गोतामे|\b(b\.k\.|bk|wi\.k|bishwakarma|bishwokarma|wishwakarma|baraili|waraili|sunar|sonar|kami|kamini|darnal|tolangge|tolangi|gotame|ghatani|tiruwa)\b/i, sur: 'वि.क.', cluster: 'dalit', label: 'दलित समुदाय', sub: 'विश्वकर्मा' },
+    { p: /वि[\.\s]*क|विश्वकर्मा|बराइली|गजमेर|सुनार|सोनार|घताने|घतानी|टमटा|वड|गदाल|कामी|कामिनी|दर्नाल|तोलाङ्गे|गोतामे|\b(b\.k\.|bk|bi\.k|wi\.k|bishwakarma|bishwokarma|wishwakarma|baraili|waraili|sunar|sunarani|sonar|kami|kamini|darnal|tolangge|tolangi|gotame|ghatani|tiruwa)\b/i, sur: 'वि.क.', cluster: 'dalit', label: 'दलित समुदाय', sub: 'विश्वकर्मा' },
     { p: /परियार|दमाई|दमिनी|दर्जी|नेपाली|सुन्दास|\b(pariyar|damai|damini|darji|nepali|sundas)\b/i, sur: 'परियार', cluster: 'dalit', label: 'दलित समुदाय', sub: 'परियार' },
     { p: /मिजार|सार्की|सार्किनी|तोलाङ्गी|कालीराज|कमार|\b(mijar|sarki|sarkini|kaliraj|kamar)\b/i, sur: 'मिजार', cluster: 'dalit', label: 'दलित समुदाय', sub: 'मिजार' },
 
@@ -41702,13 +41707,13 @@ function getComputedTenantCasteClusters(tenantId) {
   // 2. Fallback to calibrated base clusters if studio not yet loaded
   const isHelambu = (resolvedTId === 'TNT_MVF9LYO3' || resolvedTId === 'TNT_HELAMBU');
   const baseClusters = isHelambu ? {
-    janajati: 13350,
-    khas_arya: 4150,
-    dalit: 690,
-    newar: 200,
+    janajati: 13566,
+    khas_arya: 4238,
+    dalit: 783,
+    newar: 233,
     madhesi: 68,
     muslim: 0,
-    other: 449
+    other: 123
   } : {
     khas_arya: 15088,
     janajati: 13540,
@@ -42898,9 +42903,9 @@ let _studioFilterState = {
 
 // Ground truth high-frequency surname dictionary for Helambu (TNT_MVF9LYO3) and Gokarna (TNT_MVG3WXFX)
 const HELAMBU_SURNAME_RAW_DATABASE = [
-  { sur: 'Tamang', cnt: 6991, dev: 'तामाङ', cluster: 'janajati', sub: 'तामाङ' },
-  { sur: 'Lama', cnt: 3380, dev: 'लामा', cluster: 'janajati', sub: 'तामाङ / ह्योल्मो' },
-  { sur: 'Sherpa', cnt: 1285, dev: 'शेर्पा', cluster: 'janajati', sub: 'शेर्पा' },
+  { sur: 'Tamang', cnt: 7211, dev: 'तामाङ', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'Lama', cnt: 3485, dev: 'लामा', cluster: 'janajati', sub: 'तामाङ / ह्योल्मो' },
+  { sur: 'Sherpa', cnt: 1350, dev: 'शेर्पा', cluster: 'janajati', sub: 'शेर्पा' },
   { sur: 'Lamichhane', cnt: 625, dev: 'लामिछाने', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
   { sur: 'Pandit', cnt: 560, dev: 'पण्डित', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
   { sur: 'Khadka', cnt: 399, dev: 'खड्का', cluster: 'khas_arya', sub: 'क्षेत्री' },
@@ -42911,9 +42916,9 @@ const HELAMBU_SURNAME_RAW_DATABASE = [
   { sur: 'Sunar', cnt: 236, dev: 'सुनार', cluster: 'dalit', sub: 'विश्वकर्मा' },
   { sur: 'Thapa', cnt: 223, dev: 'थापा', cluster: 'khas_arya', sub: 'क्षेत्री' },
   { sur: 'Tamangni', cnt: 212, dev: 'तामाङनी', cluster: 'janajati', sub: 'तामाङ' },
+  { sur: 'Hyolmo', cnt: 186, dev: 'ह्योल्मो', cluster: 'janajati', sub: 'ह्योल्मो' },
   { sur: 'Shrestha', cnt: 181, dev: 'श्रेष्ठ', cluster: 'newar', sub: 'नेवार समुदाय' },
   { sur: 'Sherpini', cnt: 146, dev: 'शेर्पिनी', cluster: 'janajati', sub: 'शेर्पा' },
-  { sur: 'Hyolmo', cnt: 140, dev: 'ह्योल्मो', cluster: 'janajati', sub: 'ह्योल्मो' },
   { sur: 'Gajurel', cnt: 139, dev: 'गजुरेल', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
   { sur: 'Sonar', cnt: 126, dev: 'सोनार', cluster: 'dalit', sub: 'विश्वकर्मा' },
   { sur: 'Bhattarai', cnt: 106, dev: 'भट्टराई', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
@@ -43019,7 +43024,7 @@ const HELAMBU_SURNAME_RAW_DATABASE = [
   { sur: 'Khadgi', cnt: 1, dev: 'खड्गी', cluster: 'newar', sub: 'नेवार समुदाय' },
   { sur: 'Sitaula', cnt: 1, dev: 'सिटौला', cluster: 'khas_arya', sub: 'पहाडी ब्राह्मण' },
   { sur: 'Hamal', cnt: 1, dev: 'हमाल', cluster: 'khas_arya', sub: 'ठकुरी' },
-  { sur: 'Bibidh Other (अन्य अवर्गीकृत थरहरू)', cnt: 559, dev: 'अन्य', cluster: 'other', sub: 'पहिचान खुल्न बाँकी' }
+  { sur: 'Bibidh Other (अन्य अवर्गीकृत थरहरू)', cnt: 123, dev: 'अन्य', cluster: 'other', sub: 'पहिचान खुल्न बाँकी' }
 ];
 
 const GOKARNA_SURNAME_RAW_DATABASE = [
