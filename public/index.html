@@ -9083,6 +9083,42 @@
       // Multi-Tenant SaaS Subscriptions & Palikas (Super Admin Management)
       tenants: [
         {
+          TenantID: 'TNT_MVF9LYO3',
+          Province: 'बागमती प्रदेश',
+          District: 'सिन्धुपाल्चोक',
+          PalikaName: 'हेलम्बु गाउँपालिका',
+          TenantName: 'राष्ट्रिय स्वतन्त्र पार्टी हेलम्बु गाउँपालिका निर्वाचन अभियान समिति',
+          TotalWards: 7,
+          TotalPollingLocations: 10,
+          WardsConfig: [
+            { number: 1, locations: [{ id: "PL05497", name: "गोल्मादेवी मा.वि., तिम्बु" }, { id: "PL05498", name: "ककनी आधारभूत विद्यालय, मेलम्चीघ्याङ" }] },
+            { number: 2, locations: [{ id: "PL05499", name: "ज्योति माध्यमिक विद्यालय, किउल" }, { id: "PL05500", name: "भुमेश्वरी मा.वि., किउल" }] },
+            { number: 3, locations: [{ id: "PL05501", name: "जय बागेश्वरी मा.वि., पाल्चोक" }] },
+            { number: 4, locations: [{ id: "PL05502", name: "सरस्वती मा.वि., ग्याल्थुम" }] },
+            { number: 5, locations: [{ id: "PL05503", name: "सर्वोदय आधारभूत विद्यालय, महाँकाल" }] },
+            { number: 6, locations: [{ id: "PL05504", name: "नारायण माध्यमिक विद्यालय, इचोक" }] },
+            { number: 7, locations: [{ id: "PL05505", name: "महेन्द्र मा.वि., महाँकाल" }, { id: "PL05506", name: "पातिङ माध्यमिक विद्यालय, इचोक" }] }
+          ],
+          Party: 'RSP',
+          Slug: 'rsp',
+          AdminUsername: 'helambu',
+          AdminPassword: 'pass@123',
+          ContactPerson: 'Basanta Thapa',
+          Phone: '9708812314',
+          Status: 'Active',
+          PlanType: 'Full Palika Suite',
+          FeeMonthly: 'Rs. 25,000',
+          BillingStatus: 'Paid',
+          ContractAmount: 25000,
+          PaymentMethod: 'Bank Transfer',
+          InvoiceNo: 'INV-2026-HELA-01',
+          Features: { sms: true, familyTree: true, reports: true, voterSlips: true },
+          SmsCredits: 5100,
+          SmsUsed: 0,
+          ExpiresAt: '2027-01-17',
+          CreatedAt: '2026-10-19'
+        },
+        {
           TenantID: 'TNT_MVG3WXFX',
           Province: 'बागमती प्रदेश',
           District: 'काठमाडौं',
@@ -9117,42 +9153,6 @@
           Phone: '9851000001',
           Status: 'Active',
           PlanType: 'Full Palika Suite'
-        },
-        {
-          TenantID: 'TNT_MVF9LYO3',
-          Province: 'बागमती प्रदेश',
-          District: 'सिन्धुपाल्चोक',
-          PalikaName: 'हेलम्बु गाउँपालिका',
-          TenantName: 'राष्ट्रिय स्वतन्त्र पार्टी हेलम्बु गाउँपालिका निर्वाचन अभियान समिति',
-          TotalWards: 7,
-          TotalPollingLocations: 10,
-          WardsConfig: [
-            { number: 1, locations: [{ id: "PL05497", name: "गोल्मादेवी मा.वि., तिम्बु" }, { id: "PL05498", name: "ककनी आधारभूत विद्यालय, मेलम्चीघ्याङ" }] },
-            { number: 2, locations: [{ id: "PL05499", name: "ज्योति माध्यमिक विद्यालय, किउल" }, { id: "PL05500", name: "भुमेश्वरी मा.वि., किउल" }] },
-            { number: 3, locations: [{ id: "PL05501", name: "जय बागेश्वरी मा.वि., पाल्चोक" }] },
-            { number: 4, locations: [{ id: "PL05502", name: "सरस्वती मा.वि., ग्याल्थुम" }] },
-            { number: 5, locations: [{ id: "PL05503", name: "सर्वोदय आधारभूत विद्यालय, महाँकाल" }] },
-            { number: 6, locations: [{ id: "PL05504", name: "नारायण माध्यमिक विद्यालय, इचोक" }] },
-            { number: 7, locations: [{ id: "PL05505", name: "महेन्द्र मा.वि., महाँकाल" }, { id: "PL05506", name: "पातिङ माध्यमिक विद्यालय, इचोक" }] }
-          ],
-          Party: 'RSP',
-          Slug: 'helambu_rsp_2',
-          AdminUsername: 'helambu',
-          AdminPassword: 'pass@123',
-          ContactPerson: 'dhruba',
-          Phone: '9851170567',
-          Status: 'Active',
-          PlanType: 'Full Palika Suite',
-          FeeMonthly: 'Rs. 25,000',
-          BillingStatus: 'Paid',
-          ContractAmount: 25000,
-          PaymentMethod: 'Bank Transfer',
-          InvoiceNo: 'INV-2026-HELA-01',
-          Features: { sms: true, familyTree: true, reports: true, voterSlips: true },
-          SmsCredits: 5100,
-          SmsUsed: 0,
-          ExpiresAt: '2027-01-17',
-          CreatedAt: '2026-10-19'
         },
         {
           TenantID: 'TNT_HELAMBU',
@@ -9264,8 +9264,8 @@
           }
 
           // Ensure RSP Helambu Campaign Tenant TNT_MVF9LYO3 is always available in state
-          const hasRspTenant = state.tenants.some(t => t.TenantID === 'TNT_MVF9LYO3');
-          if (!hasRspTenant) {
+          let helambuRspTenant = state.tenants.find(t => t.TenantID === 'TNT_MVF9LYO3');
+          if (!helambuRspTenant) {
             state.tenants.unshift({
               TenantID: 'TNT_MVF9LYO3',
               Province: 'बागमती प्रदेश',
@@ -9284,11 +9284,11 @@
                 { number: 7, locations: [{ id: "PL05505", name: "महेन्द्र मा.वि., महाँकाल" }, { id: "PL05506", name: "पातिङ माध्यमिक विद्यालय, इचोक" }] }
               ],
               Party: 'RSP',
-              Slug: 'helambu_rsp_2',
+              Slug: 'rsp',
               AdminUsername: 'helambu',
               AdminPassword: 'pass@123',
-              ContactPerson: 'dhruba',
-              Phone: '9851170567',
+              ContactPerson: 'Basanta Thapa',
+              Phone: '9708812314',
               Status: 'Active',
               PlanType: 'Full Palika Suite',
               FeeMonthly: 'Rs. 25,000',
@@ -9302,6 +9302,11 @@
               ExpiresAt: '2027-01-17',
               CreatedAt: '2026-10-19'
             });
+          } else {
+            helambuRspTenant.Slug = 'rsp';
+            if (!helambuRspTenant.AdminUsername) helambuRspTenant.AdminUsername = 'helambu';
+            if (!helambuRspTenant.AdminPassword) helambuRspTenant.AdminPassword = 'pass@123';
+            helambuRspTenant.Status = 'Active';
           }
           if (!state.users) state.users = [];
           if (!state.users.some(u => u.UserID === 'USR_TNT_MVF9LYO3')) {
@@ -10121,7 +10126,10 @@
         iconEl.style.background = pInfo.primary || '#047857';
       }
       if (!preserveInputs) {
-        if (userField) userField.value = '';
+        if (userField) {
+          userField.value = '';
+          userField.placeholder = `${tenant.AdminUsername || 'helambu'} वा मोबाइल नम्बर`;
+        }
         if (passField) passField.value = '';
         const lockoutMsg = document.getElementById('tenantLoginLockoutMsg');
         if (lockoutMsg) lockoutMsg.style.display = 'none';
@@ -10308,7 +10316,7 @@
       );
       if (match) return match;
 
-      // 2. Normalized match (ignoring dashes/underscores, e.g. helambu-rsp-2 == helambu_rsp_2)
+      // 2. Normalized match (ignoring dashes/underscores, e.g. helambu-rsp == helambursp)
       match = tenants.find(t => {
         const tSlugNorm = (t.Slug || '').toLowerCase().replace(/[-_\s]/g, '');
         const tIdNorm = (t.TenantID || '').toLowerCase().replace(/[-_\s]/g, '');
@@ -10317,34 +10325,50 @@
       });
       if (match) return match;
 
-      // 3. Partial keyword matching for RSP / Helambu
-      if (norm.includes('rsp') || norm === 'bell' || norm === 'ghanti') {
-        const rspTenant = tenants.find(t => (t.Party === 'RSP' || (t.TenantName && t.TenantName.includes('स्वतन्त्र'))) && t.Status !== 'Suspended')
-          || tenants.find(t => t.Party === 'RSP');
-        if (rspTenant) return rspTenant;
+      // 3. Priority match for Helambu RSP (the core campaign tenant TNT_MVF9LYO3)
+      if (
+        norm === 'rsp' ||
+        norm === 'helambu' ||
+        norm === 'helambursp' ||
+        norm === 'helambursp2' ||
+        norm === 'bell' ||
+        norm === 'ghanti'
+      ) {
+        const helambuRsp = tenants.find(t => 
+          (t.TenantID === 'TNT_MVF9LYO3' || t.Slug === 'rsp' || (t.PalikaName && t.PalikaName.includes('हेलम्बु') && t.Party === 'RSP')) && t.Status !== 'Suspended'
+        ) || tenants.find(t => t.TenantID === 'TNT_MVF9LYO3' || (t.PalikaName && t.PalikaName.includes('हेलम्बु') && t.Party === 'RSP'));
+        if (helambuRsp) return helambuRsp;
       }
 
-      // 4. If query is simply 'helambu', return the ACTIVE Helambu tenant (prioritizing Active over Suspended)
-      if (norm === 'helambu') {
-        const activeHelambu = tenants.find(t => 
-          (t.PalikaName && t.PalikaName.includes('हेलम्बु')) && t.Status === 'Active'
-        );
-        if (activeHelambu) return activeHelambu;
-        const anyHelambu = tenants.find(t => 
-          (t.PalikaName && t.PalikaName.includes('हेलम्बु')) || (t.Slug && t.Slug.toLowerCase().includes('helambu'))
-        );
-        if (anyHelambu) return anyHelambu;
-      }
-
-      // 4b. If query is simply 'gokarna' or 'gokarneshwor', return the active Gokarneshwor tenant
+      // 4. Gokarneshwor queries
       if (norm.includes('gokarna') || norm.includes('gokarneshwor')) {
+        if (norm.includes('rsp')) {
+          const gokarnaRsp = tenants.find(t => (t.TenantID === 'TNT_GOKARNESHWOR_RSP' || (t.PalikaName && t.PalikaName.includes('गोकर्णेश्वर') && t.Party === 'RSP')) && t.Status !== 'Suspended')
+            || tenants.find(t => t.TenantID === 'TNT_GOKARNESHWOR_RSP');
+          if (gokarnaRsp) return gokarnaRsp;
+        }
         const activeGokarna = tenants.find(t => 
           ((t.PalikaName && t.PalikaName.includes('गोकर्णेश्वर')) || (t.TenantID && t.TenantID.includes('GOKARNESHWOR')) || (t.Slug && t.Slug.includes('gokarna'))) && t.Status !== 'Suspended'
         ) || tenants.find(t => (t.PalikaName && t.PalikaName.includes('गोकर्णेश्वर')) || (t.TenantID && t.TenantID.includes('GOKARNESHWOR')));
         if (activeGokarna) return activeGokarna;
       }
 
-      // 5. Fallback if single active tenant exists
+      // 5. Helambu general queries (if NC Helambu or generic)
+      if (norm.includes('helambu')) {
+        const helambuAny = tenants.find(t => 
+          (t.TenantID === 'TNT_MVF9LYO3' || (t.PalikaName && t.PalikaName.includes('हेलम्बु') && t.Status === 'Active'))
+        ) || tenants.find(t => t.PalikaName && t.PalikaName.includes('हेलम्बु'));
+        if (helambuAny) return helambuAny;
+      }
+
+      // 6. Generic RSP fallback (defaults to Helambu RSP)
+      if (norm.includes('rsp')) {
+        const anyRsp = tenants.find(t => (t.TenantID === 'TNT_MVF9LYO3' || t.Party === 'RSP') && t.Status !== 'Suspended')
+          || tenants.find(t => t.Party === 'RSP');
+        if (anyRsp) return anyRsp;
+      }
+
+      // 7. Fallback if single active tenant exists
       const activeTenants = tenants.filter(t => t.Status !== 'Suspended');
       if (activeTenants.length === 1 && (norm === 'admin' || norm === 'palika' || norm === 'app')) {
         return activeTenants[0];
@@ -10374,6 +10398,15 @@
 
       const slugParam = (params.get('palika') || params.get('tenant') || params.get('p') || '').trim().toLowerCase();
       const tokenParam = (params.get('u') || (params.get('worker') && params.get('worker') !== '1' ? params.get('worker') : '') || '').trim();
+
+      // If URL targeted a dedicated tenant, ensure session matches
+      if (slugParam) {
+        const targetTenant = findTenantBySlugOrId(slugParam);
+        // If logged in as someone else (e.g. Super Admin or different Palika), disconnect session so target tenant login screen opens
+        if (currentUser && targetTenant && currentUser.TenantID !== targetTenant.TenantID) {
+          currentUser = null;
+        }
+      }
 
       // If user has active session, launch dashboard directly
       if (currentUser) {
@@ -10485,7 +10518,7 @@
             const titleEl = document.getElementById('invalidLinkTitle');
             const msgEl = document.getElementById('invalidLinkMsg');
             if (titleEl) titleEl.textContent = 'पालिका विवरण प्रमाणित गरिँदैछ...';
-            if (msgEl) msgEl.innerHTML = `<span style="font-size:24px;display:inline-block;animation:pulseDot 1s infinite;">⏳</span><br>क्लाउड सर्भरबाट <b>${escapeHtml(slugParam)}</b> पालिका लिङ्क लोड गरिँदैछ, कृपया १-२ सेकेन्ड पर्खनुहोस्...`;
+            if (msgEl) msgEl.innerHTML = `<span style="font-size:24px;display:inline-block;animation:pulseDot 1s infinite;">⏳</span><br>क्लाउड सर्भरबाट <b>${esc(slugParam)}</b> पालिका लिङ्क लोड गरिँदैछ, कृपया १-२ सेकेन्ड पर्खनुहोस्...`;
 
             fetch(`${url}/rest/v1/system_settings?key=eq.saas_tenants_registry`, {
               headers: { 'apikey': key, 'Authorization': `Bearer ${key}` }

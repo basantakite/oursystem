@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v84)
-const CACHE_NAME = 'election-ops-v84-himalayan-dossier-engine';
+// Service Worker for Offline & Installable App Experience (v85)
+const CACHE_NAME = 'election-ops-v85-tenant-portal-engine';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
