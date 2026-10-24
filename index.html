@@ -10160,7 +10160,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261024-v102-zero-error-family-tree';
+      const CURRENT_APP_BUILD = '20261024-v103-caste-roster-fix';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -14797,7 +14797,6 @@
         'voterWardFilter',
         'voterWardFilterMobile',
         'householdWardFilter',
-        'casteFilterWardSelect',
         'commWardFilter',
         'genZWardFilter',
         'seniorsWardFilter',
@@ -14809,6 +14808,9 @@
         'quickStrikeWard',
         'strikeWardFilter'
       ];
+      if (typeof populateCasteWardSelect === 'function') {
+        populateCasteWardSelect((typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX');
+      }
       selects.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -41724,9 +41726,10 @@ function populateCasteWardSelect(tenantId) {
   const maxWards = isHelambu ? 7 : 9;
 
   const curMax = wSel.options.length - 1;
-  const targetWard = (_casteFilterState && _casteFilterState.ward) || wSel.value || 'all';
+  const rawVal = (_casteFilterState && _casteFilterState.ward) || wSel.value || 'all';
+  const targetWard = (rawVal === '' || rawVal === 'सबै वडा (All Wards)') ? 'all' : rawVal;
 
-  if (curMax !== maxWards || wSel.getAttribute('data-tenant') !== tenantId) {
+  if (curMax !== maxWards || wSel.getAttribute('data-tenant') !== tenantId || !wSel.options[0] || wSel.options[0].value !== 'all') {
     let html = '<option value="all">वडा: सबै वडा</option>';
     for (let i = 1; i <= maxWards; i++) {
       html += `<option value="${i}">वडा नं. ${nepaliNumerals(i)}</option>`;
@@ -41735,8 +41738,9 @@ function populateCasteWardSelect(tenantId) {
     wSel.setAttribute('data-tenant', tenantId);
   }
 
-  if (targetWard && targetWard !== 'all' && Number(targetWard) <= maxWards) {
+  if (targetWard && targetWard !== 'all' && Number(targetWard) >= 1 && Number(targetWard) <= maxWards) {
     wSel.value = String(targetWard);
+    if (_casteFilterState) _casteFilterState.ward = String(targetWard);
   } else {
     wSel.value = 'all';
     if (_casteFilterState) _casteFilterState.ward = 'all';
@@ -42282,6 +42286,30 @@ function setCastePage(p) {
   loadLiveCasteVotersList();
 }
 
+function normalizeCasteVoterRow(v) {
+  if (!v) return v;
+  if (v.full_name && v.voter_id !== undefined && v.ward_no !== undefined) return v;
+  return {
+    ...v,
+    voter_id: v.voter_id || v.VoterID || '',
+    official_voter_id: v.official_voter_id || v.OfficialVoterID || v.voter_id || v.VoterID || '',
+    full_name: v.full_name || v.Name || v.FullName || '',
+    father_name: v.father_name || v.FatherName || '',
+    mother_name: v.mother_name || v.MotherName || '',
+    spouse_name: v.spouse_name || v.SpouseName || '',
+    ward_no: v.ward_no !== undefined ? v.ward_no : (v.Ward !== undefined ? v.Ward : ''),
+    booth_no: v.booth_no || v.Booth || v.PollingStation || '',
+    tole: v.tole || v.Tole || '',
+    age: v.age !== undefined ? v.age : (v.Age !== undefined ? v.Age : ''),
+    gender: v.gender || v.Gender || '',
+    phone: v.phone || v.Phone || v.mobile || '',
+    sentiment: v.sentiment || (v.SupportLevel === 'Solid' || v.SupportLevel === 'Strong' ? 'solid' : (v.SupportLevel === 'Against' ? 'opposition' : 'swing')),
+    support_level: v.support_level || v.SupportLevel || '',
+    party_leaning: v.party_leaning || v.PartyLeaning || 'Undecided',
+    tenant_id: v.tenant_id || v.TenantID || ''
+  };
+}
+
 async function loadLiveCasteVotersList() {
   const reqId = ++_casteReqCounter;
 
@@ -42298,7 +42326,8 @@ async function loadLiveCasteVotersList() {
   const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
 
   const selCluster = (_casteFilterState && _casteFilterState.cluster) || 'all';
-  const selWard = document.getElementById('casteFilterWardSelect')?.value || (_casteFilterState ? _casteFilterState.ward : 'all') || 'all';
+  const rawWardVal = document.getElementById('casteFilterWardSelect')?.value || (_casteFilterState ? _casteFilterState.ward : 'all') || 'all';
+  const selWard = (rawWardVal === '' || rawWardVal === 'सबै वडा (All Wards)') ? 'all' : rawWardVal;
   const selBooth = document.getElementById('casteFilterBoothSelect')?.value || (_casteFilterState ? _casteFilterState.booth : 'all') || 'all';
   const selSurname = document.getElementById('casteFilterSurnameSelect')?.value || (_casteFilterState ? _casteFilterState.surname : 'all') || 'all';
   const selSupport = document.getElementById('casteFilterSupportSelect')?.value || (_casteFilterState ? _casteFilterState.support : 'all') || 'all';
@@ -42341,24 +42370,31 @@ async function loadLiveCasteVotersList() {
     else if (selCluster === 'muslim') totalMatch = statsSource.muslim;
     else if (selCluster === 'unclassified') totalMatch = statsSource.other;
 
+    const expectedFullRollMin = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU') ? 18000 : 37000;
+
     // 0ms Instant Cache Hit
     if (_casteLiveRosterCache[cacheKey]) {
       voters = _casteLiveRosterCache[cacheKey].voters;
       totalMatch = _casteLiveRosterCache[cacheKey].totalMatch;
       window._currentLiveCasteVoters = voters;
-    } else if (Array.isArray(state.voters) && state.voters.length >= 1000) {
-      // FAST PATH 1: Full In-Memory Filtering (< 2ms, 0 Network Lag!)
-      const memTenantVoters = state.voters.filter(v => !v.tenant_id || v.tenant_id === tenantId);
-      if (memTenantVoters.length >= 1000) {
+    } else if (Array.isArray(state.voters) && state.voters.length >= expectedFullRollMin) {
+      // FAST PATH 1: Full In-Memory Filtering (< 2ms, 0 Network Lag!) only when full tenant roll is hydrated
+      const memTenantVoters = state.voters.filter(v => {
+        const vt = v.tenant_id || v.TenantID || 'TNT_HELAMBU';
+        const normVt = (vt === 'TNT_HELAMBU' || vt === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : vt;
+        return normVt === tenantId;
+      });
+      if (memTenantVoters.length >= expectedFullRollMin) {
         const qLower = searchVal.toLowerCase();
         const filtered = memTenantVoters.filter(v => {
           if (selWard !== 'all' && String(v.ward_no || v.Ward) !== String(selWard)) return false;
-          if (selBooth !== 'all' && !String(v.booth_no || v.Booth || '').toLowerCase().includes(selBooth.toLowerCase())) return false;
+          if (selBooth !== 'all' && !String(v.booth_no || v.Booth || v.PollingStation || '').toLowerCase().includes(selBooth.toLowerCase())) return false;
           if (selSupport !== 'all') {
-            if (selSupport === 'solid' && v.sentiment !== 'solid' && v.support_level !== 'Solid') return false;
-            if (selSupport === 'swing' && v.sentiment === 'solid') return false;
-            if (selSupport === 'other' && v.sentiment !== 'opposition') return false;
-            if (selSupport === 'absentee' && v.sentiment !== 'absentee') return false;
+            const sent = v.sentiment || (v.SupportLevel === 'Solid' || v.SupportLevel === 'Strong' ? 'solid' : (v.SupportLevel === 'Against' ? 'opposition' : 'swing'));
+            if (selSupport === 'solid' && sent !== 'solid') return false;
+            if (selSupport === 'swing' && sent === 'solid') return false;
+            if (selSupport === 'other' && sent !== 'opposition') return false;
+            if (selSupport === 'absentee' && sent !== 'absentee') return false;
           }
           const c = getVoterCasteClassification(v);
           if (selCluster !== 'all') {
@@ -42366,18 +42402,21 @@ async function loadLiveCasteVotersList() {
             if (selCluster !== 'unclassified' && c.cluster !== selCluster) return false;
           }
           if (selSurname !== 'all') {
-            const rawSur = extractVoterSurname(v.full_name || v.Name || '').toLowerCase();
+            const fullNm = v.full_name || v.Name || v.FullName || '';
+            const rawSur = extractVoterSurname(fullNm).toLowerCase();
             const sTarget = selSurname.toLowerCase();
-            if (rawSur !== sTarget && (c.surname || '').toLowerCase() !== sTarget && !(v.full_name || '').toLowerCase().includes(sTarget)) return false;
+            if (rawSur !== sTarget && (c.surname || '').toLowerCase() !== sTarget && !fullNm.toLowerCase().includes(sTarget)) return false;
           }
           if (qLower) {
-            const hay = `${v.full_name || ''} ${v.father_name || ''} ${v.tole || ''} ${v.official_voter_id || v.voter_id || ''}`.toLowerCase();
+            const hay = `${v.full_name || v.Name || ''} ${v.father_name || v.FatherName || ''} ${v.tole || v.Tole || ''} ${v.official_voter_id || v.OfficialVoterID || v.voter_id || v.VoterID || ''}`.toLowerCase();
             if (!hay.includes(qLower)) return false;
           }
           return true;
         });
-        totalMatch = filtered.length;
-        voters = filtered.slice(offset, offset + pageSize);
+        if (qLower || selBooth !== 'all' || selSurname !== 'all' || selSupport !== 'all') {
+          totalMatch = filtered.length;
+        }
+        voters = filtered.slice(offset, offset + pageSize).map(normalizeCasteVoterRow);
         _casteLiveRosterCache[cacheKey] = { voters, totalMatch };
         window._currentLiveCasteVoters = voters;
       }
@@ -42430,17 +42469,19 @@ async function loadLiveCasteVotersList() {
         let orClauses = [];
 
         if (!rawSearch) {
-          const pushDualPattern = (term) => {
-            if (!term) return;
-            const cl = 'full_name.ilike.*' + encodeURIComponent(term) + '*';
+          const pushRomanPattern = (term, maxClauses = 22) => {
+            if (!term || orClauses.length >= maxClauses) return;
+            const cleanTerm = String(term).trim();
+            // Skip Devanagari or dotted strings in bulk OR clauses to prevent PostgREST syntax/statement timeout
+            if (!cleanTerm || /[\u0900-\u097F.]/.test(cleanTerm)) return;
+            const cl = 'full_name.ilike.*' + encodeURIComponent(cleanTerm) + '*';
             if (!orClauses.includes(cl)) orClauses.push(cl);
           };
           if (selSurname && selSurname !== 'all') {
             const studioList = (typeof getActiveTenantStudioSurnames === 'function') ? getActiveTenantStudioSurnames() : [];
             const studioMatch = studioList.find(item => item.sur && item.sur.toLowerCase() === selSurname.toLowerCase());
             if (studioMatch) {
-              pushDualPattern(studioMatch.sur);
-              if (studioMatch.dev && studioMatch.dev !== studioMatch.sur) pushDualPattern(studioMatch.dev);
+              pushRomanPattern(studioMatch.sur, 30);
               totalMatch = (selWard && selWard !== 'all' && wardRow) ? Math.max(1, Math.round(studioMatch.cnt * (wardRow.total / ((tenantId === 'TNT_MVF9LYO3') ? 18907 : 37759)))) : studioMatch.cnt;
             }
             const tenantSurnames = REAL_TENANT_CASTE_SURNAMES[tenantId] || REAL_TENANT_CASTE_SURNAMES.TNT_MVG3WXFX;
@@ -42450,38 +42491,31 @@ async function loadLiveCasteVotersList() {
               if (found) { matchedItem = found; break; }
             }
             if (matchedItem && Array.isArray(matchedItem.patterns) && matchedItem.patterns.length > 0) {
-              matchedItem.patterns.forEach(p => pushDualPattern(p));
-              if (matchedItem.ne) pushDualPattern(matchedItem.ne);
+              matchedItem.patterns.forEach(p => pushRomanPattern(p, 30));
             } else {
-              pushDualPattern(selSurname);
+              pushRomanPattern(selSurname, 30);
             }
-            const rDictEntry = (typeof ROMANIZED_CASTE_DICTIONARY !== 'undefined') ? ROMANIZED_CASTE_DICTIONARY[selSurname.toLowerCase()] : null;
-            if (rDictEntry && rDictEntry.devanagari) pushDualPattern(rDictEntry.devanagari);
           } else if (selCluster === 'janajati') {
-            ['tamang','lama','lamini','sherpa','sherpini','serpa','gurung','magar','rai','sunuwar','hyolmo','hyalmo','yolmo','dolma','ghale','limbu','ghising','moktan','yonjan','bomjan','waiba','pakhrin','thokar','dong','gole','blon','jimba','rumba','titung','ale','pun','thami','majhi','bhujel','chepang','kumal','nagarkoti','dhimal','तामाङ','तामाङ्ग','लामा','लामिनी','शेर्पा','शेर्पिनी','ह्योल्मो','ह्याल्मो','गुरुङ','मगर','राई','सुनुवार','डोल्मा','घले','लिम्बु','भुजेल','थामी','माझी','कुमाल'].forEach(pushDualPattern);
+            ['tamang','lama','sherpa','gurung','magar','rai','sunuwar','hyolmo','dolma','ghale','limbu','ghising','moktan','yonjan','waiba','pakhrin','thokar','dong','gole','blon'].forEach(t => pushRomanPattern(t, 20));
           } else if (selCluster === 'newar') {
-            ['shrestha','maharjan','shakya','shaky','dangol','manandhar','bajracharya','tuladhar','tamrakar','kansakar','pradhan','rajbhandari','karmacharya','amatya','maskey','vaidya','chitrakar','ranjitkar','karanjit','pode','kapali','napit','prajapati','sthapit','suwal','khadgi','deula','श्रेष्ठ','महर्जन','शाक्य','डंगोल','मानन्धर','बज्राचार्य','तुलाधर','ताम्राकार','प्रधान','राजभण्डारी','कर्माचार्य','अमात्य','प्रजापति','खड्गी','देउला'].forEach(pushDualPattern);
+            ['shrestha','maharjan','shakya','dangol','manandhar','bajracharya','tuladhar','tamrakar','pradhan','rajbhandari','karmacharya','amatya','maskey','vaidya','ranjitkar','prajapati','suwal','khadgi','deula'].forEach(t => pushRomanPattern(t, 20));
           } else if (selCluster === 'khas_arya') {
-            ['bhandari','thapa','karki','khadka','ghimire','paudel','adhikari','pudasaini','gautam','pandit','giri','dahal','sapkota','basnet','chaulagain','subedi','aryal','khatiwada','khatri','pokharel','chhetri','bhattarai','dhakal','chalise','nepal','khanal','baral','sharma','nyaupane','budhathoki','upadhyay','thapaliya','thakuri','kafle','katuwal','kattel','kandel','kunwar','devkota','dulal','tiwari','tripathi','humagain','hamal','lamichhane','jyoti','gajurel','dangal','kuinkel','kuikel','risal','ke.si','sinkhada','koirala','shahi','parajuli','dhungana','upreti','timilsina','rijal','rayamajhi','mainali','pande','sigdel','regmi','sanjel','phuyal','raut','भण्डारी','थापा','कार्की','खड्का','घिमिरे','पौडेल','अधिकारी','पुडासैनी','गौतम','पण्डित','गिरी','दाहाल','सापकोटा','बस्नेत','चौलागाई','सुवेदी','अर्याल','खतिवडा','खत्री','पोखरेल','क्षेत्री','भट्टराई','ढकाल','चालिसे','नेपाल','बराल','शर्मा','लामिछाने','ज्योति','गजुरेल','दङ्गाल','आचार्य','रिमाल','भारती','पुरी','के.सी.'].forEach(pushDualPattern);
+            ['bhandari','thapa','karki','khadka','ghimire','paudel','adhikari','pudasaini','gautam','pandit','giri','dahal','sapkota','basnet','chaulagain','subedi','aryal','khatri','pokharel','chhetri'].forEach(t => pushRomanPattern(t, 20));
           } else if (selCluster === 'dalit') {
-            ['bishwokarma','bishwakarma','wishwakarma','pariyar','mijar','sunar','sonar','sarki','damai','nepali','baraili','baraily','senchuri','century','rasaili','ramtel','ghotane','koli','lohar','tamta','musahar','paswan','chamar','wi.k','wika','b.k','kami','darnal','tolangge','विश्वकर्मा','वि.क','विक','परियार','मिजार','सुनार','सोनार','सार्की','दमाई','नेपाली','बराइली','कामी','दर्नाल','कालीराज'].forEach(pushDualPattern);
+            ['bishwokarma','bishwakarma','pariyar','mijar','sunar','sonar','sarki','damai','nepali','baraili','senchuri','rasaili','ramtel','kami','darnal','tolangge'].forEach(t => pushRomanPattern(t, 18));
           } else if (selCluster === 'madhesi') {
-            ['yadav','yadaw','ahir','gop','koiri','kushwaha','kurmi','jha','shukla','sah','sahu','gupta','mahato','mandal','tharu','chaudhary','chaudhari','kewat','kanu','thakur','kalwar','rauniyar','agrawal','यादव','झा','साह','गुप्ता','महतो','मण्डल','थारु','चौधरी','ठाकुर'].forEach(pushDualPattern);
+            ['yadav','yadaw','koiri','kushwaha','kurmi','jha','shukla','sah','sahu','gupta','mahato','mandal','tharu','chaudhary','chaudhari','thakur'].forEach(t => pushRomanPattern(t, 18));
           } else if (selCluster === 'muslim') {
-            ['sheikh','ansari','khan','miyan','miya','sayyid','pathan','qureshi','mansuri','siddiqui','farooqui','usmani','banu','aalam','शेख','अन्सारी','खान','मियाँ','पठान','मन्सुरी'].forEach(pushDualPattern);
+            ['sheikh','ansari','khan','miyan','miya','sayyid','pathan','qureshi','mansuri','siddiqui','farooqui','usmani','banu','aalam'].forEach(t => pushRomanPattern(t, 16));
           }
 
-          // Dynamic inclusion of custom-mapped surnames for the active cluster filter (Roman + Devanagari)
+          // Dynamic inclusion of custom-mapped surnames for the active cluster filter (Roman only)
           if (selCluster !== 'all' && selCluster !== 'unclassified') {
             const cRules = getCustomCasteRules();
             Object.keys(cRules).forEach(k => {
               if (cRules[k] && cRules[k].cluster === selCluster) {
                 const cleanRaw = k.trim();
-                if (cleanRaw) {
-                  pushDualPattern(cleanRaw.toLowerCase());
-                  const rDict = (typeof ROMANIZED_CASTE_DICTIONARY !== 'undefined') ? ROMANIZED_CASTE_DICTIONARY[cleanRaw.toLowerCase()] : null;
-                  if (rDict && rDict.devanagari) pushDualPattern(rDict.devanagari);
-                }
+                if (cleanRaw) pushRomanPattern(cleanRaw.toLowerCase(), 22);
               }
             });
           }
@@ -42497,8 +42531,9 @@ async function loadLiveCasteVotersList() {
         let currentOffset = offset;
         let attempts = 0;
         const fetchBatchSize = (selCluster === 'all' || rawSearch) ? pageSize : 80;
+        const needExactSubCount = Boolean(rawSearch || selBooth !== 'all' || selSupport !== 'all');
 
-        while (collected.length < pageSize && attempts < 4) {
+        while (collected.length < pageSize && attempts < 3) {
           attempts++;
           if (reqId !== _casteReqCounter) return;
 
@@ -42542,14 +42577,19 @@ async function loadLiveCasteVotersList() {
 
           q += `&order=ward_no.asc,serial_no.asc&limit=${fetchBatchSize}&offset=${currentOffset}`;
 
-          const res = await fetch(q, { headers: { apikey: key, Authorization: 'Bearer ' + key, Prefer: 'count=exact' } });
+          const reqHeaders = { apikey: key, Authorization: 'Bearer ' + key };
+          if (needExactSubCount) reqHeaders.Prefer = 'count=exact';
+
+          const res = await fetch(q, { headers: reqHeaders });
           if (reqId !== _casteReqCounter) return;
           if (!res.ok) break;
 
-          const cr = res.headers.get('content-range');
-          if (cr && cr.includes('/') && (rawSearch || selBooth !== 'all' || selSupport !== 'all' || (selSurname && selSurname !== 'all'))) {
-            const exactCount = parseInt(cr.split('/')[1], 10);
-            if (!isNaN(exactCount)) totalMatch = exactCount;
+          if (needExactSubCount) {
+            const cr = res.headers.get('content-range');
+            if (cr && cr.includes('/')) {
+              const exactCount = parseInt(cr.split('/')[1], 10);
+              if (!isNaN(exactCount)) totalMatch = exactCount;
+            }
           }
 
           const batch = await res.json();
@@ -42572,7 +42612,28 @@ async function loadLiveCasteVotersList() {
           currentOffset += batch.length;
         }
 
-        voters = collected;
+        // Fallback direct batch scan if top-20 OR patterns yielded 0 in a specific ward where totalMatch > 0
+        if (collected.length === 0 && totalMatch > 0 && !rawSearch && selSurname === 'all' && selCluster !== 'all') {
+          let fbQ = `${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}`;
+          if (selWard && selWard !== 'all') fbQ += `&ward_no=eq.${encodeURIComponent(selWard)}`;
+          if (selBooth && selBooth !== 'all') fbQ += `&booth_no=ilike.*${encodeURIComponent(selBooth)}*`;
+          fbQ += `&order=ward_no.asc,serial_no.asc&limit=500&offset=0`;
+          const fbRes = await fetch(fbQ, { headers: { apikey: key, Authorization: 'Bearer ' + key } });
+          if (fbRes.ok) {
+            const fbBatch = await fbRes.json();
+            if (Array.isArray(fbBatch)) {
+              for (const v of fbBatch) {
+                const c = getVoterCasteClassification(v);
+                if (c.cluster === selCluster) {
+                  collected.push(v);
+                  if (collected.length >= pageSize) break;
+                }
+              }
+            }
+          }
+        }
+
+        voters = collected.map(normalizeCasteVoterRow);
         _casteLiveRosterCache[cacheKey] = { voters, totalMatch };
         window._currentLiveCasteVoters = voters;
       }
