@@ -11591,9 +11591,29 @@
       const tier = (typeof SUPPORT_TIERS !== 'undefined' && SUPPORT_TIERS[v.SupportTier]) || { icon: '⚪', label: 'तटस्थ (Swing)', bg: '#f1f5f9', color: '#334155', border: '#cbd5e1', glow: 'rgba(0,0,0,0.1)' };
       const isContacted = v.ContactStatus === 'Contacted';
 
+      // Party pill labels and icons
+      let partyDot = '⚪';
+      let partyLabel = 'तटस्थ';
+      let partyEmblem = '❓';
+      const pLean = v.PartyLeaning || v.party_leaning || '';
+      if (pLean === 'Congress') { partyDot = '🔵'; partyLabel = 'काँग्रेस'; partyEmblem = '🌳'; }
+      else if (pLean === 'UML') { partyDot = '🔴'; partyLabel = 'एमाले'; partyEmblem = '☀️'; }
+      else if (pLean === 'RSP') { partyDot = '🔔'; partyLabel = 'रास्वपा'; partyEmblem = '🔔'; }
+      else if (pLean === 'Maoist') { partyDot = '☭'; partyLabel = 'माओवादी'; partyEmblem = '☭'; }
+      else if (pLean === 'RPP') { partyDot = '🌾'; partyLabel = 'राप्रपा'; partyEmblem = '🌾'; }
+      else if (pLean === 'Independent') { partyDot = '⚪'; partyLabel = 'स्वतन्त्र'; partyEmblem = '⚪'; }
+      else if (pLean === 'Undecided' || !pLean) { partyDot = '⚪'; partyLabel = 'तटस्थ'; partyEmblem = '⚪'; }
+      else { partyDot = '⚪'; partyLabel = esc(pLean); partyEmblem = '⚪'; }
+
       // 1. Card View Elements
       const card = document.getElementById('voterCard_' + vId);
       if (card) {
+        // Party Stance Pill (Instant visual update)
+        const partyPill = document.getElementById('voterCardPartyPill_' + vId) || card.querySelector('div[onclick*="quickCycleParty"]');
+        if (partyPill) {
+          partyPill.innerHTML = `<span>${partyDot}</span> <span>${partyLabel}</span> <span style="font-size: 10px; opacity: 0.75;">🔄</span>`;
+        }
+
         // Dot indicator next to name
         const dot = document.getElementById('voterCardSureDot_' + vId);
         if (dot) dot.style.display = isSure ? 'inline-block' : 'none';
@@ -11639,11 +11659,24 @@
         }
       }
 
+      // Caste Card Elements
+      const castePill = document.getElementById('casteCardPartyPill_' + vId) || document.querySelector(`#casteVotersGrid div[onclick*="quickCycleParty('${vId}')"]`);
+      if (castePill) {
+        castePill.innerHTML = `<span>${partyDot}</span> <span>${partyLabel}</span> <span style="font-size: 10px; opacity: 0.75;">🔄</span>`;
+      }
+
       // 2. Table Row Elements
       const row = document.getElementById('voterRow_' + vId);
       if (row) {
+        const partyBadge = document.getElementById('voterRowPartyBadge_' + vId) || row.querySelector('.badge[onclick*="quickCycleSupportTier"]');
+        if (partyBadge) {
+          partyBadge.style.background = tier.bg;
+          partyBadge.style.color = tier.color;
+          partyBadge.style.border = `1.5px solid ${tier.border}`;
+          partyBadge.innerHTML = `<span>${partyEmblem}</span> <span>${partyLabel}</span> <span style="opacity: 0.5;">•</span> <span>${tier.shortLabel || tier.label}</span>`;
+        }
         const supportBadge = document.getElementById('voterRowSupportBadge_' + vId) || row.querySelector('.badge[onclick*="quickCycleSupportTier"]');
-        if (supportBadge) {
+        if (supportBadge && supportBadge !== partyBadge) {
           supportBadge.style.background = tier.bg;
           supportBadge.style.color = tier.color;
           supportBadge.style.border = `1.5px solid ${tier.border}`;
@@ -18942,7 +18975,7 @@ async function saveQuickCreatedTole(e) {
           <!-- Col 5: पार्टी तथा समर्थन रुझान -->
           <td>
             <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
-              <span class="badge" style="cursor: pointer; background: ${tier.bg}; color: ${tier.color}; border: 1.5px solid ${tier.border}; font-weight: 700; font-size: 11.5px; padding: 2.5px 8px; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation(); quickCycleSupportTier('${v.VoterID}')" title="क्लिक गरी समर्थन स्ल्याब बदल्नुहोस् (५ स्ल्याब)">
+              <span class="badge" id="voterRowPartyBadge_${v.VoterID}" style="cursor: pointer; background: ${tier.bg}; color: ${tier.color}; border: 1.5px solid ${tier.border}; font-weight: 700; font-size: 11.5px; padding: 2.5px 8px; display: inline-flex; align-items: center; gap: 4px;" onclick="event.stopPropagation(); quickCycleSupportTier('${v.VoterID}')" title="क्लिक गरी समर्थन स्ल्याब बदल्नुहोस् (५ स्ल्याब)">
                 <span>${partyEmblem}</span>
                 <span>${partyName}</span>
                 <span style="opacity: 0.5;">•</span>
@@ -19173,7 +19206,7 @@ async function saveQuickCreatedTole(e) {
             </div>
 
             <!-- Right Party Stance Pill Dropdown -->
-            <div onclick="quickCycleParty('${v.VoterID}')" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 15px; padding: 3px 8px; font-size: 11px; font-weight: 700; color: #334155; display: inline-flex; align-items: center; gap: 3.5px; cursor: pointer; flex-shrink: 0; height: 30px; box-sizing: border-box;" title="पार्टी झुकाव बदल्नुहोस्">
+            <div id="voterCardPartyPill_${v.VoterID}" onclick="quickCycleParty('${v.VoterID}')" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 15px; padding: 3px 8px; font-size: 11px; font-weight: 700; color: #334155; display: inline-flex; align-items: center; gap: 3.5px; cursor: pointer; flex-shrink: 0; height: 30px; box-sizing: border-box;" title="पार्टी झुकाव बदल्नुहोस्">
               <span>${partyDot}</span>
               <span>${partyLabel}</span>
               <span style="font-size: 10px; opacity: 0.75;">🔄</span>
@@ -19355,14 +19388,18 @@ async function saveQuickCreatedTole(e) {
       if (typeof markVoterLocallyEdited === 'function') markVoterLocallyEdited(voterId);
 
       const parties = ['UML', 'Congress', 'RSP', 'Maoist', 'RPP', 'Independent', 'Undecided'];
-      const curIdx = parties.indexOf(v.PartyLeaning);
+      const curIdx = parties.indexOf(v.PartyLeaning || v.party_leaning);
       const nextIdx = (curIdx + 1) % parties.length;
       v.PartyLeaning = parties[nextIdx];
+      v.party_leaning = parties[nextIdx];
       saveState();
-      if (typeof pushVoterToSupabase === 'function') await pushVoterToSupabase(v);
-      refreshDashboardMetrics();
+
+      // Instant 0ms In-place DOM update so the card reflects the change immediately
       if (typeof updateVoterInPlaceInDom === 'function') updateVoterInPlaceInDom(v);
       else renderVotersList();
+
+      if (typeof pushVoterToSupabase === 'function') await pushVoterToSupabase(v);
+      refreshDashboardMetrics();
 
       const pMeta = PARTY_META[v.PartyLeaning];
       const pText = pMeta ? `${pMeta.icon} ${pMeta.name}` : (v.PartyLeaning || 'दोधार');
@@ -41536,7 +41573,7 @@ async function loadLiveCasteVotersList() {
 
             <!-- Status & Quick Action Row (NO '∨' character!) -->
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; border-top: 1px solid #f1f5f9; padding-top: 6px; margin-top: 1px;">
-              <div onclick="quickCycleParty('${v.voter_id}')" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 5px 10px; font-size: 11.5px; font-weight: 800; color: #334155; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;" title="पार्टी झुकाव बदल्नुहोस्">
+              <div id="casteCardPartyPill_${v.voter_id}" onclick="quickCycleParty('${v.voter_id}')" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 5px 10px; font-size: 11.5px; font-weight: 800; color: #334155; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;" title="पार्टी झुकाव बदल्नुहोस्">
                 <span>${pIcon}</span>
                 <span>${pShort}</span>
                 <span style="font-size: 10px; opacity: 0.75;">🔄</span>
