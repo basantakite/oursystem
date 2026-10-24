@@ -4034,14 +4034,49 @@
 
     /* 2. Soft, Airy Cards with Ambient Layered Shadows */
     .card {
-      background: #ffffff !important;
-      border: 1px solid rgba(226, 232, 240, 0.8) !important;
       border-radius: 16px !important;
       box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03), 0 6px 18px -4px rgba(15, 23, 42, 0.04) !important;
       transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease !important;
     }
+    .card:not([style*="gradient"]):not([style*="background"]):not(.tenant-campaign-banner) {
+      background: #ffffff !important;
+      border: 1px solid rgba(226, 232, 240, 0.8) !important;
+    }
     .card:hover {
       box-shadow: 0 2px 6px 0 rgba(15, 23, 42, 0.04), 0 12px 28px -6px rgba(15, 23, 42, 0.07) !important;
+    }
+
+    /* 2B. Crisp High-Contrast Rules for Hero & Campaign Banners */
+    .tenant-campaign-banner,
+    .card[style*="gradient"],
+    .card[style*="linear-gradient"] {
+      color: #ffffff !important;
+    }
+    .tenant-campaign-banner h2 {
+      color: #ffffff !important;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+      font-weight: 800 !important;
+    }
+    .tenant-campaign-banner p,
+    .tenant-campaign-banner p span {
+      color: #ffffff !important;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+      font-weight: 600 !important;
+    }
+    .tenant-campaign-banner p b {
+      color: #fef08a !important; /* Soft golden highlight for numbers */
+      font-weight: 800 !important;
+    }
+    .tenant-campaign-banner .btn {
+      color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.22) !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+      backdrop-filter: blur(8px) !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    }
+    .tenant-campaign-banner .btn:hover {
+      background: rgba(255, 255, 255, 0.35) !important;
+      color: #ffffff !important;
     }
 
     /* 3. Floating Glassmorphism Topbar */
@@ -10064,7 +10099,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261024-v92-premium-soft-ui';
+      const CURRENT_APP_BUILD = '20261024-v93-crystal-clear-hero';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
