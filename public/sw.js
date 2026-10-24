@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v93)
-const CACHE_NAME = 'election-ops-v93-crystal-clear-hero';
+// Service Worker for Offline & Installable App Experience (v94)
+const CACHE_NAME = 'election-ops-v94-studio-clean-light';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

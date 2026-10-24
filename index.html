@@ -6464,46 +6464,59 @@
 
           <!-- PANE 3: CASTE & SURNAME MAPPING STUDIO (TENANT CASTE RULES STUDIO) -->
           <div id="castePane_studio" style="display: none;">
-            <!-- Studio Header Card -->
-            <div class="card" style="padding: 18px 20px; margin-bottom: 18px; border-radius: 12px; background: linear-gradient(135deg, rgba(30,27,75,0.7) 0%, rgba(15,23,42,0.9) 100%); border: 1.5px solid #6366f1;">
+            <!-- Studio Header Card (Ultra-Premium Soft Clean Design) -->
+            <div class="card" style="padding: 22px 24px; margin-bottom: 20px; border-radius: 16px; background: #ffffff; border: 1.5px solid #e2e8f0; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);">
               <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
                 <div>
-                  <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 10px;">
-                    <span>🏷️ पालिका/क्षेत्र विशेष थर तथा जातीय म्यापिङ स्टुडियो</span>
-                    <span class="badge" style="background: rgba(99,102,241,0.25); color: #c7d2fe; border: 1px solid #6366f1; font-size: 11px;">Tenant-Specific Cloud Synchronized</span>
-                    <span id="studioScanStatusBadge" class="badge" style="display: none; background: rgba(234,179,8,0.25); color: #fef08a; border: 1px solid #eab308; font-size: 11px;">⚡ लाइभ स्क्यान हुँदैछ...</span>
-                  </h3>
-                  <p style="margin: 4px 0 0; font-size: 13px; color: #cbd5e1; line-height: 1.5;">
+                  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <span style="font-size: 22px;">🏷️</span>
+                    <h3 style="margin: 0; font-size: 19px; font-weight: 800; color: #0f172a;">
+                      पालिका/क्षेत्र विशेष थर तथा जातीय म्यापिङ स्टुडियो
+                    </h3>
+                    <span class="badge" style="background: #eef2ff; color: #4338ca; border: 1.5px solid #c7d2fe; font-size: 11.5px; font-weight: 700; padding: 3px 10px;">
+                      Tenant-Specific Cloud Synchronized
+                    </span>
+                    <span id="studioScanStatusBadge" class="badge" style="display: none; background: #fefce8; color: #a16207; border: 1px solid #facc15; font-size: 11.5px; font-weight: 700;">⚡ लाइभ स्क्यान हुँदैछ...</span>
+                  </div>
+                  <p style="margin: 6px 0 0; font-size: 13.5px; color: #475569; line-height: 1.5;">
                     यस क्षेत्रका सम्पूर्ण मतदाताहरूको थर स्क्यान गरी फरक हिज्जे/टाइपिङ समायोजन, १-क्लिक ब्याच म्यापिङ र क्लाउडमा सुरक्षित गर्नुहोस् (अन्य डिभाइसमा समेत तुरुन्तै सिंक हुन्छ)।
                   </p>
                 </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                  <button type="button" class="btn btn-sm" onclick="rescanTenantSurnamesStudio()" style="background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-weight: 700; border-radius: 8px; padding: 7px 14px;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-sm" onclick="rescanTenantSurnamesStudio()" style="background: #ffffff; color: #1e293b; border: 1.5px solid #cbd5e1; font-weight: 700; border-radius: 10px; padding: 8px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                     🔄 पुन: स्क्यान गर्नुहोस्
                   </button>
-                  <button type="button" class="btn btn-sm btn-primary" onclick="syncStudioCasteRulesToCloud()" style="font-weight: 800; border-radius: 8px; padding: 7px 16px; background: #6366f1; border-color: #6366f1; box-shadow: 0 4px 12px rgba(99,102,241,0.35);">
+                  <button type="button" class="btn btn-sm btn-primary" onclick="syncStudioCasteRulesToCloud()" style="font-weight: 800; border-radius: 10px; padding: 8px 18px; background: #4f46e5; border-color: #4338ca; color: #ffffff; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);">
                     ☁️ सबै डिभाइसमा नियम सिंक गर्नुहोस्
                   </button>
                 </div>
               </div>
 
-              <!-- Studio 4 Snapshot KPIs -->
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 16px;">
-                <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 12px 14px;">
-                  <div style="font-size: 11.5px; color: #94a3b8; font-weight: 700;">कुल भिन्न थरहरू (Unique Surnames)</div>
-                  <div style="font-size: 22px; font-weight: 900; color: #fff; margin-top: 2px;" id="studioKpiTotalSurnames">०</div>
+              <!-- Studio 4 Snapshot KPIs (Clean, Soft, High-Contrast) -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-top: 18px;">
+                <!-- KPI 1: Unique Surnames -->
+                <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-left: 4px solid #3b82f6; border-radius: 12px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                  <div style="font-size: 12px; color: #475569; font-weight: 700;">कुल भिन्न थरहरू (Unique Surnames)</div>
+                  <div style="font-size: 26px; font-weight: 900; color: #0f172a; margin-top: 4px;" id="studioKpiTotalSurnames">०</div>
+                  <div style="font-size: 11px; color: #2563eb; font-weight: 600; margin-top: 2px;">क्षेत्रभित्र पहिचान</div>
                 </div>
-                <div style="background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); border-radius: 10px; padding: 12px 14px;">
-                  <div style="font-size: 11.5px; color: #86efac; font-weight: 700;">वर्गीकृत थरहरू (Mapped)</div>
-                  <div style="font-size: 22px; font-weight: 900; color: #4ade80; margin-top: 2px;" id="studioKpiMappedSurnames">०</div>
+                <!-- KPI 2: Mapped -->
+                <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-left: 4px solid #16a34a; border-radius: 12px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                  <div style="font-size: 12px; color: #166534; font-weight: 700;">वर्गीकृत थरहरू (Mapped)</div>
+                  <div style="font-size: 26px; font-weight: 900; color: #15803d; margin-top: 4px;" id="studioKpiMappedSurnames">०</div>
+                  <div style="font-size: 11px; color: #16a34a; font-weight: 600; margin-top: 2px;">क्लस्टर तोकिएका</div>
                 </div>
-                <div style="background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 12px 14px;">
-                  <div style="font-size: 11.5px; color: #fca5a5; font-weight: 700;">पहिचान खुल्न बाँकी थरहरू (Unmapped)</div>
-                  <div style="font-size: 22px; font-weight: 900; color: #f87171; margin-top: 2px;" id="studioKpiUnmappedSurnames">०</div>
+                <!-- KPI 3: Unmapped -->
+                <div style="background: #fff1f2; border: 1.5px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: 12px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                  <div style="font-size: 12px; color: #9f1239; font-weight: 700;">पहचान खुल्न बाँकी थरहरू (Unmapped)</div>
+                  <div style="font-size: 26px; font-weight: 900; color: #be123c; margin-top: 4px;" id="studioKpiUnmappedSurnames">०</div>
+                  <div style="font-size: 11px; color: #e11d48; font-weight: 700; margin-top: 2px;">१-क्लिक म्यापिङ आवश्यक</div>
                 </div>
-                <div style="background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3); border-radius: 10px; padding: 12px 14px;">
-                  <div style="font-size: 11.5px; color: #d8b4fe; font-weight: 700;">सक्रिय अनुकूलित नियमहरू (Custom Rules)</div>
-                  <div style="font-size: 22px; font-weight: 900; color: #c084fc; margin-top: 2px;" id="studioKpiCustomRules">०</div>
+                <!-- KPI 4: Custom Rules -->
+                <div style="background: #faf5ff; border: 1.5px solid #e9d5ff; border-left: 4px solid #9333ea; border-radius: 12px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                  <div style="font-size: 12px; color: #6b21a8; font-weight: 700;">सक्रिय अनुकूलित नियमहरू (Custom Rules)</div>
+                  <div style="font-size: 26px; font-weight: 900; color: #7e22ce; margin-top: 4px;" id="studioKpiCustomRules">०</div>
+                  <div style="font-size: 11px; color: #9333ea; font-weight: 600; margin-top: 2px;">क्लाउड सिङ्क सक्रिय</div>
                 </div>
               </div>
             </div>
@@ -10099,7 +10112,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261024-v93-crystal-clear-hero';
+      const CURRENT_APP_BUILD = '20261024-v94-studio-clean-light';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
