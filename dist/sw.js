@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v87)
-const CACHE_NAME = 'election-ops-v87-instant-card-party-engine';
+// Service Worker for Offline & Installable App Experience (v88)
+const CACHE_NAME = 'election-ops-v88-tole-booth-search-engine';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
