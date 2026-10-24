@@ -1,5 +1,5 @@
-// Service Worker for Offline & Installable App Experience (v95)
-const CACHE_NAME = 'election-ops-v95-compact-tabs-and-reset';
+// Service Worker for Offline & Installable App Experience (v96)
+const CACHE_NAME = 'election-ops-v96-perfect-caste-engine';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

@@ -10160,7 +10160,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261024-v95-compact-tabs-and-reset';
+      const CURRENT_APP_BUILD = '20261024-v96-perfect-caste-engine';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
@@ -33603,6 +33603,9 @@ function renderElectionDayStrikeSheet() {
         state.voters = [...newlyAddedVoters, ...state.voters];
       }
       _voterIndexDirty = true;
+      if (typeof _tenantStudioSurnameCache === 'object' && _tenantStudioSurnameCache) {
+        delete _tenantStudioSurnameCache[activeTenantId];
+      }
 
       // Smart 5-Rule Household Auto-Building (Zero Date.now() collision, strict Father+Mother+Surname & Spouse matching)
       if (autoLinkFamily) {
@@ -40374,9 +40377,9 @@ function extractVoterSurname(name) {
   // 3. Remove common title prefixes (Nepali & English)
   clean = clean.replace(/^(श्री|श्रीमती|सुश्री|डा\.|ई\.|mr\.|mrs\.|ms\.|dr\.)\s+/i, '');
 
-  // 4. Normalize abbreviations (Nepali & English B.K. / K.C.)
-  if (/(?:^|\s)वि[\.\s]*क[\.]*$/i.test(clean) || /(?:^|\s)विक$/i.test(clean) || /(?:^|\s)b[\.\s]*k[\.]*$/i.test(clean)) return 'वि.क.';
-  if (/(?:^|\s)के[\.\s]*सी[\.]*$/i.test(clean) || /(?:^|\s)केसी$/i.test(clean) || /(?:^|\s)k[\.\s]*c[\.]*$/i.test(clean)) return 'के.सी.';
+  // 4. Normalize abbreviations (Nepali & English B.K. / Wi.k. / K.C. / Ke.si.)
+  if (/(?:^|\s)वि[\.\s]*क[\.]*$/i.test(clean) || /(?:^|\s)विक$/i.test(clean) || /(?:^|\s)(?:b|wi|w)[\.\s]*k[\.]*$/i.test(clean)) return 'वि.क.';
+  if (/(?:^|\s)के[\.\s]*सी[\.]*$/i.test(clean) || /(?:^|\s)केसी$/i.test(clean) || /(?:^|\s)(?:k[\.\s]*c|ke[\.\s]*si)[\.]*$/i.test(clean)) return 'के.सी.';
 
   // 5. Split by whitespace
   const parts = clean.split(/\s+/).filter(Boolean);
@@ -40384,13 +40387,18 @@ function extractVoterSurname(name) {
   let last = parts[parts.length - 1].trim();
   last = last.replace(/[.,/#!$%^&*;:{}=\-_~`()]/g, '');
 
-  // 6. Compound surnames (जस्तै: थापा मगर, रोका मगर, राना मगर / Thapa Magar)
+  // 6. Compound surnames (जस्तै: थापा मगर, रोका मगर, राना मगर, घर्ती मगर / Thapa Magar, etc.)
   if (parts.length >= 2) {
     const secondLast = parts[parts.length - 2].replace(/[.,/#!$%^&*;:{}=\-_~`()]/g, '');
     const compLower = (secondLast + ' ' + last).toLowerCase();
     if (compLower === 'थापा मगर' || compLower === 'thapa magar') return 'थापा मगर';
     if (compLower === 'रोका मगर' || compLower === 'roka magar') return 'रोका मगर';
     if (compLower === 'राना मगर' || compLower === 'rana magar') return 'राना मगर';
+    if (compLower === 'घर्ती मगर' || compLower === 'gharti magar') return 'घर्ती मगर';
+    if (compLower === 'पुन मगर' || compLower === 'pun magar') return 'पुन मगर';
+    if (compLower === 'आले मगर' || compLower === 'ale magar') return 'आले मगर';
+    if (compLower === 'बुढाथोकी मगर' || compLower === 'budhathoki magar') return 'बुढाथोकी मगर';
+    if (compLower === 'खड्का क्षेत्री' || compLower === 'khadka chhetri' || compLower === 'khadka kshetri') return 'खड्का क्षेत्री';
   }
   return last;
 }
@@ -41857,6 +41865,11 @@ async function loadLiveCasteVotersList() {
       let orClauses = [];
 
       if (!rawSearch) {
+        const pushDualPattern = (term) => {
+          if (!term) return;
+          const cl = 'full_name.ilike.*' + encodeURIComponent(term) + '*';
+          if (!orClauses.includes(cl)) orClauses.push(cl);
+        };
         if (selSurname && selSurname !== 'all') {
           const tenantSurnames = REAL_TENANT_CASTE_SURNAMES[tenantId] || REAL_TENANT_CASTE_SURNAMES.TNT_MVG3WXFX;
           let matchedItem = null;
@@ -41865,45 +41878,48 @@ async function loadLiveCasteVotersList() {
             if (found) { matchedItem = found; break; }
           }
           if (matchedItem && Array.isArray(matchedItem.patterns) && matchedItem.patterns.length > 0) {
-            matchedItem.patterns.forEach(p => {
-              orClauses.push('full_name.ilike.*' + encodeURIComponent(p) + '*');
-            });
+            matchedItem.patterns.forEach(p => pushDualPattern(p));
+            if (matchedItem.ne) pushDualPattern(matchedItem.ne);
           } else {
-            orClauses.push('full_name.ilike.*' + encodeURIComponent(selSurname) + '*');
+            pushDualPattern(selSurname);
           }
+          const rDictEntry = (typeof ROMANIZED_CASTE_DICTIONARY !== 'undefined') ? ROMANIZED_CASTE_DICTIONARY[selSurname.toLowerCase()] : null;
+          if (rDictEntry && rDictEntry.devanagari) pushDualPattern(rDictEntry.devanagari);
         } else if (selCluster === 'janajati') {
-          orClauses.push('full_name.ilike.*tamang*','full_name.ilike.*lama*','full_name.ilike.*lamini*','full_name.ilike.*sherpa*','full_name.ilike.*sherpini*','full_name.ilike.*serpa*','full_name.ilike.*gurung*','full_name.ilike.*magar*','full_name.ilike.*rai*','full_name.ilike.*sunuwar*','full_name.ilike.*hyolmo*','full_name.ilike.*hyalmo*','full_name.ilike.*yolmo*','full_name.ilike.*dolma*','full_name.ilike.*ghale*','full_name.ilike.*limbu*','full_name.ilike.*ghising*','full_name.ilike.*moktan*','full_name.ilike.*yonjan*','full_name.ilike.*bomjan*','full_name.ilike.*waiba*','full_name.ilike.*pakhrin*','full_name.ilike.*thokar*','full_name.ilike.*dong*','full_name.ilike.*gole*','full_name.ilike.*blon*','full_name.ilike.*jimba*','full_name.ilike.*rumba*','full_name.ilike.*titung*','full_name.ilike.*ale*','full_name.ilike.*pun*','full_name.ilike.*thami*','full_name.ilike.*majhi*','full_name.ilike.*bhujel*','full_name.ilike.*chepang*','full_name.ilike.*kumal*');
+          ['tamang','lama','lamini','sherpa','sherpini','serpa','gurung','magar','rai','sunuwar','hyolmo','hyalmo','yolmo','dolma','ghale','limbu','ghising','moktan','yonjan','bomjan','waiba','pakhrin','thokar','dong','gole','blon','jimba','rumba','titung','ale','pun','thami','majhi','bhujel','chepang','kumal','तामाङ','तामाङ्ग','लामा','लामिनी','शेर्पा','शेर्पिनी','ह्योल्मो','ह्याल्मो','गुरुङ','मगर','राई','सुनुवार','डोल्मा','घले','लिम्बु','भुजेल','थामी','माझी','कुमाल'].forEach(pushDualPattern);
         } else if (selCluster === 'newar') {
-          orClauses.push('full_name.ilike.*shrestha*','full_name.ilike.*maharjan*','full_name.ilike.*shakya*','full_name.ilike.*dangol*','full_name.ilike.*manandhar*','full_name.ilike.*bajracharya*','full_name.ilike.*tuladhar*','full_name.ilike.*tamrakar*','full_name.ilike.*kansakar*','full_name.ilike.*pradhan*','full_name.ilike.*rajbhandari*','full_name.ilike.*karmacharya*','full_name.ilike.*amatya*','full_name.ilike.*maskey*','full_name.ilike.*vaidya*','full_name.ilike.*chitrakar*','full_name.ilike.*ranjitkar*','full_name.ilike.*prajapati*','full_name.ilike.*sthapit*','full_name.ilike.*suwal*','full_name.ilike.*khadgi*','full_name.ilike.*deula*');
+          ['shrestha','maharjan','shakya','dangol','manandhar','bajracharya','tuladhar','tamrakar','kansakar','pradhan','rajbhandari','karmacharya','amatya','maskey','vaidya','chitrakar','ranjitkar','prajapati','sthapit','suwal','khadgi','deula','श्रेष्ठ','महर्जन','शाक्य','डंगोल','मानन्धर','बज्राचार्य','तुलाधर','ताम्राकार','प्रधान','राजभण्डारी','कर्माचार्य','अमात्य','प्रजापति','खड्गी','देउला'].forEach(pushDualPattern);
         } else if (selCluster === 'khas_arya') {
-          orClauses.push('full_name.ilike.*bhandari*','full_name.ilike.*thapa*','full_name.ilike.*karki*','full_name.ilike.*khadka*','full_name.ilike.*ghimire*','full_name.ilike.*paudel*','full_name.ilike.*adhikari*','full_name.ilike.*pudasaini*','full_name.ilike.*gautam*','full_name.ilike.*pandit*','full_name.ilike.*giri*','full_name.ilike.*dahal*','full_name.ilike.*sapkota*','full_name.ilike.*basnet*','full_name.ilike.*chaulagain*','full_name.ilike.*subedi*','full_name.ilike.*aryal*','full_name.ilike.*khatiwada*','full_name.ilike.*khatri*','full_name.ilike.*pokharel*','full_name.ilike.*chhetri*','full_name.ilike.*bhattarai*','full_name.ilike.*dhakal*','full_name.ilike.*chalise*','full_name.ilike.*nepal*','full_name.ilike.*khanal*','full_name.ilike.*baral*','full_name.ilike.*sharma*','full_name.ilike.*nyaupane*','full_name.ilike.*budhathoki*','full_name.ilike.*upadhyay*','full_name.ilike.*thapaliya*','full_name.ilike.*thakuri*','full_name.ilike.*kafle*','full_name.ilike.*katuwal*','full_name.ilike.*kattel*','full_name.ilike.*kandel*','full_name.ilike.*kunwar*','full_name.ilike.*devkota*','full_name.ilike.*dulal*','full_name.ilike.*tiwari*','full_name.ilike.*tripathi*','full_name.ilike.*humagain*','full_name.ilike.*hamal*');
+          ['bhandari','thapa','karki','khadka','ghimire','paudel','adhikari','pudasaini','gautam','pandit','giri','dahal','sapkota','basnet','chaulagain','subedi','aryal','khatiwada','khatri','pokharel','chhetri','bhattarai','dhakal','chalise','nepal','khanal','baral','sharma','nyaupane','budhathoki','upadhyay','thapaliya','thakuri','kafle','katuwal','kattel','kandel','kunwar','devkota','dulal','tiwari','tripathi','humagain','hamal','lamichhane','jyoti','gajurel','dangal','भण्डारी','थापा','कार्की','खड्का','घिमिरे','पौडेल','अधिकारी','पुडासैनी','गौतम','पण्डित','गिरी','दाहाल','सापकोटा','बस्नेत','चौलागाई','सुवेदी','अर्याल','खतिवडा','खत्री','पोखरेल','क्षेत्री','भट्टराई','ढकाल','चालिसे','नेपाल','बराल','शर्मा','लामिछाने','ज्योति','गजुरेल','दङ्गाल','आचार्य','रिमाल','भारती','पुरी','के.सी.'].forEach(pushDualPattern);
         } else if (selCluster === 'dalit') {
-          orClauses.push('full_name.ilike.*bishwokarma*','full_name.ilike.*bishwakarma*','full_name.ilike.*wishwakarma*','full_name.ilike.*pariyar*','full_name.ilike.*mijar*','full_name.ilike.*sunar*','full_name.ilike.*sonar*','full_name.ilike.*sarki*','full_name.ilike.*damai*','full_name.ilike.*nepali*','full_name.ilike.*baraili*','full_name.ilike.*baraily*','full_name.ilike.*senchuri*','full_name.ilike.*century*','full_name.ilike.*rasaili*','full_name.ilike.*ramtel*','full_name.ilike.*ghotane*','full_name.ilike.*koli*','full_name.ilike.*lohar*','full_name.ilike.*tamta*','full_name.ilike.*musahar*','full_name.ilike.*paswan*','full_name.ilike.*chamar*');
+          ['bishwokarma','bishwakarma','wishwakarma','pariyar','mijar','sunar','sonar','sarki','damai','nepali','baraili','baraily','senchuri','century','rasaili','ramtel','ghotane','koli','lohar','tamta','musahar','paswan','chamar','wi.k','b.k','kami','darnal','tolangge','विश्वकर्मा','वि.क','विक','परियार','मिजार','सुनार','सोनार','सार्की','दमाई','नेपाली','बराइली','कामी','दर्नाल','कालीराज'].forEach(pushDualPattern);
         } else if (selCluster === 'madhesi') {
-          orClauses.push('full_name.ilike.*yadav*','full_name.ilike.*ahir*','full_name.ilike.*gop*','full_name.ilike.*koiri*','full_name.ilike.*kushwaha*','full_name.ilike.*kurmi*','full_name.ilike.*jha*','full_name.ilike.*shukla*','full_name.ilike.*sah*','full_name.ilike.*sahu*','full_name.ilike.*gupta*','full_name.ilike.*mahato*','full_name.ilike.*raut*','full_name.ilike.*mandal*','full_name.ilike.*tharu*','full_name.ilike.*chaudhary*','full_name.ilike.*chaudhari*','full_name.ilike.*kewat*','full_name.ilike.*kanu*','full_name.ilike.*thakur*','full_name.ilike.*kalwar*','full_name.ilike.*rauniyar*','full_name.ilike.*agrawal*');
+          ['yadav','ahir','gop','koiri','kushwaha','kurmi','jha','shukla','sah','sahu','gupta','mahato','raut','mandal','tharu','chaudhary','chaudhari','kewat','kanu','thakur','kalwar','rauniyar','agrawal','यादव','झा','साह','गुप्ता','महतो','मण्डल','थारु','चौधरी','ठाकुर'].forEach(pushDualPattern);
         } else if (selCluster === 'muslim') {
-          orClauses.push('full_name.ilike.*sheikh*','full_name.ilike.*ansari*','full_name.ilike.*khan*','full_name.ilike.*miyan*','full_name.ilike.*miya*','full_name.ilike.*sayyid*','full_name.ilike.*pathan*','full_name.ilike.*qureshi*','full_name.ilike.*mansuri*','full_name.ilike.*siddiqui*','full_name.ilike.*farooqui*','full_name.ilike.*usmani*');
+          ['sheikh','ansari','khan','miyan','miya','sayyid','pathan','qureshi','mansuri','siddiqui','farooqui','usmani','शेख','अन्सारी','खान','मियाँ','पठान','मन्सुरी'].forEach(pushDualPattern);
         }
 
-        // Dynamic inclusion of custom-mapped surnames for the active cluster filter
+        // Dynamic inclusion of custom-mapped surnames for the active cluster filter (Roman + Devanagari)
         if (selCluster !== 'all' && selCluster !== 'unclassified') {
           const cRules = getCustomCasteRules();
           Object.keys(cRules).forEach(k => {
             if (cRules[k] && cRules[k].cluster === selCluster) {
-              const cleanK = encodeURIComponent(k.toLowerCase().trim());
-              if (cleanK) {
-                const cl = `full_name.ilike.*${cleanK}*`;
-                if (!orClauses.includes(cl)) orClauses.push(cl);
+              const cleanRaw = k.trim();
+              if (cleanRaw) {
+                pushDualPattern(cleanRaw.toLowerCase());
+                const rDict = (typeof ROMANIZED_CASTE_DICTIONARY !== 'undefined') ? ROMANIZED_CASTE_DICTIONARY[cleanRaw.toLowerCase()] : null;
+                if (rDict && rDict.devanagari) pushDualPattern(rDict.devanagari);
               }
             }
           });
         }
       }
 
-      // PREPARE ADVANCED SEARCH (Devanagari transliteration & word tokenization)
+      // PREPARE ADVANCED SEARCH (Devanagari transliteration & dual-script word tokenization)
       const romanSearch = transliterateNepaliToRoman(rawSearch);
-      const isIdSearch = rawSearch && /^[d-]+$/.test(searchVal);
-      const searchWords = rawSearch ? (romanSearch || rawSearch).toLowerCase().replace(/[^a-z0-9s]/gi, ' ').split(/\s+/).filter(w => w.length >= 2) : [];
+      const isIdSearch = rawSearch && /^[\d-]+$/.test(searchVal);
+      const searchWords = rawSearch ? (romanSearch || rawSearch).toLowerCase().replace(/[^a-z0-9\s]/gi, ' ').split(/\s+/).filter(w => w.length >= 2) : [];
+      const hasDevanagariSearch = rawSearch && /[\u0900-\u097F]/.test(rawSearch);
 
       let collected = [];
       let currentOffset = offset;
@@ -41925,9 +41941,19 @@ async function loadLiveCasteVotersList() {
         if (rawSearch) {
           if (isIdSearch) {
             q += `&or=(official_voter_id.ilike.*${encodeURIComponent(searchVal)}*,voter_id.ilike.*${encodeURIComponent(searchVal)}*,phone.ilike.*${encodeURIComponent(searchVal)}*)`;
+          } else if (hasDevanagariSearch) {
+            const rawEnc = encodeURIComponent(rawSearch.trim());
+            const romWord = searchWords[0] ? encodeURIComponent(searchWords[0]) : rawEnc;
+            q += `&or=(full_name.ilike.*${rawEnc}*,full_name.ilike.*${romWord}*,father_name.ilike.*${rawEnc}*,father_name.ilike.*${romWord}*,tole.ilike.*${rawEnc}*,tole.ilike.*${romWord}*)`;
           } else if (searchWords.length === 1) {
-            const wEnc = encodeURIComponent(searchWords[0]);
-            q += `&or=(full_name.ilike.*${wEnc}*,father_name.ilike.*${wEnc}*,tole.ilike.*${wEnc}*)`;
+            const wRaw = searchWords[0];
+            const wEnc = encodeURIComponent(wRaw);
+            const devEquiv = (typeof ROMANIZED_CASTE_DICTIONARY !== 'undefined' && ROMANIZED_CASTE_DICTIONARY[wRaw]?.devanagari) ? encodeURIComponent(ROMANIZED_CASTE_DICTIONARY[wRaw].devanagari) : null;
+            if (devEquiv) {
+              q += `&or=(full_name.ilike.*${wEnc}*,full_name.ilike.*${devEquiv}*,father_name.ilike.*${wEnc}*,father_name.ilike.*${devEquiv}*,tole.ilike.*${wEnc}*)`;
+            } else {
+              q += `&or=(full_name.ilike.*${wEnc}*,father_name.ilike.*${wEnc}*,tole.ilike.*${wEnc}*)`;
+            }
           } else if (searchWords.length >= 2) {
             searchWords.forEach(w => {
               q += `&full_name=ilike.*${encodeURIComponent(w)}*`;
@@ -43305,15 +43331,115 @@ const GOKARNA_SURNAME_RAW_DATABASE = [
 const _tenantStudioSurnameCache = {};
 let _isStudioLiveScanning = false;
 
-// Universal Surname Extractor
+// Unified Smart Surname Extractor (Delegates to full multi-rule extractVoterSurname engine)
 function extractVoterSurnameFromCleanName(fullName) {
   if (!fullName) return '';
+  if (typeof extractVoterSurname === 'function') {
+    const smart = extractVoterSurname(fullName);
+    if (smart) return smart;
+  }
   const clean = fullName.replace(/\([^)]*\)/g, '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
   const parts = clean.split(/\s+/).filter(Boolean);
   return parts.length > 0 ? parts[parts.length - 1] : '';
 }
 
-async function fetchLiveTenantSurnamesFromCloud(tenantId) {
+// Helper: Convert raw surname count map into structured, enriched Studio list
+function buildStructuredStudioListFromCounts(surnameCounts, tenantId) {
+  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU' || tenantId === 'TNT_HELAMBU_RSP');
+  const refDb = isHelambu
+    ? (typeof HELAMBU_SURNAME_RAW_DATABASE !== 'undefined' ? HELAMBU_SURNAME_RAW_DATABASE : [])
+    : (typeof GOKARNA_SURNAME_RAW_DATABASE !== 'undefined' ? GOKARNA_SURNAME_RAW_DATABASE : []);
+
+  const refMap = {};
+  refDb.forEach(item => {
+    if (item && item.sur) {
+      refMap[item.sur.toLowerCase()] = item;
+      if (item.dev) refMap[item.dev.toLowerCase()] = item;
+    }
+  });
+
+  const sorted = Object.entries(surnameCounts).sort((a, b) => b[1] - a[1]);
+  const studioList = [];
+  let bibidhOtherCount = 0;
+
+  sorted.forEach(([sur, cnt]) => {
+    const sLower = sur.toLowerCase();
+    const refItem = refMap[sLower];
+    if (refItem) {
+      studioList.push({
+        sur: refItem.sur || sur,
+        cnt: cnt,
+        dev: refItem.dev || refItem.sur || sur,
+        cluster: refItem.cluster || 'unclassified',
+        sub: refItem.sub || sur,
+        isAutoSuggested: true
+      });
+      return;
+    }
+
+    const autoClass = getVoterCasteClassification({ full_name: sur });
+    const resolvedCluster = autoClass.cluster || 'unclassified';
+    if ((resolvedCluster === 'unclassified' || resolvedCluster === 'other') && cnt <= 2 && sorted.length > 150) {
+      bibidhOtherCount += cnt;
+    } else {
+      studioList.push({
+        sur: sur,
+        cnt: cnt,
+        dev: autoClass.surname || sur,
+        cluster: resolvedCluster,
+        sub: autoClass.sub || sur,
+        isAutoSuggested: true
+      });
+    }
+  });
+
+  if (bibidhOtherCount > 0) {
+    studioList.push({
+      sur: 'Bibidh Other (अन्य अवर्गीकृत थरहरू)',
+      cnt: bibidhOtherCount,
+      dev: 'अन्य',
+      cluster: 'other',
+      sub: 'पहिचान खुल्न बाँकी',
+      isAutoSuggested: true
+    });
+  }
+
+  return studioList;
+}
+
+// Super-Fast Local Memory Aggregation (< 3ms when full voter roll is in state.voters)
+function aggregateTenantSurnamesFromMemory(tenantId) {
+  if (!state || !Array.isArray(state.voters) || state.voters.length < 500) return null;
+  const isHelambu = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_HELAMBU' || tenantId === 'TNT_HELAMBU_RSP');
+  const tenantVoters = state.voters.filter(v => {
+    const vTid = v.TenantID || v.tenant_id || 'TNT_HELAMBU';
+    if (isHelambu) return (vTid === 'TNT_MVF9LYO3' || vTid === 'TNT_HELAMBU' || vTid === 'TNT_HELAMBU_RSP');
+    return vTid === tenantId;
+  });
+
+  // Require at least 500 voters so the 15-voter sample seed never overrides real 18,907/37,759 rolls
+  if (tenantVoters.length < 500) return null;
+
+  const surnameCounts = {};
+  for (let i = 0; i < tenantVoters.length; i++) {
+    const v = tenantVoters[i];
+    const s = extractVoterSurnameFromCleanName(v.Name || v.full_name || '');
+    if (s) surnameCounts[s] = (surnameCounts[s] || 0) + 1;
+  }
+
+  return buildStructuredStudioListFromCounts(surnameCounts, tenantId);
+}
+
+async function fetchLiveTenantSurnamesFromCloud(tenantId, forceNetwork = false) {
+  // 1. Check in-memory state.voters first (instant 2ms aggregation if full roll is loaded locally)
+  if (!forceNetwork) {
+    const localAgg = aggregateTenantSurnamesFromMemory(tenantId);
+    if (localAgg && localAgg.length > 0) {
+      _tenantStudioSurnameCache[tenantId] = localAgg;
+      return localAgg;
+    }
+  }
+
   const url = (state.settings && state.settings.SUPABASE_URL) || DEFAULT_CONFIG.SUPABASE_URL;
   const key = (state.settings && state.settings.SUPABASE_KEY) || DEFAULT_CONFIG.SUPABASE_KEY;
   if (!url || !key) return null;
@@ -43327,38 +43453,42 @@ async function fetchLiveTenantSurnamesFromCloud(tenantId) {
     const surnameCounts = {};
     let totalProcessed = 0;
 
-    // Scan all voters in 1000-row pages (standard PostgREST max page limit)
-    for (let offset = 0; offset < 50000; offset += 1000) {
-      const resp = await fetch(`${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&select=full_name&offset=${offset}&limit=1000`, { headers });
-      if (!resp.ok) break;
-      const rows = await resp.json();
-      if (!Array.isArray(rows) || rows.length === 0) break;
-      totalProcessed += rows.length;
+    // 2. Fast Parallel Wave Scanning (5 concurrent pages per wave instead of slow 1-by-1 loop)
+    const pageSize = 1000;
+    const waveSize = 5;
+    let reachedEnd = false;
 
-      rows.forEach(r => {
-        const s = extractVoterSurnameFromCleanName(r.full_name);
-        if (s) surnameCounts[s] = (surnameCounts[s] || 0) + 1;
-      });
+    for (let waveStart = 0; waveStart < 50000 && !reachedEnd; waveStart += pageSize * waveSize) {
+      const wavePromises = [];
+      for (let w = 0; w < waveSize; w++) {
+        const offset = waveStart + w * pageSize;
+        wavePromises.push(
+          fetch(`${url}/rest/v1/voters?tenant_id=eq.${encodeURIComponent(tenantId)}&select=full_name&offset=${offset}&limit=${pageSize}`, { headers })
+            .then(r => r.ok ? r.json() : [])
+            .catch(() => [])
+        );
+      }
 
-      if (rows.length < 1000) break; // Finished reading all voters
+      const waveResults = await Promise.all(wavePromises);
+      for (const rows of waveResults) {
+        if (!Array.isArray(rows) || rows.length === 0) {
+          reachedEnd = true;
+          continue;
+        }
+        totalProcessed += rows.length;
+        for (let i = 0; i < rows.length; i++) {
+          const s = extractVoterSurnameFromCleanName(rows[i].full_name);
+          if (s) surnameCounts[s] = (surnameCounts[s] || 0) + 1;
+        }
+        if (rows.length < pageSize) {
+          reachedEnd = true;
+        }
+      }
     }
 
     if (totalProcessed === 0) return null;
 
-    // Convert to sorted structured list
-    const sorted = Object.entries(surnameCounts).sort((a, b) => b[1] - a[1]);
-    const studioList = sorted.map(([sur, cnt]) => {
-      const autoClass = getVoterCasteClassification({ full_name: sur });
-      return {
-        sur: sur,
-        cnt: cnt,
-        dev: autoClass.surname || sur,
-        cluster: autoClass.cluster || 'unclassified',
-        sub: autoClass.sub || sur,
-        isAutoSuggested: true
-      };
-    });
-
+    const studioList = buildStructuredStudioListFromCounts(surnameCounts, tenantId);
     _tenantStudioSurnameCache[tenantId] = studioList;
     try {
       localStorage.setItem('vrm_tenant_studio_surnames_v72_' + tenantId, JSON.stringify(studioList));
@@ -43379,16 +43509,23 @@ function getActiveTenantStudioSurnames() {
 
   const customRules = (typeof getCustomCasteRules === 'function') ? getCustomCasteRules(tenantId) : {};
 
-  // 1. Calibrated ground truth databases ALWAYS take first priority for ground-truth tenants
-  let baseList = null;
-  if (isHelambu && typeof HELAMBU_SURNAME_RAW_DATABASE !== 'undefined') {
-    baseList = HELAMBU_SURNAME_RAW_DATABASE;
-  } else if ((tenantId === 'TNT_MVG3WXFX' || tenantId === 'ALL') && typeof GOKARNA_SURNAME_RAW_DATABASE !== 'undefined') {
-    baseList = GOKARNA_SURNAME_RAW_DATABASE;
-  } else {
-    // 2. For newly added tenants, check in-memory cloud cache or localStorage
-    baseList = _tenantStudioSurnameCache[tenantId];
-    if (!baseList) {
+  // 1. Real Live Scanned / Uploaded Data takes FIRST priority if available in session cache or full memory roll
+  let baseList = _tenantStudioSurnameCache[tenantId];
+  if (!baseList || baseList.length === 0) {
+    const memAgg = aggregateTenantSurnamesFromMemory(tenantId);
+    if (memAgg && memAgg.length > 0) {
+      baseList = memAgg;
+      _tenantStudioSurnameCache[tenantId] = memAgg;
+    }
+  }
+
+  // 2. Calibrated Ground-Truth Databases serve as instant 0ms boot cache / backup when live scan hasn't run yet
+  if (!baseList || baseList.length === 0) {
+    if (isHelambu && typeof HELAMBU_SURNAME_RAW_DATABASE !== 'undefined') {
+      baseList = HELAMBU_SURNAME_RAW_DATABASE;
+    } else if ((tenantId === 'TNT_MVG3WXFX' || tenantId === 'ALL') && typeof GOKARNA_SURNAME_RAW_DATABASE !== 'undefined') {
+      baseList = GOKARNA_SURNAME_RAW_DATABASE;
+    } else {
       try {
         const cached = localStorage.getItem('vrm_tenant_studio_surnames_v72_' + tenantId);
         if (cached) {
@@ -43399,14 +43536,14 @@ function getActiveTenantStudioSurnames() {
     }
   }
 
-  // 3. Fallback if still empty
+  // 3. Ultimate fallback if still empty
   if (!baseList || baseList.length === 0) {
     baseList = (typeof GOKARNA_SURNAME_RAW_DATABASE !== 'undefined') ? GOKARNA_SURNAME_RAW_DATABASE : [];
   }
 
   // Apply tenant-specific custom rules over baseList
   return baseList.map(item => {
-    const customMatch = customRules[item.sur] || customRules[item.sur.toLowerCase()];
+    const customMatch = customRules[item.sur] || customRules[item.sur.toLowerCase()] || (item.dev && customRules[item.dev]);
     if (customMatch) {
       return {
         ...item,
@@ -43426,12 +43563,13 @@ async function initCasteStudio() {
   _studioFilterState.selectedSurnames.clear();
   renderCasteStudioTable();
 
-  // If live data for this active tenant is not cached in memory, trigger non-blocking cloud scan
   const activeTId = (typeof getActiveTenantId === 'function') ? getActiveTenantId() : 'TNT_MVG3WXFX';
   const rawTenantId = (activeTId && activeTId !== 'ALL') ? activeTId : 'TNT_MVG3WXFX';
   const tenantId = (rawTenantId === 'TNT_HELAMBU' || rawTenantId === 'TNT_HELAMBU_RSP') ? 'TNT_MVF9LYO3' : rawTenantId;
+  const isGroundTruthCalibrated = (tenantId === 'TNT_MVF9LYO3' || tenantId === 'TNT_MVG3WXFX');
 
-  if (!_tenantStudioSurnameCache[tenantId] && !_isStudioLiveScanning) {
+  // Auto-scan cloud only for newly added tenants that don't have a pre-calibrated ground truth cache
+  if (!isGroundTruthCalibrated && !_tenantStudioSurnameCache[tenantId] && !_isStudioLiveScanning) {
     _isStudioLiveScanning = true;
     const scanStatusEl = document.getElementById('studioScanStatusBadge');
     if (scanStatusEl) scanStatusEl.style.display = 'inline-block';
