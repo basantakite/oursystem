@@ -4044,7 +4044,7 @@
           <p style="font-size: 12.5px; color: var(--slate-600); margin: 0;">Voter Management System • Central Platform HQ</p>
         </div>
 
-        <form id="superAdminLoginForm" onsubmit="handleSuperAdminMasterLogin(event)" style="text-align: left;">
+        <form id="superAdminLoginForm" method="POST" action="javascript:void(0);" onsubmit="handleSuperAdminMasterLogin(event); return false;" style="text-align: left;">
           <div class="form-group" style="margin-bottom: 12px;">
             <label class="form-label" for="superAdminUserField" style="font-size: 12px; font-weight: 700; color: #334155;">
               Super Admin Username वा फोन नम्बर *
@@ -4092,7 +4092,7 @@
           <p id="tenantJurisdictionSubtitle" style="font-size: 12px; color: var(--slate-600); margin: 0;">कार्य क्षेत्र: पालिका • जिल्ला</p>
         </div>
 
-        <form id="tenantAdminLoginForm" onsubmit="handleTenantAdminLogin(event)" style="text-align: left;">
+        <form id="tenantAdminLoginForm" method="POST" action="javascript:void(0);" onsubmit="handleTenantAdminLogin(event); return false;" style="text-align: left;">
           <div class="form-group" style="margin-bottom: 12px;">
             <label class="form-label" for="tenantAdminUserField" style="font-size: 12px; font-weight: 700; color: #334155;">
               Admin Username वा मोबाइल नम्बर *
@@ -10394,6 +10394,15 @@
       if (params.get('public') === '1') {
         renderPublicFormDirect(params.get('ward') || '', params.get('source') || 'DirectQR');
         return;
+      }
+
+      // Sanitize accidental GET form submissions leaking credentials into URL
+      if (params.get('username') || params.get('password')) {
+        params.delete('username');
+        params.delete('password');
+        const cleanQuery = params.toString();
+        const newUrl = window.location.pathname + (cleanQuery ? `?${cleanQuery}` : '');
+        window.history.replaceState({}, document.title, newUrl);
       }
 
       const slugParam = (params.get('palika') || params.get('tenant') || params.get('p') || '').trim().toLowerCase();
@@ -21791,49 +21800,6 @@ async function saveQuickCreatedTole(e) {
               </div>
             </div>
           </div>
-        </div>
-      `;
-    }
-
-          <!-- CARD 3: CONTACT & DIGITAL PRESENCE -->
-          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
-            <div style="font-size: 13px; font-weight: 800; color: #047857; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-              <span>📱</span> सम्पर्क तथा डिजिटल पहुँच (Contact & Social Outreach)
-            </div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-              ${v.Phone ? `
-                <a href="tel:${cleanPhone(v.Phone)}" class="btn btn-sm" style="background: #059669; color: white; text-decoration: none; font-weight: 800; padding: 7px 14px; border-radius: 6px;" title="सिधा कल गर्नुहोस्">
-                  📞 ${esc(v.Phone)}
-                </a>
-                <a href="https://wa.me/977${cleanPhone(v.Phone)}?text=${encodeURIComponent(getWhatsAppTemplate(v))}" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background: #25D366; color: white; text-decoration: none; font-weight: 800; padding: 7px 14px; border-radius: 6px;" onclick="logActivity('message', '${esc(v.Name)} लाई WhatsApp पठाइयो')">
-                  🟢 WhatsApp सन्देश
-                </a>
-                <button class="btn btn-sm" onclick="openCustomMessageModal('${v.VoterID}')" style="background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; font-weight: 700; padding: 7px 12px; border-radius: 6px;" title="कस्टम सन्देश (SMS)">
-                  💬 कस्टम सन्देश
-                </button>
-              ` : '<span style="color: #64748b; font-size: 12px;">सम्पर्क नम्बर उपलब्ध छैन</span>'}
-              ${v.FacebookUrl ? `
-                <a href="${formatSocialUrl(v.FacebookUrl, 'facebook')}" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background: #1877F2; color: white; font-weight: 800; text-decoration: none; padding: 7px 14px; border-radius: 6px; box-shadow: 0 2px 6px rgba(24,119,242,0.25); display: inline-flex; align-items: center; gap: 7px;" title="Facebook प्रोफाइल सिधा खोल्नुहोस् (${esc(v.FacebookUrl)})">
-                  ${getFacebookIconSvg(18)} <span>Facebook प्रोफाइल</span>
-                </a>
-              ` : `
-                <button class="btn btn-sm btn-secondary" onclick="openEditVoterModal('${v.VoterID}')" style="font-size: 12px; font-weight: 700; padding: 7px 12px; opacity: 0.85; display: inline-flex; align-items: center; gap: 6px;" title="Facebook लिङ्क थप्नुहोस्">
-                  ${getFacebookIconSvg(16)} <span>+ Facebook लिङ्क थप्नुहोस्</span>
-                </button>
-              `}
-              ${v.TiktokUrl ? `
-                <a href="${formatSocialUrl(v.TiktokUrl, 'tiktok')}" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background: #000000; color: white; font-weight: 800; text-decoration: none; padding: 7px 14px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.25); display: inline-flex; align-items: center; gap: 7px;" title="TikTok प्रोफाइल सिधा खोल्नुहोस् (${esc(v.TiktokUrl)})">
-                  ${getTiktokIconSvg(18)} <span>TikTok प्रोफाइल</span>
-                </a>
-              ` : `
-                <button class="btn btn-sm btn-secondary" onclick="openEditVoterModal('${v.VoterID}')" style="font-size: 12px; font-weight: 700; padding: 7px 12px; opacity: 0.85; display: inline-flex; align-items: center; gap: 6px;" title="TikTok लिङ्क थप्नुहोस्">
-                  ${getTiktokIconSvg(16)} <span>+ TikTok लिङ्क थप्नुहोस्</span>
-                </button>
-              `}
-              <button class="btn btn-sm btn-secondary" onclick="openEditVoterModal('${v.VoterID}')" style="margin-left: auto;">✏️ फोन/लिङ्क सम्पादन</button>
-            </div>
-          </div>
-
         </div>
       `;
     }
