@@ -3730,6 +3730,51 @@
       }
     }
 
+    /* Caste Analysis Horizontal Scrollable Sub-Tabs & Smart Compact Labels */
+    .caste-sub-tabs-bar {
+      display: flex;
+      gap: 8px;
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 18px;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding-bottom: 2px;
+    }
+    .caste-sub-tabs-bar::-webkit-scrollbar {
+      display: none;
+    }
+    .caste-sub-tab {
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      border-radius: 0;
+      padding: 10px 16px;
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .caste-sub-tab.active {
+      border-bottom: 3px solid #3b82f6 !important;
+      color: var(--text-primary) !important;
+    }
+    @media (max-width: 768px) {
+      .caste-sub-tab {
+        padding: 8px 12px !important;
+        font-size: 13px !important;
+        gap: 5px !important;
+      }
+    }
+
   
     /* ==========================================================================
        OFFICIAL VOTER ROLL TABLE & BULK CSV IMPORT STUDIO (MATCHING IMAGE FORMAT)
@@ -5413,7 +5458,7 @@
                   <option value="Independent">स्वतन्त्र / अन्य</option>
                   <option value="Undecided">दोधार / अनिर्णित</option>
                 </select>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="clearVoterFilters()" style="grid-column: 1 / -1;">🔄 फिल्टर रिसेट (Reset Filters)</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="clearVoterFilters()" title="फिल्टर रिसेट गर्नुहोस्" style="grid-column: 1 / -1; font-weight: 700; white-space: nowrap; padding: 6px 12px;">🔄 रिसेट</button>
               </div>
             </div>
 
@@ -6301,17 +6346,20 @@
           </div>
 
           <!-- CASTE SECTION SUB-NAV TABS -->
-          <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 18px; flex-wrap: wrap;">
-            <button type="button" id="casteSubTab_voters" class="btn caste-sub-tab active" onclick="switchCasteSubTab('voters')" style="background: transparent; border: none; border-bottom: 3px solid #3b82f6; border-radius: 0; padding: 10px 18px; font-weight: 800; font-size: 14px; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px;">
-              <span>👥 मतदाता नामावली (Voters List)</span>
+          <div class="caste-sub-tabs-bar">
+            <button type="button" id="casteSubTab_voters" class="btn caste-sub-tab active" onclick="switchCasteSubTab('voters')">
+              <span class="hide-on-mobile">👥 मतदाता नामावली (Voters List)</span>
+              <span class="show-on-mobile-only">👥 मतदाता सूची</span>
             </button>
-            <button type="button" id="casteSubTab_matrix" class="btn caste-sub-tab" onclick="switchCasteSubTab('matrix')" style="background: transparent; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 18px; font-weight: 800; font-size: 14px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px;">
-              <span>📊 समुदायगत शक्ति सन्तुलन तथा सारांश (Caste Breakdown Matrix)</span>
-              <span class="badge" id="casteMatrixRowCountTab" style="background: var(--bg-hover); font-size: 11px;">0 समूह</span>
+            <button type="button" id="casteSubTab_matrix" class="btn caste-sub-tab" onclick="switchCasteSubTab('matrix')">
+              <span class="hide-on-mobile">📊 समुदायगत शक्ति सन्तुलन तथा सारांश (Caste Breakdown Matrix)</span>
+              <span class="show-on-mobile-only">📊 समुदाय सारांश</span>
+              <span class="badge" id="casteMatrixRowCountTab" style="background: var(--bg-hover); font-size: 11px; padding: 2px 7px; border-radius: 9999px;">0 समूह</span>
             </button>
-            <button type="button" id="casteSubTab_studio" class="btn caste-sub-tab" onclick="switchCasteSubTab('studio')" style="background: transparent; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 18px; font-weight: 800; font-size: 14px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px;">
-              <span>🏷️ थर तथा जातीय समूह म्यापिङ स्टुडियो (Tenant Caste Rules Studio)</span>
-              <span class="badge" id="casteStudioPendingBadge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; font-size: 11px; font-weight: 800;">० बाँकी</span>
+            <button type="button" id="casteSubTab_studio" class="btn caste-sub-tab" onclick="switchCasteSubTab('studio')">
+              <span class="hide-on-mobile">🏷️ थर तथा जातीय समूह म्यापिङ स्टुडियो (Tenant Caste Rules Studio)</span>
+              <span class="show-on-mobile-only">🏷️ थर म्यापिङ</span>
+              <span class="badge" id="casteStudioPendingBadge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 9999px;">० बाँकी</span>
             </button>
           </div>
 
@@ -10112,7 +10160,7 @@
       window._electionAppInitialized = true;
 
       // Auto cache purging if build changed
-      const CURRENT_APP_BUILD = '20261024-v94-studio-clean-light';
+      const CURRENT_APP_BUILD = '20261024-v95-compact-tabs-and-reset';
       let lastBuild = null; try { lastBuild = localStorage.getItem('election_app_build'); } catch(e) {}
       if (lastBuild && lastBuild !== CURRENT_APP_BUILD) {
         try { try { localStorage.setItem('election_app_build', CURRENT_APP_BUILD); } catch(e) {} } catch(e) {}
